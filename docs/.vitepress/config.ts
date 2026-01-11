@@ -14,7 +14,7 @@ export default defineConfig({
         text: 'Documentation',
         items: [
           { text: 'Overview', link: '/documentation/' },
-          { text: 'Functional', link: '/documentation/functionnal/' },
+          { text: 'Functional', link: '/documentation/functional/' },
           { text: 'Technical', link: '/documentation/technical/' }
         ]
       }
@@ -29,19 +29,17 @@ export default defineConfig({
           ]
         }
       ],
-      '/documentation/functionnal/': [
+      '/documentation/functional/': [
         {
           text: 'Functional Documentation',
           items: [
-            { text: 'Overview', link: '/documentation/functionnal/' },
-            { text: 'Authentication', link: '/documentation/functionnal/1 - Authentication' },
-            { text: 'Connect using OAuth2', link: '/documentation/functionnal/1.1 - Connect using OAuth2' },
-            { text: 'Tokens', link: '/documentation/functionnal/1.1 - Tokens' },
-            { text: 'Authorization', link: '/documentation/functionnal/2 - Authorization' },
-            { text: 'End-User Management', link: '/documentation/functionnal/3 - End-User management' },
-            { text: 'Claims', link: '/documentation/functionnal/3.1 - Claims' },
-            { text: 'Integration', link: '/documentation/functionnal/6 - Integration' },
-            { text: 'Well-known Providers', link: '/documentation/functionnal/6.1 - Well-known providers' }
+            { text: 'Overview', link: '/documentation/functional/' },
+            { text: 'Authentication', link: '/documentation/functional/1 - Authentication' },
+            { text: 'Connect using OAuth2', link: '/documentation/functional/1.1 - Connect using OAuth2' },
+            { text: 'Tokens', link: '/documentation/functional/1.1 - Tokens' },
+            { text: 'Authorization', link: '/documentation/functional/2 - Authorization' },
+            { text: 'End-User Management', link: '/documentation/functional/3 - End-User management' },
+            { text: 'Claims', link: '/documentation/functional/3.1 - Claims' },
           ]
         }
       ],
@@ -51,8 +49,6 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/documentation/technical/' },
             { text: 'Configuration', link: '/documentation/technical/1 - Configuration' },
-            { text: 'APIs', link: '/documentation/technical/2 - APIs' },
-            { text: 'OAuth 2.0', link: '/documentation/technical/2.1 - OAuth 2.0' }
           ]
         }
       ],
@@ -61,7 +57,7 @@ export default defineConfig({
           text: 'Documentation',
           items: [
             { text: 'Overview', link: '/documentation/' },
-            { text: 'Functional', link: '/documentation/functionnal/' },
+            { text: 'Functional', link: '/documentation/functional/' },
             { text: 'Technical', link: '/documentation/technical/' },
           ]
         }
