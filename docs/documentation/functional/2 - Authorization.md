@@ -42,7 +42,7 @@ scope:
   enabled: true
 ```
 
-You can refer to the [configuration](/A-Configuration) to learn more.
+You can refer to the [configuration](/documentation/technical/1%20-%20Configuration) to learn more.
 
 ## Granting scope
 
@@ -54,7 +54,7 @@ SympAuthy has two mechanism to grant or decline scope requested by a user during
 
 Scope granting rules are 
 
-As for client and scope, they are declared in the [Configuration](#/) under ```rules.scopes ``` of the authorization server and looks like following:
+As for client and scope, they are declared in the [Configuration](/documentation/technical/1%20-%20Configuration) under ```rules.scopes ``` of the authorization server and looks like following:
 
 ```
 - scopes:

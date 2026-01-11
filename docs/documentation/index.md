@@ -2,7 +2,7 @@
 
 Welcome to the SympAuthy documentation. This documentation is organized into two main sections:
 
-## [Functional Documentation](functionnal/)
+## [Functional Documentation](functional/)
 
 Learn about the core features and concepts of SympAuthy:
 - **Authentication**: How end-users and applications authenticate
@@ -10,7 +10,7 @@ Learn about the core features and concepts of SympAuthy:
 - **End-User Management**: Account management and claims collection
 - **Integration**: Third-party providers and OAuth2 client setup
 
-[Read Functional Documentation �](functionnal/)
+[Read Functional Documentation �](functional/)
 
 ## [Technical Documentation](technical/)
 

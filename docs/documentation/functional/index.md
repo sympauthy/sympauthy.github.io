@@ -24,7 +24,7 @@ Its main design concepts are:
 
 ## Typography
 
-- ```<param>```: Refers to the value of a configuration parameter. You can find more details about it in the [configuration](/) section of this documentation.
+- ```<param>```: Refers to the value of a configuration parameter. You can find more details about it in the [configuration](/documentation/technical/1%20-%20Configuration) section of this documentation.
 
 ## Table of Contents
 
@@ -34,5 +34,3 @@ Its main design concepts are:
 2. [Authorization](2%20-%20Authorization.md)
 3. [End-User Management](3%20-%20End-User%20management.md)
    - [Claims](3.1%20-%20Claims.md)
-6. [Integration](6%20-%20Integration.md)
-   - [Well-known Providers](6.1%20-%20Well-known%20providers.md)

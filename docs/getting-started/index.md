@@ -63,7 +63,7 @@ SympAuthy relies on [Micronaut R2DBC](https://guides.micronaut.io/latest/microna
 - ```urls.root```: An URL that end-users and clients are able to use to reach the SympAuthy server. This URL will be used as base when redirecting the end-user to an authentication flow.
 - ```client.example.secret```: Provide the secret the OAuth 2 client identified by ```example``` must use to communicate with this authorization server. Simply declaring the secret in the configuration will be enough to register the client. To learn more about the management of client, you can refer to the [Connect using OAuth 2](todo) section of this documentation.
 
-You can pass additional configurations to the server by appending the following to the command: ```-<configuration key>=<value>```. The list of available ```<configuration key>```  is described in details in the [Configuration](#todo) section of this documentation.
+You can pass additional configurations to the server by appending the following to the command: ```-<configuration key>=<value>```. The list of available ```<configuration key>```  is described in details in the [Configuration](/documentation/technical/1%20-%20Configuration) section of this documentation.
 
 ## Test your SympAuthy instance
 
