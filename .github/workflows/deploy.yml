@@ -2,9 +2,9 @@
 name: Deploy VitePress site to Pages
 
 on:
-  # Runs on pushes targeting the default branch
-  push:
-    branches: [main]
+  # Runs every night at midnight UTC
+  schedule:
+    - cron: '0 0 * * *'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -22,8 +22,35 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Check for changes
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      has-changes: ${{ steps.check.outputs.has-changes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for changes in last 24 hours
+        id: check
+        run: |
+          # Get commits from last 24 hours
+          COMMITS=$(git log --since="24 hours ago" --oneline)
+          if [ -n "$COMMITS" ]; then
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+            echo "Changes detected in the last 24 hours:"
+            echo "$COMMITS"
+          else
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+            echo "No changes in the last 24 hours"
+          fi
+
   # Build job
   build:
+    needs: check-changes
+    if: needs.check-changes.outputs.has-changes == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
