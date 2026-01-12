@@ -24,13 +24,13 @@ Its main design concepts are:
 
 ## Typography
 
-- ```<param>```: Refers to the value of a configuration parameter. You can find more details about it in the [configuration](/documentation/technical/1%20-%20Configuration) section of this documentation.
+- ```<param>```: Refers to the value of a configuration parameter. You can find more details about it in the [configuration](/documentation/technical/configuration) section of this documentation.
 
 ## Table of Contents
 
-1. [Authentication](1%20-%20Authentication.md)
-   - [Connect using OAuth2](1.1%20-%20Connect%20using%20OAuth2.md)
-   - [Tokens](1.1%20-%20Tokens.md)
-2. [Authorization](2%20-%20Authorization.md)
-3. [End-User Management](3%20-%20End-User%20management.md)
-   - [Claims](3.1%20-%20Claims.md)
+1. [Authentication](authentication.md)
+   - [Connect using OAuth2](connect_using_oauth2.md)
+   - [Tokens](tokens.md)
+2. [Authorization](authorization.md)
+3. [End-User Management](end-user_management.md)
+   - [Claims](claims.md)

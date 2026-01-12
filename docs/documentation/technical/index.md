@@ -4,5 +4,5 @@ This part of the documentation describes the technical aspects of SympAuthy, lik
 
 ## Table of Contents
 
-1. [Configuration](1%20-%20Configuration.md)
-   - [Well-known providers](1.1%20-%20Well-known%20providers.md)
+1. [Configuration](configuration)
+   - [Well-known providers](well-known_providers)

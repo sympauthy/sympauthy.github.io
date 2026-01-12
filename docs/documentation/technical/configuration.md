@@ -13,7 +13,7 @@ SympAuthy uses [Micronaut Environments](https://docs.micronaut.io/latest/guide/#
 
 - [```default```](https://github.com/sympauthy/sympauthy/blob/main/server/src/main/resources/application-default.yml): Default configuration.
 - [```by-mail```](https://github.com/sympauthy/sympauthy/blob/main/server/src/main/resources/application-by-mail.yml): Allow the end-user to sign-in/sign-up using a login/password with the login being an email address.
-- [Well-known providers](/documentation/technical/1.1%20-%20Well-known%20providers)
+- [Well-known providers](/documentation/technical/well-known_providers)
 
 The micronaut environments you are using can be set using the ```MICRONAUT_ENVIRONMENTS``` environment variable. **ex** ```MICRONAUT_ENVIRONMENTS=default,by-mail,google```
 
@@ -241,7 +241,7 @@ This section holds the configuration of a third-party provider (identified by ``
 
 ## ```rules```
 
-This sections holds the configuration of all [scope granting rules](/documentation/functional/2%20-%20Authorization#scope-granting-rules).
+This sections holds the configuration of all [scope granting rules](/documentation/functional/authorization#scope-granting-rules).
 
 | Key | Type | Description | Required<br>Default |
 | - | -| - | - |

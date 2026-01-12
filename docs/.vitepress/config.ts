@@ -34,12 +34,12 @@ export default defineConfig({
           text: 'Functional Documentation',
           items: [
             { text: 'Overview', link: '/documentation/functional/' },
-            { text: 'Authentication', link: '/documentation/functional/1 - Authentication' },
-            { text: 'Connect using OAuth2', link: '/documentation/functional/1.1 - Connect using OAuth2' },
-            { text: 'Tokens', link: '/documentation/functional/1.1 - Tokens' },
-            { text: 'Authorization', link: '/documentation/functional/2 - Authorization' },
-            { text: 'End-User Management', link: '/documentation/functional/3 - End-User management' },
-            { text: 'Claims', link: '/documentation/functional/3.1 - Claims' },
+            { text: 'Authentication', link: '/documentation/functional/authentication' },
+            { text: 'Tokens', link: '/documentation/functional/tokens' },
+            { text: 'Authorization', link: '/documentation/functional/authorization' },
+            { text: 'End-User Management', link: '/documentation/functional/end-user_management' },
+            { text: 'Claims', link: '/documentation/functional/claims' },
+            { text: 'Connect using OAuth2', link: '/documentation/functional/connect_using_oauth2' },
           ]
         }
       ],
@@ -48,7 +48,7 @@ export default defineConfig({
           text: 'Technical Documentation',
           items: [
             { text: 'Overview', link: '/documentation/technical/' },
-            { text: 'Configuration', link: '/documentation/technical/1 - Configuration' },
+            { text: 'Configuration', link: '/documentation/technical/configuration' },
           ]
         }
       ],

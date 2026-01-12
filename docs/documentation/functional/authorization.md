@@ -42,7 +42,7 @@ scope:
   enabled: true
 ```
 
-You can refer to the [configuration](/documentation/technical/1%20-%20Configuration) to learn more.
+You can refer to the [configuration](/documentation/technical/configuration) to learn more.
 
 ## Granting scope
 
@@ -54,7 +54,7 @@ SympAuthy has two mechanism to grant or decline scope requested by a user during
 
 Scope granting rules are 
 
-As for client and scope, they are declared in the [Configuration](/documentation/technical/1%20-%20Configuration) under ```rules.scopes ``` of the authorization server and looks like following:
+As for client and scope, they are declared in the [Configuration](/documentation/technical/configuration) under ```rules.scopes ``` of the authorization server and looks like following:
 
 ```
 - scopes:
@@ -88,12 +88,3 @@ Scopes granted directly by the API overwrite any scope granting rules.
 ## Debugging
 
 FIXME Provide an API to debug scope.
-
-
-
-<!--stackedit_data:
-eyJoaXN0b3J5IjpbLTE2ODE5NTA1MjUsLTM4NjI0NDAxMywtMz
-U5MDcwNTI3LDEyNzY3NjIwNjksLTM4MDMzOTY0NSwyMTA4Mjcw
-OTQwLC0xMjUwNDk5NzQsLTEwMTk3NjY0ODcsLTIwMDA1MzM1Nz
-csNjUzNjQwNDk1LC04Nzg2NTk1NDMsMzY4MjU0OTgyXX0=
--->
