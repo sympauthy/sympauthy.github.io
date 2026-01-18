@@ -49,6 +49,7 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/documentation/technical/' },
             { text: 'Configuration', link: '/documentation/technical/configuration' },
+            { text: 'OAuth 2.0 & OpenID Compatibility Matrix', link: '/documentation/technical/oauth2_compatibility' },
           ]
         }
       ],

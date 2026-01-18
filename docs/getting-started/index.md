@@ -10,7 +10,17 @@ To run SympAuthy, you will need the following dependencies:
 
 ### Create a database in your PostgreSQL
 
-**FIXME**
+You can create a PostgreSQL database using the [CREATE DATABASE](https://www.postgresql.org/docs/current/sql-createdatabase.html) command:
+``` sql
+CREATE DATABASE <database>;
+```
+
+Or from the command line using [createdb](https://www.postgresql.org/docs/current/app-createdb.html) command:
+``` bash
+createdb <database>
+```
+
+Replace ```<database>``` with your desired database name.
 
 ### Determine you connection string to PostgreSQL
 
@@ -20,7 +30,7 @@ SympAuthy relies on [r2dbc](https://r2dbc.io/) to communicate with its database.
 
 - ```<host>```: Hostname or IP address of the database server.
 - ```<port>```: Port the database server is listening to. By default, PostreSQL uses the port ```5432```.
-- ```<database>```:  Name of the database.
+- ```<database>```: Name of the database.
 
 > The database **MUST** exists before running SympAuthy. Only the content of the database will be created automatically.
 
