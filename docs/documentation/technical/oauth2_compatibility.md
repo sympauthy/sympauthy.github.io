@@ -69,24 +69,24 @@ This document provides an overview of SympAuthy's compatibility with OAuth 2.0 a
 
 ### OAuth 2.0 Endpoints
 
-| Endpoint | Status        | Path |
-|----------|---------------|------|
-| Authorization Endpoint | Supported     | `/api/oauth2/authorize` |
-| Token Endpoint | Supported     | `/api/oauth2/token` |
-| Token Revocation | Not Supported | - |
-| Token Introspection | Not Supported | - |
+| Endpoint | Status        | Path | Reference |
+|----------|---------------|------|-----------|
+| Authorization Endpoint | Supported     | `/api/oauth2/authorize` | [RFC 6749 - section 3.1](https://datatracker.ietf.org/doc/html/rfc6749#section-3.1) |
+| Token Endpoint | Supported     | `/api/oauth2/token` | [RFC 6749 - section 3.2](https://datatracker.ietf.org/doc/html/rfc6749#section-3.2) |
+| Token Revocation | Not Supported | - | [RFC 7009](https://datatracker.ietf.org/doc/html/rfc7009) |
+| Token Introspection | Not Supported | - | [RFC 7662](https://datatracker.ietf.org/doc/html/rfc7662) |
 
 ### OpenID Discovery Endpoints
 
-| Endpoint | Status        | Path |
-|----------|---------------|------|
-| Authorization Endpoint | Supported     | `.well-known/openid-configuration` |
+| Endpoint | Status        | Path | Reference |
+|----------|---------------|------|-----------|
+| Authorization Endpoint | Supported     | `.well-known/openid-configuration` | [OpenID Connect Discovery 1.0](https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig) |
 
 ### OpenID Connect Endpoints
 
-| Endpoint | Status        | Path |
-|----------|---------------|------|
-| UserInfo Endpoint | Supported     | `/api/openid/userinfo` |
+| Endpoint | Status        | Path | Reference |
+|----------|---------------|------|-----------|
+| UserInfo Endpoint | Supported     | `/api/openid/userinfo` | [OpenID Connect Core 1.0 - section 5.3](https://openid.net/specs/openid-connect-core-1_0.html#UserInfo) |
 
 ## Legend
 
