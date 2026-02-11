@@ -17,7 +17,8 @@ export default defineConfig({
           { text: 'Functional', link: '/documentation/functional/' },
           { text: 'Technical', link: '/documentation/technical/' }
         ]
-      }
+      },
+      { text: 'Contributing', link: '/documentation/contributing/' }
     ],
 
     sidebar: {
