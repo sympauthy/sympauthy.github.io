@@ -16,7 +16,8 @@ Learn about the core features and concepts of SympAuthy:
 
 Technical details for configuring and integrating SympAuthy:
 - **Configuration**: YAML/JSON configuration keys and environment variables
-- **APIs**: OAuth 2.0 endpoints and API specifications
+- **APIs**: OAuth 2.0 endpoints and SympAuthy-specific APIs specifications
+- **Compatibility**: OAuth 2.0 & OpenID Compatibility Matrix
 
 [Read Technical Documentation �](technical/)
 
