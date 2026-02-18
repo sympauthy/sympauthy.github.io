@@ -53,7 +53,6 @@ Returns the flow configuration including enabled features, collectable claims, a
       "id": "email",
       "required": true,
       "name": "Email Address",
-      "group": "contact",
       "type": "string"
     }
   ],
@@ -62,8 +61,8 @@ Returns the flow configuration including enabled features, collectable claims, a
     "sign_up": true
   },
   "password": {
-    "login_claims": ["email", "username"],
-    "sign_up_claims": ["email", "password"]
+    "login_claims": ["email"],
+    "sign_up_claims": ["email"]
   },
   "providers": [
     {
