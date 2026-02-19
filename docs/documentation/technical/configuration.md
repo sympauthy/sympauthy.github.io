@@ -1,13 +1,15 @@
 # Configuration
 
-A key concept of SympAuhty is to allow you to deploy a fully configured instance of it without requiring you
+A key concept of SympAuthy is to allow you to deploy a fully configured instance of it without requiring you
 to connect to an interface. Therefore, all the configurations of SympAuthy must be text-based and deployed alongside it.
 
 For this matter, SympAuthy relies on the configuration mechanism
-of [Micronaut](https://docs.micronaut.io/latest/guide/#config). Everything is configurable through the use of:
+of [Micronaut](https://docs.micronaut.io/latest/guide/#config).
+
+Everything is configurable through the use of:
 
 - YAML or JSON configuration files.
-- environment variables
+- environment variables.
 - parameters passed to the binary.
 
 # Micronaut Environments
@@ -42,7 +44,8 @@ The table below provides examples of commonly used keys:
 |-----------------------------|------|-------------------------------------------|---------------------|
 | ```micronaut.server.port``` | int  | TCP port the server will be listening to. | NO<br>```8080```    |
 
-The full list is available in the [Micronaut documentation](https://docs.micronaut.io/latest/guide/configurationreference.html).
+The full list is available in
+the [Micronaut documentation](https://docs.micronaut.io/latest/guide/configurationreference.html).
 
 ## ```advanced```
 
