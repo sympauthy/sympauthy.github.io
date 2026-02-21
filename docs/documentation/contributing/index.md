@@ -7,3 +7,4 @@ The following coding standards are used in the project:
 ### Backend
 
 - [How to throw an exception](backend/how-to-throw-an-exception.md)
+- [How to write a configuration](backend/how-to-write-a-configuration)

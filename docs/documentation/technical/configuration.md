@@ -204,8 +204,8 @@ This section holds configuration related to features that can be enabled or disa
 
 | Key                                        | Type    | Description                                                                                                                               | Required<br>Default |
 |--------------------------------------------|---------|-------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```allow-access-to-client-without-scope``` | boolean | Allow the end-user to be redirected back to the client application even when none of the requested authorization scopes have been granted | **YES**             |
-| ```email-validation```                     | boolean | Enforce the validation of the end-user's emails. A SMTP must be configured (see [javamail](#javamail)) to enable this feature.            | **YES**             |
+| ```allow-access-to-client-without-scope``` | boolean | Allow the end-user to be redirected back to the client application even when none of the requested authorization scopes have been granted | NO<br>```false```   |
+| ```email-validation```                     | boolean | Enforce the validation of the end-user's emails. A SMTP must be configured (see [javamail](#javamail)) to enable this feature.            | NO<br>```false```   |
 
 ## ```flows.<id>```
 
