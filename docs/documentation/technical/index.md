@@ -40,14 +40,14 @@ experience. All endpoints are under `/api/v1/flow/`:
 
 The Flow API uses state-based session management and a redirect-driven pattern where each step returns a `redirect_url`
 to guide flow progression. Steps can auto-skip when no user interaction is required.
-See [How to use Flow API to write a custom flow](writing_a_custom_flow) for detailed documentation.
+See the [Flow API](flow_api) documentation for detailed information on all available endpoints.
 
 ### 3. Client API
 
 Endpoints allowing client applications to query the authorization server for information about end-users. This API
-enables client applications to retrieve user data and manage user sessions.
+enables client applications to retrieve user data and manage user sessions. All endpoints require client authentication.
 
-*Documentation coming soon.*
+See the [Client API](client_api) documentation for detailed information on available endpoints.
 
 ### 4. Admin API
 

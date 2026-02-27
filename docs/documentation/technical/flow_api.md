@@ -1,6 +1,4 @@
-# Writing a custom flow
-
-## Flow API
+# Flow API
 
 The Flow API provides a set of endpoints to implement custom authentication flows. Each endpoint represents a step in the authentication process and follows consistent patterns for state management, error handling, and flow progression.
 

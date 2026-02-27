@@ -51,6 +51,8 @@ export default defineConfig({
             { text: 'Overview', link: '/documentation/technical/' },
             { text: 'Configuration', link: '/documentation/technical/configuration' },
             { text: 'OAuth 2.0 & OpenID Compatibility Matrix', link: '/documentation/technical/oauth2_compatibility' },
+            { text: 'Flow API', link: '/documentation/technical/flow_api' },
+            { text: 'Client API', link: '/documentation/technical/client_api' },
           ]
         }
       ],
