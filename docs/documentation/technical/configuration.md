@@ -168,11 +168,11 @@ This section holds configuration that will change the general behavior of the se
 
 ## ```auth```
 
-| Key            | Type   | Description                                                                                                                                                          | Required<br>Default      |
-|----------------|--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------|
-| ```issuer```   | string | [Issuer](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.1) of each JWT tokens issued by this app.                                                         | YES<br>```<urls.root>``` |
-| ```audience``` | string | [Audience](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3) of the JWT tokens issued for end-user authentication (ex. OAuth2 access and refresh tokens). | NO                       |
-| ```token```    | object | Configuration related to authentication tokens issued by this app. See [auth.token](#auth.token) for more details.                                                   | NO                       |
+| Key            | Type   | Description                                                                                                                                                                                                                                                                                                                                    | Required<br>Default      |
+|----------------|--------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------|
+| ```issuer```   | string | The public URL of this authorization server, embedded as the [`iss`](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.1) claim in every JWT token it issues. Clients use it to verify that a token was issued by the expected server and to discover the OpenID Connect configuration at `<issuer>/.well-known/openid-configuration`. | YES<br>```<urls.root>``` |
+| ```audience``` | string | [Audience](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3) of the JWT tokens issued for end-user authentication (ex. OAuth2 access and refresh tokens).                                                                                                                                                                           | NO                       |
+| ```token```    | object | Configuration related to authentication tokens issued by this app. See [auth.token](#auth.token) for more details.                                                                                                                                                                                                                             | NO                       |
 
 ### ```auth.token```
 

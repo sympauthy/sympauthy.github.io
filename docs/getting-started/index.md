@@ -149,16 +149,24 @@ Let's break down the previous command in parts to help you understand how it wor
 
 ##### Configure the database
 
-SympAuthy relies on [Micronaut R2DBC](https://guides.micronaut.io/latest/micronaut-data-r2dbc-repository-gradle-java.html) to communicate with the database.
+SympAuthy relies
+on [Micronaut R2DBC](https://guides.micronaut.io/latest/micronaut-data-r2dbc-repository-gradle-java.html) to communicate
+with the database.
 
 - ```r2dbc.datasources.default.url```: The connection string locating the database that SympAuthy will use.
 - ```r2dbc.datasources.default.username```: The username to identify to the database.
 - ```r2dbc.datasources.default.password```: The password to identify to the database. It can be omitted if your database
   does not require a password.
 
+:::info
+Read more under
+:::
+
 ##### Configure the authorization server
 
-- ``````
+- ```auth.issuer```: The public URL of this authorization server, embedded as the `iss` claim in every JWT token it
+  issues. Clients use it to verify that a token was issued by the expected server and to discover the OpenID Connect
+  configuration at `<issuer>/.well-known/openid-configuration`.
 - ```urls.root```: An URL that end-users and clients are able to use to reach the SympAuthy server. This URL will be
   used as base when redirecting the end-user to an authentication flow.
 - ```client.example.secret```: Provide the secret the OAuth 2 client identified by ```example``` must use to communicate
