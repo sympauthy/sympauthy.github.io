@@ -181,7 +181,7 @@ like [OAuth Debugger](https://oauthdebugger.com/).
 
 1. Go to [https://oauthdebugger.com/](https://oauthdebugger.com/)
 2. Fill in the following fields:
-    - **Authorize URI**: `http://localhost:8080/oauth2/authorize`
+    - **Authorize URI**: `http://localhost:8080/api/oauth2/authorize`
     - **Client ID**: `example`
     - **Scope**: Leave empty or use `openid profile email`
     - **Response Type**: `code`
