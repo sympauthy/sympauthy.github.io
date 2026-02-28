@@ -194,9 +194,16 @@ This confirms that your SympAuthy instance is running correctly and can handle O
 
 ## Cleanup
 
-Kill (Ctrl + C) your instance of SympAuthy then run the following methods to kill PostgreSQL:
+1. Stop the SympAuthy container by pressing `Ctrl + C` in the terminal where it is running.
+
+2. Stop and remove the PostgreSQL container:
 
 ```bash
-docker kill sympauthy-postgres
-docker rm sympauthy-postgres
+docker rm -f sympauthy-postgres
+```
+
+3. Remove the Docker network:
+
+```bash
+docker network rm sympauthy-network
 ```
