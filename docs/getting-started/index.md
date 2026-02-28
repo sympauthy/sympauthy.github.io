@@ -134,10 +134,15 @@ docker run -ti -p 8080:8080 \
   -clients.example.secret=example_secret
 ```
 
-After the server has started, you should see the following line in the log indicating the server is properly configured:
+After the server has started, you should see the following lines in the log indicating the server is properly
+configured:
 
 ```
-XX:XX:XX.XXX [scheduled-executor-thread-X] INFO ConfigReadinessIndicator - No error detected in the configuration.
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - SympAuthy is ready and has found the following elements in its configuration:
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - 0 claim(s).
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - 6 scope(s).
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - 1 client(s).
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - 0 rule(s).
 ```
 
 The server should be available on port ```8080```. You can verify the server is up and running by accessing to the API
@@ -149,18 +154,9 @@ Let's break down the previous command in parts to help you understand how it wor
 
 ##### Configure the database
 
-SympAuthy relies
-on [Micronaut R2DBC](https://guides.micronaut.io/latest/micronaut-data-r2dbc-repository-gradle-java.html) to communicate
-with the database.
-
-- ```r2dbc.datasources.default.url```: The connection string locating the database that SympAuthy will use.
-- ```r2dbc.datasources.default.username```: The username to identify to the database.
-- ```r2dbc.datasources.default.password```: The password to identify to the database. It can be omitted if your database
-  does not require a password.
-
-:::info
-Read more under
-:::
+These parameters tell SympAuthy where to find and how to authenticate to its PostgreSQL database.
+For the full list of supported databases and configuration options, see
+the [r2dbc configuration](/documentation/technical/configuration#r2dbc).
 
 ##### Configure the authorization server
 
@@ -195,3 +191,12 @@ like [OAuth Debugger](https://oauthdebugger.com/).
 5. After successful authentication, you will be redirected back to OAuth Debugger with an authorization code
 
 This confirms that your SympAuthy instance is running correctly and can handle OAuth 2.0 authentication flows.
+
+## Cleanup
+
+Kill (Ctrl + C) your instance of SympAuthy then run the following methods to kill PostgreSQL:
+
+```bash
+docker kill sympauthy-postgres
+docker rm sympauthy-postgres
+```
