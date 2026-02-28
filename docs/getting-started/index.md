@@ -146,7 +146,7 @@ XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - 0 rule(s).
 ```
 
 The server should be available on port ```8080```. You can verify the server is up and running by accessing to the API
-documentation of the server at: ```http://localhost:8080/swagger```.
+documentation of the server at: ```http://localhost:8080/swagger-ui```.
 
 #### Breaking down the command
 
