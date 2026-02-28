@@ -18,15 +18,16 @@ SympAuthy uses [Micronaut Environments](https://docs.micronaut.io/latest/guide/#
 well-crafted configurations out-of-the-box.
 
 - [```default```](https://github.com/sympauthy/sympauthy/blob/main/server/src/main/resources/application-default.yml):
-  Default configuration.
+  Configure every configuration keys listed below with the value indicated in the **Default** column of the table.
+  It does not enable any feature that is considered unsecure.
 - [```by-mail```](https://github.com/sympauthy/sympauthy/blob/main/server/src/main/resources/application-by-mail.yml):
   Allow the end-user to sign in/sign-up using a login/password with the login being an email address.
-- [Well-known providers](/documentation/technical/well-known_providers)
+- [Well-known providers](/documentation/technical/well-known_providers):
+  Pre-built configurations for common third-party providers (Google, Discord, etc.). Activating one by its environment
+  name automatically configures the OAuth2 URLs, scopes, and claim mappings for that provider.
 
 The micronaut environments you are using can be set using the ```MICRONAUT_ENVIRONMENTS``` environment variable.
 **ex** ```MICRONAUT_ENVIRONMENTS=default,by-mail,google```
-
-> The ```default``` configuration is recommended if you want to use SympAuthy out-of-the-box.
 
 # Configuration keys
 
@@ -46,6 +47,88 @@ The table below provides examples of commonly used keys:
 
 The full list is available in
 the [Micronaut documentation](https://docs.micronaut.io/latest/guide/configurationreference.html).
+
+## ```r2dbc```
+
+This authorization server accesses its database through
+[Micronaut R2DBC](https://micronaut-projects.github.io/micronaut-r2dbc/6.2.0/guide/).
+
+The database **must exist** before starting SympAuthy. Only the schema (tables, indexes, etc.) is created
+automatically on first startup.
+
+### ```r2dbc.datasources.default```
+
+| Key            | Type   | Description                                    | Required<br>Default |
+|----------------|--------|------------------------------------------------|---------------------|
+| ```url```      | string | R2DBC connection URL to the database.          | **YES**             |
+| ```username``` | string | Username used to authenticate to the database. | **YES**             |
+| ```password``` | string | Password used to authenticate to the database. | NO                  |
+
+### Supported databases
+
+#### PostgreSQL
+
+```yaml
+r2dbc:
+  datasources:
+    default:
+      url: r2dbc:postgresql://<host>:<port>/<database>
+      username: <username>
+      password: <password>
+```
+
+#### H2 (in-memory, for development only)
+
+```yaml
+r2dbc:
+  datasources:
+    default:
+      url: r2dbc:h2:mem:///sympauthy
+```
+
+## ```javamail```
+
+This authorization server can email a user through the use
+of [Micronaut Email](https://micronaut-projects.github.io/micronaut-email/latest/guide/).
+
+The SMTP client implementation was chosen because it can be easily integrated with the most commonly used mailing
+solutions on the market:
+
+- [Amazon Simple Email Service](https://docs.aws.amazon.com/en_us/ses/latest/dg/send-email-smtp.html).
+- [Sendgrid](https://www.twilio.com/docs/sendgrid/for-developers/sending-email/integrating-with-the-smtp-api).
+- etc.
+
+| Key                  | Type    | Description                                                                                                                                                                                                   | Required<br>Default |
+|----------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
+| ```enabled```        | boolean | Set to ```true``` to enable sending emails. If mails are enable but the configuration is missing, it will fail to start with the following message: *JavaMail configuration does not contain any properties.* | NO                  |
+| ```authentication``` | object  | Contains the username and the password to authenticate to the SMTP server.                                                                                                                                    | NO                  |
+| ```properties```     | object  | Configuration of the SMTP library using its [properties](https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html#properties).              | **YES**             |
+
+**Example**:
+
+```yaml
+javamail:
+  enabled: true
+  authentication:
+    username: username
+    password: password
+  properties:
+    mail:
+      from: noreply@example.com
+      smtp:
+        host: ssl.smtp.example.com
+        port: 465
+        ssl:
+          enable: true
+```
+
+### ```javamail.authentication```
+
+| Key                         | Type         | Description                                                                                                                                                                                                | Required<br>Default |
+|-----------------------------|--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
+| ```<id>```                  | string       | Uniq identifier of the client.                                                                                                                                                                             | **YES**             |
+| ```secret```                | string       | A secret shared between the client and the authorization server.                                                                                                                                           | **YES**             |
+| ```allowed-redirect-uris``` | array of URL | A list of URLs where the client is allowed to ask the redirection of the end-user at the end of the OAuth2 authorize grant flow. See [this section](#clients.<id>.allowed-redirect-uris) for more details. | NO                  |
 
 ## ```advanced```
 
@@ -153,50 +236,6 @@ authorization server.
 
 If the list is empty, the client will be authorized to use any redirect uri. It is **RECOMMENDED** to configure a list
 for production environment to avoid known attacks.
-
-## ```javamail```
-
-This authorization server can email a user through the use
-of [Micronaut Email](https://micronaut-projects.github.io/micronaut-email/latest/guide/).
-
-The SMTP client implementation was chosen because it can be easily integrated with the most commonly used mailing
-solutions on the market:
-
-- [Amazon Simple Email Service](https://docs.aws.amazon.com/en_us/ses/latest/dg/send-email-smtp.html).
-- [Sendgrid](https://www.twilio.com/docs/sendgrid/for-developers/sending-email/integrating-with-the-smtp-api).
-- etc.
-
-| Key                  | Type    | Description                                                                                                                                                                                                   | Required<br>Default |
-|----------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```enabled```        | boolean | Set to ```true``` to enable sending emails. If mails are enable but the configuration is missing, it will fail to start with the following message: *JavaMail configuration does not contain any properties.* | NO                  |
-| ```authentication``` | object  | Contains the username and the password to authenticate to the SMTP server.                                                                                                                                    | NO                  |
-| ```properties```     | object  | Configuration of the SMTP library using its [properties](https://eclipse-ee4j.github.io/angus-mail/docs/api/org.eclipse.angus.mail/org/eclipse/angus/mail/smtp/package-summary.html#properties).              | **YES**             |
-
-**Example**:
-
-```yaml
-javamail:
-  enabled: true
-  authentication:
-    username: username
-    password: password
-  properties:
-    mail:
-      from: noreply@example.com
-      smtp:
-        host: ssl.smtp.example.com
-        port: 465
-        ssl:
-          enable: true
-```
-
-### ```javamail.authentication```
-
-| Key                         | Type         | Description                                                                                                                                                                                                | Required<br>Default |
-|-----------------------------|--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```<id>```                  | string       | Uniq identifier of the client.                                                                                                                                                                             | **YES**             |
-| ```secret```                | string       | A secret shared between the client and the authorization server.                                                                                                                                           | **YES**             |
-| ```allowed-redirect-uris``` | array of URL | A list of URLs where the client is allowed to ask the redirection of the end-user at the end of the OAuth2 authorize grant flow. See [this section](#clients.<id>.allowed-redirect-uris) for more details. | NO                  |
 
 ## ```features```
 

@@ -1,49 +1,135 @@
 # Getting started
 
+In this quickstart guide, you will learn how to run SympAuthy locally using Docker and connect to it using OAuth 2.
+
+In order to make this guide works on Windows, macOS and Linux, we will run both
+the SympAuthy server and the PostgreSQL in a Docker container.
+
 ## Requirements
 
-To run SympAuthy, you will need the following dependencies:
-- [Docker](https://www.docker.com/)
-- [PostgreSQL](https://www.postgresql.org/) >= 18 (SympAuthy requires support of [UUIDv7](https://www.thenile.dev/blog/uuidv7))
+To follow this guide, you will need Docker installed on your machine.
 
-## Running SympAuthy locally using Docker
+### Windows
 
-### Create a database in your PostgreSQL
+Download and install [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/).
 
-You can create a PostgreSQL database using the [CREATE DATABASE](https://www.postgresql.org/docs/current/sql-createdatabase.html) command:
-``` sql
-CREATE DATABASE <database>;
+**System Requirements:**
+
+- Windows 10 64-bit: Pro, Enterprise, or Education (Build 19041 or higher)
+- Windows 11 64-bit
+- WSL 2 backend enabled (recommended)
+- Hyper-V and Containers Windows features must be enabled
+
+### macOS
+
+Download and install [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop/).
+
+**System Requirements:**
+
+- macOS 11 or newer
+- Apple Silicon (M1/M2/M3) or Intel processor
+
+Alternatively, you can install Docker using [Homebrew](https://brew.sh/):
+
+```bash
+brew install --cask docker
 ```
 
-Or from the command line using [createdb](https://www.postgresql.org/docs/current/app-createdb.html) command:
-``` bash
-createdb <database>
+### Linux
+
+#### Ubuntu / Debian
+
+```bash
+sudo apt-get update
+sudo apt-get install docker.io docker-compose
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker $USER
 ```
 
-Replace ```<database>``` with your desired database name.
+After running these commands, log out and log back in for the group changes to take effect.
 
-### Determine you connection string to PostgreSQL
+#### Fedora / RHEL / CentOS
 
-SympAuthy relies on [r2dbc](https://r2dbc.io/) to communicate with its database.
+```bash
+sudo dnf install docker docker-compose
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker $USER
+```
 
-```r2dbc:postgresql://<host>:<port>/<database>```
+#### Arch Linux
 
-- ```<host>```: Hostname or IP address of the database server.
-- ```<port>```: Port the database server is listening to. By default, PostreSQL uses the port ```5432```.
-- ```<database>```: Name of the database.
+```bash
+sudo pacman -S docker docker-compose
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker $USER
+```
 
-> The database **MUST** exists before running SympAuthy. Only the content of the database will be created automatically.
+#### Other Distributions
+
+For other Linux distributions, refer to
+the [official Docker installation guide](https://docs.docker.com/engine/install/).
+
+## Running PostgreSQL and preparing the database
+
+First, create a dedicated Docker network so the PostgreSQL and SympAuthy containers can communicate with each other:
+
+```bash
+docker network create sympauthy-network
+```
+
+Then, start the PostgreSQL container and attach it to that network:
+
+```bash
+docker run -d \
+  --name sympauthy-postgres \
+  --network sympauthy-network \
+  -e POSTGRES_USER=sympauthy_pg_user \
+  -e POSTGRES_PASSWORD=sympauthy_pg_password \
+  -e POSTGRES_DB=getting_started_with_sympauthy \
+  postgres:17
+```
+
+This command:
+
+- Starts a PostgreSQL 17 container in the background (`-d`)
+- Attaches the container to the `sympauthy-network` network, making it reachable by other containers on that network
+  using the hostname `sympauthy-postgres`
+- Creates a user `sympauthy_pg_user` with password `sympauthy_pg_password`
+- Creates a database `getting_started_with_sympauthy` owned by that user
+
+Wait a few seconds for PostgreSQL to finish starting up. You can verify it is ready by running:
+
+```bash
+docker exec sympauthy-postgres pg_isready -U sympauthy
+```
+
+You should see:
+
+```
+/var/run/postgresql:5432 - accepting connections
+```
+
+> The database **MUST** exist before running SympAuthy. Only the content (tables, indexes, etc.) will be created
+> automatically by SympAuthy on first startup.
+
+## Running SympAuthy locally
 
 ### Running SympAuthy
 
-Replace the following command to start the latest version of SympAuthy in your Docker:
+Run the following command to start the latest version of SympAuthy in your Docker:
 
 ```bash
 docker run -ti -p 8080:8080 \
-  ghcr.io/sympauthy/sympauthy:latest-nightly \
-  -r2dbc.datasources.default.url=r2dbc:postgresql://host.docker.internal:5432/<database> \
-  -r2dbc.datasources.default.username=<username> \
-  -r2dbc.datasources.default.password=<password> \
+  --network sympauthy-network \
+  -e MICRONAUT_ENVIRONMENTS=default \
+  ghcr.io/sympauthy/sympauthy-nightly:latest \
+  -r2dbc.datasources.default.url=r2dbc:postgresql://sympauthy-postgres:5432/getting_started_with_sympauthy \
+  -r2dbc.datasources.default.username=sympauthy_pg_user \
+  -r2dbc.datasources.default.password=sympauthy_pg_password \
+  -auth.issuer=http://localhost:8080 \
   -urls.root=http://localhost:8080 \
   -clients.example.secret=example_secret
 ```
@@ -54,11 +140,12 @@ After the server has started, you should see the following line in the log indic
 XX:XX:XX.XXX [scheduled-executor-thread-X] INFO ConfigReadinessIndicator - No error detected in the configuration.
 ```
 
-The server should be available on port ```8080```. You can verify the server is up and running by accessing to the API documentation of the server at: ```http://localhost:8080/swagger```.
+The server should be available on port ```8080```. You can verify the server is up and running by accessing to the API
+documentation of the server at: ```http://localhost:8080/swagger```.
 
 #### Breaking down the command
 
-Let break down the previous command in part to help you understand how it works:
+Let's break down the previous command in parts to help you understand how it works:
 
 ##### Configure the database
 
@@ -66,24 +153,37 @@ SympAuthy relies on [Micronaut R2DBC](https://guides.micronaut.io/latest/microna
 
 - ```r2dbc.datasources.default.url```: The connection string locating the database that SympAuthy will use.
 - ```r2dbc.datasources.default.username```: The username to identify to the database.
-- ```r2dbc.datasources.default.password```: The password to identify to the database. It can be omitted if your database does not require a password.
+- ```r2dbc.datasources.default.password```: The password to identify to the database. It can be omitted if your database
+  does not require a password.
 
 ##### Configure the authorization server
 
-- ```urls.root```: An URL that end-users and clients are able to use to reach the SympAuthy server. This URL will be used as base when redirecting the end-user to an authentication flow.
-- ```client.example.secret```: Provide the secret the OAuth 2 client identified by ```example``` must use to communicate with this authorization server. Simply declaring the secret in the configuration will be enough to register the client. To learn more about the management of client, you can refer to the [Connect using OAuth 2](/documentation/functional/connect_using_oauth2) section of this documentation.
+- ``````
+- ```urls.root```: An URL that end-users and clients are able to use to reach the SympAuthy server. This URL will be
+  used as base when redirecting the end-user to an authentication flow.
+- ```client.example.secret```: Provide the secret the OAuth 2 client identified by ```example``` must use to communicate
+  with this authorization server. Simply declaring the secret in the configuration will be enough to register the
+  client. To learn more about the management of client, you can refer to
+  the [Connect using OAuth 2](/documentation/functional/connect_using_oauth2) section of this documentation.
 
-You can pass additional configurations to the server by appending the following to the command: ```-<configuration key>=<value>```. The list of available ```<configuration key>```  is described in details in the [Configuration](/documentation/technical/configuration) section of this documentation.
+You can pass additional configurations to the server by appending the following to the command:
+```-<configuration key>=<value>```. The list of available ```<configuration key>```  is described in details in
+the [Configuration](/documentation/technical/configuration) section of this documentation.
 
 ## Test your SympAuthy instance
 
-To simulate an application requiring authentication of one of its end-user, we can use an online service like [OAuth Debugger](https://oauthdebugger.com/).
+To simulate an application requiring authentication of one of its end-users, you can use an online service
+like [OAuth Debugger](https://oauthdebugger.com/).
 
+1. Go to [https://oauthdebugger.com/](https://oauthdebugger.com/)
+2. Fill in the following fields:
+    - **Authorize URI**: `http://localhost:8080/oauth2/authorize`
+    - **Client ID**: `example`
+    - **Scope**: Leave empty or use `openid profile email`
+    - **Response Type**: `code`
+    - **Response Mode**: `form_post`
+3. Click **Send Request**
+4. You will be redirected to the SympAuthy authentication page where you can create an account or sign in
+5. After successful authentication, you will be redirected back to OAuth Debugger with an authorization code
 
-
-
-
-
-<!--stackedit_data:
-eyJoaXN0b3J5IjpbLTEzMjAzODExODIsMzk2ODA4MjZdfQ==
--->
+This confirms that your SympAuthy instance is running correctly and can handle OAuth 2.0 authentication flows.
