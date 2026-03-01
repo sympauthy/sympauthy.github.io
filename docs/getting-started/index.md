@@ -103,7 +103,7 @@ This command:
 Wait a few seconds for PostgreSQL to finish starting up. You can verify it is ready by running:
 
 ```bash
-docker exec sympauthy-postgres pg_isready -U sympauthy
+docker exec sympauthy-postgres pg_isready -U sympauthy_pg_user
 ```
 
 You should see:
@@ -165,7 +165,7 @@ the [r2dbc configuration](/documentation/technical/configuration#r2dbc).
   configuration at `<issuer>/.well-known/openid-configuration`.
 - ```urls.root```: An URL that end-users and clients are able to use to reach the SympAuthy server. This URL will be
   used as base when redirecting the end-user to an authentication flow.
-- ```client.example.secret```: Provide the secret the OAuth 2 client identified by ```example``` must use to communicate
+- ```clients.example.secret```: Provide the secret the OAuth 2 client identified by ```example``` must use to communicate
   with this authorization server. Simply declaring the secret in the configuration will be enough to register the
   client. To learn more about the management of client, you can refer to
   the [Connect using OAuth 2](/documentation/functional/connect_using_oauth2) section of this documentation.
