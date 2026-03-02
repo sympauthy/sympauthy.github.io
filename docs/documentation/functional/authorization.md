@@ -4,10 +4,17 @@ SympAuthy manages authorization by controlling [scopes](#scope) that will be inc
 
 ## Scope
 
-Scopes fulfill two roles in the authorization process of SympAuthy:
+A **scope** is a named permission. When a client application requests access on behalf of a user, it declares which
+scopes it needs — for example, the right to read the user's email address, or access to a premium feature. SympAuthy
+decides whether to grant those scopes based on who the user is and the rules you have configured.
 
-- as stated on the OAuth 2 specifications, they limit the user information accessible by the client.
-- they represent authorizations granted by SympAuthy.
+Concretely, the scopes granted to a user are recorded inside the tokens SympAuthy issues. The client reads them to
+decide what the user is allowed to see or do.
+
+Scopes fulfill two roles in SympAuthy:
+
+- as stated in the OAuth 2 specification, they limit which user information is accessible by the client.
+- they represent authorizations granted by SympAuthy to the user for a given client.
 
 SympAuthy handles two kinds of scopes:
 
