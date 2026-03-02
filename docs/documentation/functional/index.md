@@ -14,24 +14,17 @@ Its main design concepts are:
 - **easy to configure**: all the configuration can be done through configuration files or environment variables.
 - **easy to deploy**: you are able to deploy your own instances of SympAuthy in your infrastructure in a matter of minutes.
 
-## Terminology
-
-- **authorization server**: The server issuing access tokens to the client after successfully authenticating the resource owner and obtaining authorization.
-- **claim**: A piece of information collected on the end-user. They can be collected by this authorization server, transmitted by a client or obtained from a third-party provider.
-- **client**: A software requiring authentication to protect its resources.
-- **end-user**: A person trying to access protected resources of the client and requiring an authorization.
-- **provider**: A trusted third-party service able to authenticate the user.
-
 ## Typography
 
 - ```<param>```: Refers to the value of a configuration parameter. You can find more details about it in the [configuration](/documentation/technical/configuration) section of this documentation.
 
 ## Table of Contents
 
-1. [Client](client)
-2. [Authentication](authentication.md)
+1. [How it works](how_it_works)
+2. [Client](client)
+3. [Authentication](authentication.md)
    - [Interactive Flow](interactive_flow)
    - [Tokens](tokens)
-3. [Claims](claims)
-4. [Authorization](authorization)
-5. [End-User Management](end-user_management)
+4. [Claims](claims)
+5. [Authorization](authorization)
+6. [End-User Management](end-user_management)

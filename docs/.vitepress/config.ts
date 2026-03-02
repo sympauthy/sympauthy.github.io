@@ -35,6 +35,7 @@ export default defineConfig({
           text: 'Functional Documentation',
           items: [
             { text: 'Overview', link: '/documentation/functional/' },
+            { text: 'How it works', link: '/documentation/functional/how_it_works' },
             { text: 'Authentication', link: '/documentation/functional/authentication' },
             { text: 'Tokens', link: '/documentation/functional/tokens' },
             { text: 'Claims', link: '/documentation/functional/claims' },
