@@ -103,6 +103,30 @@ ever added.
 OPTIONS preflight requests from an allowed origin are short-circuited with a `200` response before the authentication
 filter runs, so browsers receive the necessary permission headers even for endpoints that require a token.
 
+## CSRF protection on flow POST endpoints
+
+The Flow API uses a JWT-encoded state token to protect against cross-site request forgery. When an authorization request
+is received, SympAuthy generates a signed JWT (containing the `AuthorizeAttempt` ID) and passes it through all flow
+redirect URIs as the `state` query parameter. This token is required on every subsequent flow request.
+
+For GET requests (page navigation and initial data fetching), the state is read from the `?state=` URL query parameter.
+This is necessary because browsers follow server-side redirects and single-page applications need to read the state on
+page load.
+
+For POST requests (form submissions, user actions), the state must be sent in the `Authorization` header using the
+custom `State` scheme:
+
+```http
+Authorization: State <jwt>
+```
+
+This distinction provides true CSRF protection for POST requests. A custom `Authorization` header cannot be sent in a
+cross-origin request without triggering a CORS preflight. Combined with the
+strict [CORS policy](#cors-restriction-on-the-flow-api) that only allows origins derived from registered flow URIs, a
+forged cross-origin POST cannot carry a valid state header and is rejected before it reaches the application.
+
+See the [Flow API](flow_api#state-management) page for a description of how to pass the state in practice.
+
 ## Redirect URI validation
 
 After authentication, SympAuthy redirects the user back to the client application. Without restriction, an attacker
