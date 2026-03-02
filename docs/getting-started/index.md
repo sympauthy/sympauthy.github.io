@@ -168,7 +168,7 @@ the [r2dbc configuration](/documentation/technical/configuration#r2dbc).
 - ```clients.example.secret```: Provide the secret the OAuth 2 client identified by ```example``` must use to communicate
   with this authorization server. Simply declaring the secret in the configuration will be enough to register the
   client. To learn more about the management of client, you can refer to
-  the [Connect using OAuth 2](/documentation/functional/connect_using_oauth2) section of this documentation.
+  the [Client](/documentation/functional/client) section of this documentation.
 
 You can pass additional configurations to the server by appending the following to the command:
 ```-<configuration key>=<value>```. The list of available ```<configuration key>```  is described in details in

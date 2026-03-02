@@ -28,10 +28,10 @@ Its main design concepts are:
 
 ## Table of Contents
 
-1. [Authentication](authentication.md)
-   - [Connect using OAuth2](connect_using_oauth2)
+1. [Client](client)
+2. [Authentication](authentication.md)
    - [Interactive Flow](interactive_flow)
    - [Tokens](tokens)
-2. [Authorization](authorization)
-3. [End-User Management](end-user_management)
+3. [Authorization](authorization)
+4. [End-User Management](end-user_management)
    - [Claims](claims)
