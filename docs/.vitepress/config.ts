@@ -41,6 +41,7 @@ export default defineConfig({
             { text: 'End-User Management', link: '/documentation/functional/end-user_management' },
             { text: 'Claims', link: '/documentation/functional/claims' },
             { text: 'Connect using OAuth2', link: '/documentation/functional/connect_using_oauth2' },
+            { text: 'Interactive Flow', link: '/documentation/functional/interactive_flow' },
           ]
         }
       ],

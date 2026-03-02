@@ -29,8 +29,9 @@ Its main design concepts are:
 ## Table of Contents
 
 1. [Authentication](authentication.md)
-   - [Connect using OAuth2](connect_using_oauth2.md)
-   - [Tokens](tokens.md)
-2. [Authorization](authorization.md)
-3. [End-User Management](end-user_management.md)
-   - [Claims](claims.md)
+   - [Connect using OAuth2](connect_using_oauth2)
+   - [Interactive Flow](interactive_flow)
+   - [Tokens](tokens)
+2. [Authorization](authorization)
+3. [End-User Management](end-user_management)
+   - [Claims](claims)
