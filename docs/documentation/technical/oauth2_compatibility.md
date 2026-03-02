@@ -73,7 +73,7 @@ This document provides an overview of SympAuthy's compatibility with OAuth 2.0 a
 |------------------------|---------------|-------------------------|-------------------------------------------------------------------------------------|
 | Authorization Endpoint | Supported     | `/api/oauth2/authorize` | [RFC 6749 - section 3.1](https://datatracker.ietf.org/doc/html/rfc6749#section-3.1) |
 | Token Endpoint         | Supported     | `/api/oauth2/token`     | [RFC 6749 - section 3.2](https://datatracker.ietf.org/doc/html/rfc6749#section-3.2) |
-| Token Revocation       | Not Supported | -                       | [RFC 7009](https://datatracker.ietf.org/doc/html/rfc7009)                           |
+| Token Revocation       | Supported     | `/api/oauth2/revoke`    | [RFC 7009](https://datatracker.ietf.org/doc/html/rfc7009)                           |
 | Token Introspection    | Not Supported | -                       | [RFC 7662](https://datatracker.ietf.org/doc/html/rfc7662)                           |
 
 ### OpenID Discovery Endpoints
