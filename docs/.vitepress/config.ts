@@ -37,9 +37,9 @@ export default defineConfig({
             { text: 'Overview', link: '/documentation/functional/' },
             { text: 'Authentication', link: '/documentation/functional/authentication' },
             { text: 'Tokens', link: '/documentation/functional/tokens' },
+            { text: 'Claims', link: '/documentation/functional/claims' },
             { text: 'Authorization', link: '/documentation/functional/authorization' },
             { text: 'End-User Management', link: '/documentation/functional/end-user_management' },
-            { text: 'Claims', link: '/documentation/functional/claims' },
             { text: 'Client', link: '/documentation/functional/client' },
             { text: 'Interactive Flow', link: '/documentation/functional/interactive_flow' },
           ]
