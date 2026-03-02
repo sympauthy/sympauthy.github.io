@@ -256,9 +256,9 @@ includes a complete [authentication flow](https://github.com/sympauthy/sympauthy
 
 The flow may be completely customized and served by a completely different server than the authorization server.
 
-:::details
-All the domains listed in this configuration will automatically be added to the CORS for the flow API.
-:::
+> SympAuthy derives the allowed CORS origins for the Flow API (`/api/v1/flow/**`) from the URIs declared here. For each
+> URI, the origin (`scheme://host:port`) is extracted and whitelisted. Requests from any other origin are refused. See
+> the [Security](security#cors-restriction-on-the-flow-api) documentation for details.
 
 | Key           | Type | Description                                                                                                           | Required<br>Default |
 |---------------|------|-----------------------------------------------------------------------------------------------------------------------|---------------------|

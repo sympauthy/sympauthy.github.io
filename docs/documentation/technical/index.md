@@ -2,6 +2,12 @@
 
 This part of the documentation describes the technical aspects of SympAuthy, like its configuration file and APIs.
 
+## Security
+
+SympAuthy is designed with security as a first-class concern. See the [Security](security) documentation for a detailed
+description of the measures in place, including password hashing, token signing, OAuth 2.0 flow protections, and safe
+configuration defaults.
+
 ## Configuration
 
 Sympauthy is configured through a configuration file that defines how the authorization server behaves. The
