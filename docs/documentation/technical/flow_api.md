@@ -4,6 +4,18 @@ The Flow API provides a set of endpoints to implement custom authentication flow
 
 ### Core Concepts
 
+#### CORS
+
+The Flow API enforces a strict CORS policy. Cross-origin requests are only allowed from origins (`scheme://host:port`)
+that match a URI registered in a configured [flow](configuration#flows-id). Any other origin receives no CORS headers
+and the browser blocks the request.
+
+This means that if you serve your custom flow from a different server than SympAuthy, you must declare its URL in the
+`flows.<id>` configuration. OPTIONS preflight requests from an allowed origin are handled automatically before
+authentication, so no additional setup is needed on your side.
+
+See the [Security](security#cors-restriction-on-the-flow-api) page for a full description of this policy.
+
 #### State Management
 
 All authenticated endpoints require a `state` query parameter that identifies the ongoing authorization attempt and session. This parameter must be included in all requests except for the initial configuration call.
