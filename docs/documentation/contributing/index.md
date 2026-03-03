@@ -1,5 +1,9 @@
 # Contributing
 
+## Design FAQ
+
+Recurring design questions and the decisions made are documented in the [Design FAQ](design_faq.md).
+
 ## Coding standards
 
 The following coding standards are used in the project:
