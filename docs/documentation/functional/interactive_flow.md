@@ -45,7 +45,8 @@ describes:
 
 - whether password-based sign-in is enabled,
 - whether new users can register,
-- which third-party providers (Google, GitHub, etc.) are configured.
+- which third-party providers (Google, GitHub, etc.) are configured,
+- whether multi-factor authentication is enabled and which methods are available.
 
 The UI uses this information to decide which buttons and forms to display. An instance with only Google sign-in
 configured will not show a password form.
@@ -63,17 +64,33 @@ their email address). Once the account is created, the flow continues.
 **Sign in with a third-party provider** — The user is redirected to an external service (such as Google) to authenticate
 there. Once they return, the flow resumes automatically from where it left off.
 
-### 3. Collecting additional information (optional)
+### 3. Multi-factor authentication (optional)
 
-After authentication, the server may still need information about the user that wasn't provided during sign-up or wasn't
-available from the third-party provider. The user is presented with a form to fill in the missing details.
+After authentication, the server may require an additional verification step if multi-factor authentication (MFA) is
+enabled. The server decides what happens next based on the MFA configuration and the user's enrollment state:
+
+- If MFA is disabled, or if MFA is optional and the user has not enrolled any method, this step is **skipped
+  automatically**.
+- If the user has not yet enrolled an MFA method and enrolment is required, they are shown an **enrollment screen**. For
+  TOTP, this means scanning a QR code with an authenticator app and confirming the setup by entering a first valid code.
+- If the user has already enrolled a method, they are shown a **challenge screen** where they enter the code from their
+  authenticator app.
+- If multiple methods are enrolled, or if the user may skip MFA, a **method selection screen** is shown first.
+
+As with every other step, the UI does not decide which screen to show — it follows the pointer returned by the server.
+
+### 4. Collecting additional information (optional)
+
+After authentication (and MFA, if applicable), the server may still need information about the user that wasn't provided
+during sign-up or wasn't available from the third-party provider. The user is presented with a form to fill in the
+missing details.
 
 If the third-party provider already supplied some of this information (for example, a name or a profile picture URL),
 the form is pre-filled with those values so the user just has to confirm them.
 
 If no additional information is needed, this step is skipped entirely.
 
-### 4. Verifying the user's contact details (optional)
+### 5. Verifying the user's contact details (optional)
 
 Some pieces of information must be verified before they can be trusted. A common example is an email address: the server
 sends a one-time code to that address, and the user must enter it to prove they have access to it.
@@ -84,7 +101,7 @@ received. They can also request a new code if they did not receive the first one
 If no verification is required (for instance because the email was already confirmed by a trusted third-party provider),
 this step is skipped.
 
-### 5. Returning to the application
+### 6. Returning to the application
 
 Once all required steps have been completed, the user is redirected back to the client application. The client
 application receives an authorization code that it exchanges for tokens to access the user's account.

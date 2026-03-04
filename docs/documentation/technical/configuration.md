@@ -247,6 +247,20 @@ This section holds configuration related to features that can be enabled or disa
 | ```email-validation```                     | boolean | Enforce the validation of the end-user's emails. A SMTP must be configured (see [javamail](#javamail)) to enable this feature.                                                                                                                                                                                                                                                                                                                                                        | NO<br>```false```   |
 | ```grant-unhandled-scopes```               | boolean | ⚠️ **UNSAFE - DEVELOPMENT ONLY**. Automatically grant ALL scopes requested by the client that are not explicitly granted nor declined by any scope granting method.<br>When enabled: Any scope not explicitly granted nor declined is automatically granted.<br>When disabled: Scopes not explicitly granted are rejected (secure default).<br>To know more about existing scope granting methods, see this [documentation](/documentation/functional/authorization#granting-scopes). | NO<br>```false```   |
 
+## ```mfa```
+
+This section controls multi-factor authentication (MFA). MFA adds an extra verification step after the user has
+authenticated with their primary method (password or third-party provider).
+
+| Key                | Type    | Description                                                                                                               | Required<br>Default   |
+|--------------------|---------|---------------------------------------------------------------------------------------------------------------------------|-----------------------|
+| ```required```     | boolean | When ```true```, every user must complete MFA before the flow can proceed. When ```false```, users may skip MFA.         | NO<br>```false```     |
+| ```totp.enabled``` | boolean | Enable TOTP (Time-based One-Time Password, [RFC 6238](https://datatracker.ietf.org/doc/html/rfc6238)) as an MFA method. | NO<br>```false```     |
+
+> When `mfa.totp.enabled` is `true`, the corresponding flow URLs (`mfa`, `mfa-totp-enroll`, `mfa-totp-challenge`) must
+> be configured in the [`flows.<id>`](#flows-id) section. SympAuthy validates this at startup and refuses to start if
+> any required URL is missing.
+
 ## ```flows.<id>```
 
 This configuration holds the URL where the end-user will be redirected during its authentication. Sympathy already
@@ -260,10 +274,16 @@ The flow may be completely customized and served by a completely different serve
 > URI, the origin (`scheme://host:port`) is extracted and whitelisted. Requests from any other origin are refused. See
 > the [Security](security#cors-restriction-on-the-flow-api) documentation for details.
 
-| Key           | Type | Description                                                                                                           | Required<br>Default |
-|---------------|------|-----------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```sign-in``` | uri  | The URL where the end-user will be enabled to sign-in using any supported methods (password or third party providers) | YES<br>/sign-in     |
-| ```error```   | uri  | The URL where the end-user will be redirected if an error occurs during the authentication.                           | YES<br>/error       |
+| Key                      | Type | Description                                                                                                           | Required<br>Default |
+|--------------------------|------|-----------------------------------------------------------------------------------------------------------------------|---------------------|
+| ```sign-in```            | uri  | The URL where the end-user will be enabled to sign-in using any supported methods (password or third party providers) | YES<br>/sign-in     |
+| ```mfa```                | uri  | The URL of the MFA router/method-selection page.                                                                      | NO                  |
+| ```mfa-totp-enroll```    | uri  | The URL of the TOTP enrollment page.                                                                                  | NO                  |
+| ```mfa-totp-challenge``` | uri  | The URL of the TOTP challenge page.                                                                                   | NO                  |
+| ```error```              | uri  | The URL where the end-user will be redirected if an error occurs during the authentication.                           | YES<br>/error       |
+
+> The `mfa`, `mfa-totp-enroll`, and `mfa-totp-challenge` URLs are required when [`mfa.totp.enabled`](#mfa) is `true`.
+> SympAuthy validates this at startup and fails fast if they are missing.
 
 ## ```providers.<id>```
 

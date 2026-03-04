@@ -524,6 +524,171 @@ When resend was blocked (anti-spam):
 
 ---
 
+### 7. MFA Endpoints
+
+**Base Path**: `/api/v1/flow/mfa`
+
+**Purpose**: Handles multi-factor authentication during the interactive flow. These endpoints are only active when at
+least one MFA method is enabled in the [configuration](/documentation/technical/configuration#mfa).
+
+#### MFA Router
+
+**Path**: `/api/v1/flow/mfa`
+
+**Method**: GET
+
+**Authentication**: Requires `?state=` query parameter
+
+**Purpose**: Determines the next MFA step based on the server configuration and the user's enrollment state. The UI
+should call this endpoint and follow the returned redirect.
+
+**Routing Logic**:
+
+| `mfa.required` | Methods enrolled | Behavior                                                 |
+|-----------------|-----------------|----------------------------------------------------------|
+| `false`         | None            | Auto-skip — redirects to the next flow step              |
+| `true`          | None            | Auto-redirect to TOTP enrollment                         |
+| `true`          | Exactly one     | Auto-redirect to challenge for that method               |
+| `false`         | One or more     | Show method selection with a skip option                  |
+| `true`          | Multiple        | Show method selection without skip                        |
+
+**Response Format**:
+
+When the step can be auto-skipped or auto-redirected:
+
+```json
+{
+  "redirect_url": "/api/v1/flow/mfa/totp/enroll?state=..."
+}
+```
+
+When method selection is needed:
+
+```json
+{
+  "methods": ["totp"],
+  "skip_redirect_url": "/api/v1/flow/mfa/skip?state=..."
+}
+```
+
+**Properties**:
+
+- `redirect_url`: URL to redirect to (enrollment, challenge, or next step)
+- `methods`: Array of enrolled MFA method identifiers (only when user must choose)
+- `skip_redirect_url`: URL to skip MFA (only present when `mfa.required` is `false`)
+
+#### TOTP Enrollment
+
+**Path**: `/api/v1/flow/mfa/totp/enroll`
+
+**Authentication**: GET requires `?state=` query parameter; POST requires `Authorization: State <jwt>` header
+
+**Purpose**: Handles first-time TOTP setup. The user scans a QR code or enters the secret manually into their
+authenticator app, then confirms by entering the first valid code.
+
+##### GET Request
+
+Returns the enrollment data needed to register the TOTP secret with an authenticator app.
+
+**Response Format**:
+
+```json
+{
+  "otpauth_uri": "otpauth://totp/SympAuthy:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=SympAuthy",
+  "secret": "JBSWY3DPEHPK3PXP"
+}
+```
+
+**Properties**:
+
+- `otpauth_uri`: A URI following the `otpauth://` scheme that can be rendered as a QR code. Scanning this QR code with
+  an authenticator app registers the secret automatically.
+- `secret`: The base32-encoded TOTP secret, displayed for users who prefer to enter it manually.
+
+##### POST Request
+
+Confirms the TOTP enrollment by validating the first code entered by the user. A successful confirmation also marks MFA
+as passed for the current session.
+
+**Request Format**:
+
+```json
+{
+  "code": "123456"
+}
+```
+
+**Response Format**:
+
+```json
+{
+  "redirect_url": "/api/v1/flow/claims?state=..."
+}
+```
+
+**Workflow**:
+
+1. User scans QR code or enters secret into their authenticator app
+2. User enters the 6-digit code shown by the app
+3. Server validates the code against the pending enrollment
+4. On success: enrollment is confirmed, MFA is marked as passed, redirect to next step
+5. On failure: recoverable error, user can retry
+
+#### TOTP Challenge
+
+**Path**: `/api/v1/flow/mfa/totp`
+
+**Authentication**: Requires `Authorization: State <jwt>` header
+
+**Purpose**: Validates a TOTP code for users who have already enrolled. This is the screen returning users see on
+subsequent sign-ins.
+
+##### POST Request
+
+**Request Format**:
+
+```json
+{
+  "code": "123456"
+}
+```
+
+**Response Format**:
+
+```json
+{
+  "redirect_url": "/api/v1/flow/claims?state=..."
+}
+```
+
+**Workflow**:
+
+1. User enters the 6-digit code from their authenticator app
+2. Server validates the code against the user's enrolled TOTP secret
+3. On success: MFA is marked as passed, redirect to next step
+4. On failure: recoverable error, user can retry
+
+#### MFA Skip
+
+**Path**: `/api/v1/flow/mfa/skip`
+
+**Method**: GET
+
+**Authentication**: Requires `?state=` query parameter
+
+**Purpose**: Marks MFA as passed without completing a challenge. This endpoint is only available when `mfa.required` is
+`false`. Calling it when `mfa.required` is `true` returns an error.
+
+**Response Format**:
+
+```json
+{
+  "redirect_url": "/api/v1/flow/claims?state=..."
+}
+```
+
+---
+
 ## Implementing a Custom Flow
 
 ### Recommended Implementation Steps
@@ -557,7 +722,18 @@ When resend was blocked (anti-spam):
    (add state parameter to the URL)
    ```
 
-3. **Collect Additional Claims**
+3. **Multi-Factor Authentication** (if MFA is enabled)
+
+   ```http
+   GET /api/v1/flow/mfa?state={state}
+   ```
+    - Follow the returned `redirect_url` — it points to enrollment, challenge, or the next step
+    - If redirected to enrollment: display QR code and secret from `GET /api/v1/flow/mfa/totp/enroll`, then POST the
+      confirmation code
+    - If redirected to challenge: display code input, POST to `/api/v1/flow/mfa/totp`
+    - If method selection is returned: show available methods and optional skip button
+
+4. **Collect Additional Claims**
    ```http
    GET /api/v1/flow/claims?state={state}
 
@@ -569,7 +745,7 @@ When resend was blocked (anti-spam):
     - Pre-fill with `value` or `suggested_value` from GET response
     - POST collected values
 
-4. **Validate Claims** (for each required media)
+5. **Validate Claims** (for each required media)
    ```http
    GET /api/v1/flow/claims/validation/{media}?state={state}
 
@@ -584,7 +760,7 @@ When resend was blocked (anti-spam):
     - POST code for validation
     - Use resend endpoint if user didn't receive code
 
-5. **Follow Redirects**
+6. **Follow Redirects**
 
    After each step, check the `redirect_url` property:
     - If points to another flow endpoint: Continue to that step
@@ -597,21 +773,27 @@ When resend was blocked (anti-spam):
 1. GET /api/v1/flow/configuration
    ↓
 2. POST /api/v1/flow/sign-in   [Authorization: State abc123]
+   → Returns: {"redirect_url": "/api/v1/flow/mfa?state=abc123"}
+   ↓
+3. GET /api/v1/flow/mfa?state=abc123
+   → Returns: {"redirect_url": "/api/v1/flow/mfa/totp?state=abc123"}
+   ↓
+4. POST /api/v1/flow/mfa/totp   [Authorization: State abc123]   {"code": "123456"}
    → Returns: {"redirect_url": "/api/v1/flow/claims?state=abc123"}
    ↓
-3. GET /api/v1/flow/claims?state=abc123
+5. GET /api/v1/flow/claims?state=abc123
    → Returns: {"claims": [...]}
    ↓
-4. POST /api/v1/flow/claims   [Authorization: State abc123]
+6. POST /api/v1/flow/claims   [Authorization: State abc123]
    → Returns: {"redirect_url": "/api/v1/flow/claims/validation/EMAIL?state=abc123"}
    ↓
-5. GET /api/v1/flow/claims/validation/EMAIL?state=abc123
+7. GET /api/v1/flow/claims/validation/EMAIL?state=abc123
    → Returns: {"media": "EMAIL", "code": {...}}
    ↓
-6. POST /api/v1/flow/claims/validation   [Authorization: State abc123]
+8. POST /api/v1/flow/claims/validation   [Authorization: State abc123]
    → Returns: {"redirect_url": "https://client.app/callback?code=xyz789"}
    ↓
-7. Redirect to client application (flow complete)
+9. Redirect to client application (flow complete)
 ```
 
 ### Error Handling
