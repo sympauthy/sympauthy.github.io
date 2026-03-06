@@ -28,15 +28,17 @@ This document provides an overview of SympAuthy's compatibility with OAuth 2.0 a
 | Client Secret Post    | Supported     | [RFC 6749 - section 2.3.1](https://datatracker.ietf.org/doc/html/rfc6749#section-2.3.1) |
 | Client Secret JWT     | Not Supported | [RFC 7523](https://datatracker.ietf.org/doc/html/rfc7523)                               |
 | Private Key JWT       | Not Supported | [RFC 7523](https://datatracker.ietf.org/doc/html/rfc7523)                               |
-| None (Public Clients) | Not Supported | [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749)                               |
+| None (Public Clients) | Supported     | [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749)                               |
 
 ## PKCE (Proof Key for Code Exchange)
 
 | Feature                | Status        | Reference                                                 |
 |------------------------|---------------|-----------------------------------------------------------|
-| PKCE Support           | Not Supported | [RFC 7636](https://datatracker.ietf.org/doc/html/rfc7636) |
-| S256 Challenge Method  | Not Supported | [RFC 7636](https://datatracker.ietf.org/doc/html/rfc7636) |
+| PKCE Support           | Supported     | [RFC 7636](https://datatracker.ietf.org/doc/html/rfc7636) |
+| S256 Challenge Method  | Supported     | [RFC 7636](https://datatracker.ietf.org/doc/html/rfc7636) |
 | Plain Challenge Method | Not Supported | [RFC 7636](https://datatracker.ietf.org/doc/html/rfc7636) |
+
+> The `plain` challenge method will not be implemented. [RFC 7636 section 7.2](https://www.rfc-editor.org/rfc/rfc7636#section-7.2) identifies it as vulnerable to interception and recommends `S256` for all deployments.
 
 ## Security Best Practices
 

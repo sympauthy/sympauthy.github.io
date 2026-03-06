@@ -83,6 +83,30 @@ The OAuth 2.0 authorization code is a short-lived, single-use credential. SympAu
 - **Nonce support**: The `nonce` parameter is supported in OpenID Connect flows. Clients can use it to bind a token to a
   specific authentication session and detect replay attacks.
 
+## PKCE (Proof Key for Code Exchange)
+
+SympAuthy implements [PKCE (RFC 7636)](https://www.rfc-editor.org/rfc/rfc7636) to protect the authorization code exchange
+against interception attacks — particularly for [public clients](/documentation/functional/client#confidential-and-public-clients)
+that cannot store a client secret.
+
+The mechanism works as follows:
+
+1. Before starting the authorization flow, the client generates a random string called the `code_verifier`.
+2. The client computes a challenge: `code_challenge = BASE64URL(SHA256(code_verifier))`.
+3. The client sends the `code_challenge` and `code_challenge_method=S256` as parameters to the authorization endpoint.
+4. SympAuthy stores the challenge alongside the authorization attempt.
+5. At token exchange, the client sends the original `code_verifier`.
+6. SympAuthy recomputes the challenge from the verifier and compares it to the stored value. If they do not match, the
+   request is rejected with `invalid_grant`.
+
+Only the `S256` challenge method is supported. The `plain` method is deliberately not implemented because it does not
+protect against interception — [RFC 7636 section 7.2](https://www.rfc-editor.org/rfc/rfc7636#section-7.2) recommends
+`S256` for all deployments.
+
+PKCE is **mandatory** for public clients. If a public client omits the `code_challenge` parameter, the authorization
+request is rejected. Confidential clients may also use PKCE — it is optional but recommended as a defence-in-depth
+measure.
+
 ## CORS restriction on the Flow API
 
 Browsers enforce the Same-Origin Policy: a web page cannot make API requests to a different origin (scheme + host +
@@ -167,14 +191,19 @@ See the [Authorization](../functional/authorization) documentation for details o
 
 ## Client authentication
 
-Every client must authenticate itself to SympAuthy using a shared secret configured under `clients.<id>.secret`. Two
-methods are supported:
+SympAuthy supports two categories of clients:
 
-- **Client Secret Basic** — credentials passed in the HTTP `Authorization` header.
-- **Client Secret Post** — credentials passed in the POST request body.
+- **Confidential clients** authenticate using a shared secret configured under `clients.<id>.secret`. Two transport
+  methods are available:
+  - **Client Secret Basic** — credentials passed in the HTTP `Authorization` header.
+  - **Client Secret Post** — credentials passed in the POST request body.
 
-Public clients (clients without a secret) are not supported, ensuring that all token requests come from an identified
-and authenticated client.
+- **Public clients** (`clients.<id>.public: true`) do not have a secret. They identify themselves using only their
+  `client_id`. To secure the authorization code exchange, public clients must use
+  [PKCE](#pkce-proof-key-for-code-exchange). Public clients can only use the authorization code and refresh token
+  grants — the client credentials grant requires a secret and is not available to them.
+
+See the [Client](/documentation/functional/client#confidential-and-public-clients) documentation for more details.
 
 ## Email validation
 
