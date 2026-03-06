@@ -58,7 +58,9 @@ See the [Client API](client_api) documentation for detailed information on avail
 
 ### 4. Admin API
 
-Endpoints intended for administration of the authorization server, including client management, user administration, and
-server configuration.
+Endpoints for administering the authorization server, including client management, user administration, access control,
+and monitoring. The Admin API requires activation of the `admin` Micronaut environment and uses OAuth 2.0 Client
+Credentials authentication with fine-grained admin scopes.
 
-*Documentation coming soon.*
+See the [Admin API](admin_api) documentation for detailed information on authentication, scopes, and available
+endpoints.

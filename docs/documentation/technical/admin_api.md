@@ -1,0 +1,809 @@
+# Admin API
+
+The Admin API provides endpoints for administering the SympAuthy authorization server, including client management,
+user administration, access control, and monitoring. This API is intended for operators and internal tooling, not for
+end-user-facing applications.
+
+All Admin API endpoints are under `/api/v1/admin/` and require authentication with appropriate admin scopes.
+
+## Admin Environment
+
+SympAuthy provides a dedicated `admin` [Micronaut environment](configuration#micronaut-environments) that
+pre-configures everything needed to use the Admin API:
+
+- All admin scopes listed in the [Admin Scopes](#admin-scopes) table below
+- A default `admin` client with all admin scopes in its `allowed-scopes`
+
+To activate the admin environment, include `admin` in the `MICRONAUT_ENVIRONMENTS` variable:
+
+```
+MICRONAUT_ENVIRONMENTS=default,by-mail,admin
+```
+
+The default admin client is a [public client](/documentation/functional/client#confidential-and-public-clients) that
+uses [PKCE](/documentation/technical/security#pkce-proof-key-for-code-exchange) instead of a client secret.
+Everything is ready out of the box — no secret to configure.
+
+> You can also configure admin access manually without using the `admin` environment. Add the desired admin scopes
+> to any client's `allowed-scopes` in the [configuration](configuration) and mark it as a
+> [public client](/documentation/functional/client#confidential-and-public-clients) to use PKCE. This is useful if
+> you need multiple admin clients with different permission levels.
+
+## Admin Scopes
+
+Admin scopes follow the naming convention `admin:{domain}:{action}`, providing fine-grained control so operators can
+grant only the minimum necessary privileges.
+
+| Scope | Description |
+|---|---|
+| `admin:clients:read` | List and view client details |
+| `admin:users:read` | List and view users |
+| `admin:users:write` | Create, update, disable, enable users |
+| `admin:users:delete` | Delete users (separated for GDPR sensitivity) |
+| `admin:access:read` | View consents |
+| `admin:access:write` | Revoke consents |
+| `admin:sessions:read` | View active sessions |
+| `admin:sessions:write` | Force logout, revoke sessions |
+
+The `admin:users:delete` scope is intentionally separated from `admin:users:write` because user deletion is an
+irreversible operation with GDPR implications and should require explicit authorization.
+
+## Authentication
+
+All Admin API endpoints require authentication using an OAuth 2.0 access token obtained via the Client Credentials
+flow with [PKCE](/documentation/technical/security#pkce-proof-key-for-code-exchange). The default admin client is a
+public client — it authenticates using a code verifier instead of a client secret.
+
+### Obtaining an Access Token
+
+To authenticate with the Admin API, you must first obtain an access token using the OAuth 2.0 Client Credentials grant
+with PKCE:
+
+**Step 1**: Generate a PKCE code verifier and challenge
+
+Before making the token request, generate a random `code_verifier` and compute the challenge:
+
+```
+code_challenge = BASE64URL(SHA256(code_verifier))
+```
+
+**Step 2**: Request an access token from the Token Endpoint
+
+**Endpoint**: `/api/oauth2/token`
+
+**Method**: POST
+
+**Request Format**:
+
+```
+POST /api/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials
+&client_id=YOUR_ADMIN_CLIENT_ID
+&code_verifier=YOUR_CODE_VERIFIER
+&code_challenge=YOUR_CODE_CHALLENGE
+&code_challenge_method=S256
+```
+
+> When using the `admin` Micronaut environment, the default admin client ID is pre-configured. No client secret is
+> needed — PKCE secures the exchange.
+
+**Response Format**:
+
+```json
+{
+  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "Bearer",
+  "expires_in": 3600
+}
+```
+
+**Step 3**: Use the access token in Admin API requests
+
+Include the access token in the `Authorization` header:
+
+```http
+GET /api/v1/admin/users
+Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+### Authorization
+
+Each Admin API endpoint requires a specific admin scope. The access token must include the scope required by the
+endpoint being called.
+
+- If the token is missing or invalid: **401 Unauthorized**
+- If the token is valid but lacks the required scope: **403 Forbidden**
+
+**401 Response Example**:
+
+```json
+{
+  "error": "unauthorized",
+  "error_description": "Missing or invalid access token."
+}
+```
+
+**403 Response Example**:
+
+```json
+{
+  "error": "forbidden",
+  "error_description": "The access token does not include the required scope: admin:users:read"
+}
+```
+
+The required scope for each endpoint is documented in the [Endpoints](#endpoints) section below.
+
+## Endpoints
+
+> **Work in progress** — The endpoints below are planned but not yet implemented. The paths and response formats shown
+> are preliminary and may change. See [GitHub issue #109](https://github.com/sympauthy/sympauthy/issues/109) for
+> progress.
+
+### Client Management
+
+Endpoints for viewing registered client applications. Requires the `admin:clients:read` scope.
+
+#### List Clients
+
+**Path**: `/api/v1/admin/clients`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:clients:read` scope
+
+**Purpose**: Retrieves a list of all registered client applications.
+
+**Response Format**:
+
+```json
+{
+  "clients": [
+    {
+      "client_id": "my-web-app",
+      "public": false,
+      "allowed_scopes": ["openid", "profile", "email"],
+      "allowed_redirect_uris": ["https://app.example.com/callback"]
+    },
+    {
+      "client_id": "admin",
+      "public": false,
+      "allowed_scopes": ["admin:clients:read", "admin:users:read", "admin:users:write"],
+      "allowed_redirect_uris": []
+    }
+  ]
+}
+```
+
+**Properties**:
+
+- `clients`: Array of client records
+    - `client_id`: Unique identifier of the client application
+    - `public`: Whether the client is a [public client](/documentation/functional/client#confidential-and-public-clients)
+    - `allowed_scopes`: List of scopes this client is allowed to request
+    - `allowed_redirect_uris`: List of redirect URIs permitted for this client
+
+**Use Cases**:
+
+- Audit registered clients and their permissions
+- Review client configurations for security compliance
+- Inventory all applications connected to the authorization server
+
+---
+
+#### Get Client Details
+
+**Path**: `/api/v1/admin/clients/{client_id}`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:clients:read` scope
+
+**Purpose**: Retrieves detailed information about a specific client application.
+
+**Path Parameters**:
+
+- `client_id`: Unique identifier of the client application
+
+**Response Format**:
+
+```json
+{
+  "client_id": "my-web-app",
+  "public": false,
+  "allowed_scopes": ["openid", "profile", "email"],
+  "allowed_redirect_uris": ["https://app.example.com/callback"]
+}
+```
+
+**Properties**:
+
+- `client_id`: Unique identifier of the client application
+- `public`: Whether the client is a [public client](/documentation/functional/client#confidential-and-public-clients)
+- `allowed_scopes`: List of scopes this client is allowed to request
+- `allowed_redirect_uris`: List of redirect URIs permitted for this client
+
+**Use Cases**:
+
+- Review a specific client's configuration
+- Troubleshoot client authentication issues
+- Verify allowed scopes and redirect URIs
+
+---
+
+### User Management
+
+Endpoints for managing end-user accounts. Different operations require different scopes: `admin:users:read` for
+read operations, `admin:users:write` for modifications, and `admin:users:delete` for deletion.
+
+#### Create User
+
+**Path**: `/api/v1/admin/users`
+
+**Method**: POST
+
+**Authentication**: Bearer token with `admin:users:write` scope
+
+**Purpose**: Creates a new user account. Useful for bulk provisioning and user migrations.
+
+**Request Format**:
+
+```json
+{
+  "claims": {
+    "email": "user@example.com",
+    "name": "Jane Doe",
+    "given_name": "Jane",
+    "family_name": "Doe"
+  },
+  "password": "initial-password"
+}
+```
+
+**Response Format**:
+
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "claims": {
+    "email": "user@example.com",
+    "name": "Jane Doe",
+    "given_name": "Jane",
+    "family_name": "Doe"
+  },
+  "status": "enabled",
+  "created_at": "2026-03-06T10:00:00Z"
+}
+```
+
+**Properties**:
+
+- `user_id`: Unique identifier assigned to the new user
+- `claims`: Object containing the user's claims
+- `status`: Account status (`enabled`)
+- `created_at`: ISO 8601 timestamp (UTC) when the account was created
+
+**Use Cases**:
+
+- Bulk user provisioning from an external system
+- User migration from another identity provider
+- Creating service accounts
+
+---
+
+#### List Users
+
+**Path**: `/api/v1/admin/users`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:users:read` scope
+
+**Purpose**: Retrieves a paginated list of users. Supports filtering by status and search by claims.
+
+**Query Parameters**:
+
+- `page` (optional): Page number (default: `0`)
+- `size` (optional): Number of results per page (default: `20`)
+- `status` (optional): Filter by account status (`enabled`, `disabled`)
+
+**Response Format**:
+
+```json
+{
+  "users": [
+    {
+      "user_id": "550e8400-e29b-41d4-a716-446655440000",
+      "status": "enabled",
+      "created_at": "2026-01-15T14:30:00Z"
+    },
+    {
+      "user_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "status": "disabled",
+      "created_at": "2026-02-20T09:15:30Z"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "total": 42
+}
+```
+
+**Properties**:
+
+- `users`: Array of user records
+    - `user_id`: Unique identifier of the user
+    - `status`: Account status (`enabled` or `disabled`)
+    - `created_at`: ISO 8601 timestamp (UTC) when the account was created
+- `page`: Current page number
+- `size`: Number of results per page
+- `total`: Total number of users matching the query
+
+**Use Cases**:
+
+- Display user lists in an admin dashboard
+- Audit user accounts and their statuses
+- Export user data for compliance reporting
+
+---
+
+#### Get User
+
+**Path**: `/api/v1/admin/users/{user_id}`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:users:read` scope
+
+**Purpose**: Retrieves detailed information about a specific user, including their claims and account status.
+
+**Path Parameters**:
+
+- `user_id`: Unique identifier of the user
+
+**Response Format**:
+
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "claims": {
+    "email": "user@example.com",
+    "email_verified": true,
+    "name": "Jane Doe",
+    "given_name": "Jane",
+    "family_name": "Doe"
+  },
+  "status": "enabled",
+  "created_at": "2026-01-15T14:30:00Z"
+}
+```
+
+**Properties**:
+
+- `user_id`: Unique identifier of the user
+- `claims`: Object containing the user's claims (standard and custom)
+- `status`: Account status (`enabled` or `disabled`)
+- `created_at`: ISO 8601 timestamp (UTC) when the account was created
+
+**Use Cases**:
+
+- View user details in an admin dashboard
+- Investigate user account issues
+- Verify user claim data
+
+---
+
+#### Update User
+
+**Path**: `/api/v1/admin/users/{user_id}`
+
+**Method**: PATCH
+
+**Authentication**: Bearer token with `admin:users:write` scope
+
+**Purpose**: Updates claims for a specific user. Only the provided claims are modified; omitted claims remain unchanged.
+
+**Path Parameters**:
+
+- `user_id`: Unique identifier of the user
+
+**Request Format**:
+
+```json
+{
+  "claims": {
+    "name": "Jane Smith",
+    "family_name": "Smith",
+    "custom_department": "Engineering"
+  }
+}
+```
+
+**Response Format**:
+
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "claims": {
+    "email": "user@example.com",
+    "email_verified": true,
+    "name": "Jane Smith",
+    "given_name": "Jane",
+    "family_name": "Smith",
+    "custom_department": "Engineering"
+  },
+  "status": "enabled",
+  "created_at": "2026-01-15T14:30:00Z"
+}
+```
+
+**Properties**:
+
+- `user_id`: Unique identifier of the user
+- `claims`: Object containing all of the user's claims after the update
+- `status`: Account status
+- `created_at`: ISO 8601 timestamp (UTC) when the account was created
+
+**Use Cases**:
+
+- Update user attributes from an external HR system
+- Correct user profile information
+- Manage custom claims for application-specific metadata
+
+---
+
+#### Disable User
+
+**Path**: `/api/v1/admin/users/{user_id}/disable`
+
+**Method**: POST
+
+**Authentication**: Bearer token with `admin:users:write` scope
+
+**Purpose**: Disables a user account. A disabled user cannot authenticate but their data is preserved.
+
+**Path Parameters**:
+
+- `user_id`: Unique identifier of the user
+
+**Response Format**:
+
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "disabled"
+}
+```
+
+**Use Cases**:
+
+- Temporarily suspend a user account during a security investigation
+- Offboard employees while retaining their data for audit purposes
+- Comply with account suspension requests
+
+---
+
+#### Enable User
+
+**Path**: `/api/v1/admin/users/{user_id}/enable`
+
+**Method**: POST
+
+**Authentication**: Bearer token with `admin:users:write` scope
+
+**Purpose**: Re-enables a previously disabled user account.
+
+**Path Parameters**:
+
+- `user_id`: Unique identifier of the user
+
+**Response Format**:
+
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "enabled"
+}
+```
+
+**Use Cases**:
+
+- Restore access after a security investigation concludes
+- Re-onboard a returning employee
+- Resolve accidental account suspensions
+
+---
+
+#### Delete User
+
+**Path**: `/api/v1/admin/users/{user_id}`
+
+**Method**: DELETE
+
+**Authentication**: Bearer token with `admin:users:delete` scope
+
+**Purpose**: Permanently deletes a user account and all associated data. This operation is irreversible.
+
+**Path Parameters**:
+
+- `user_id`: Unique identifier of the user
+
+**Response Format**:
+
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "deleted": true
+}
+```
+
+**Important Notes**:
+
+- This operation is **irreversible** — all user data, claims, sessions, and consents are permanently removed
+- Requires the dedicated `admin:users:delete` scope, which is intentionally separated from `admin:users:write`
+- Intended for GDPR right-to-erasure compliance
+
+**Use Cases**:
+
+- Fulfill GDPR deletion requests (right to erasure)
+- Remove accounts during data cleanup operations
+- Complete user offboarding with full data removal
+
+---
+
+#### Reset Password
+
+**Path**: `/api/v1/admin/users/{user_id}/reset-password`
+
+**Method**: POST
+
+**Authentication**: Bearer token with `admin:users:write` scope
+
+**Purpose**: Administratively resets the password for a user account.
+
+**Path Parameters**:
+
+- `user_id`: Unique identifier of the user
+
+**Request Format**:
+
+```json
+{
+  "new_password": "new-secure-password"
+}
+```
+
+**Response Format**:
+
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "password_reset": true
+}
+```
+
+**Use Cases**:
+
+- Help users locked out of their accounts
+- Enforce password changes during security incidents
+- Set initial passwords during bulk user provisioning
+
+---
+
+#### Force Logout
+
+**Path**: `/api/v1/admin/users/{user_id}/logout`
+
+**Method**: POST
+
+**Authentication**: Bearer token with `admin:sessions:write` scope
+
+**Purpose**: Invalidates all active sessions for a specific user, forcing them to re-authenticate.
+
+**Path Parameters**:
+
+- `user_id`: Unique identifier of the user
+
+**Response Format**:
+
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "sessions_revoked": 3
+}
+```
+
+**Properties**:
+
+- `user_id`: Unique identifier of the user
+- `sessions_revoked`: Number of active sessions that were invalidated
+
+**Use Cases**:
+
+- Respond to a compromised account by terminating all sessions
+- Enforce re-authentication after a password reset
+- Remove access for a departing employee immediately
+
+---
+
+### Access Control
+
+Endpoints for viewing and managing end-user consents. Requires the `admin:access:read` scope for read operations
+and `admin:access:write` for modifications.
+
+#### List User Consents
+
+**Path**: `/api/v1/admin/users/{user_id}/consents`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:access:read` scope
+
+**Purpose**: Retrieves all consents granted by a specific user to client applications.
+
+**Path Parameters**:
+
+- `user_id`: Unique identifier of the user
+
+**Response Format**:
+
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "consents": [
+    {
+      "client_id": "my-web-app",
+      "granted_scopes": ["openid", "profile", "email"],
+      "granted_at": "2026-01-15T14:30:00Z"
+    },
+    {
+      "client_id": "mobile-app",
+      "granted_scopes": ["openid", "email"],
+      "granted_at": "2026-02-20T09:15:30Z"
+    }
+  ]
+}
+```
+
+**Properties**:
+
+- `user_id`: Unique identifier of the user
+- `consents`: Array of consent records
+    - `client_id`: Identifier of the client application that received consent
+    - `granted_scopes`: List of scopes the user has granted to this client
+    - `granted_at`: ISO 8601 timestamp (UTC) when consent was granted
+
+**Use Cases**:
+
+- Audit which applications a user has authorized
+- Review consent history for compliance reporting
+- Investigate user data access for privacy requests
+
+---
+
+#### Revoke User Consent
+
+**Path**: `/api/v1/admin/users/{user_id}/consents/{client_id}`
+
+**Method**: DELETE
+
+**Authentication**: Bearer token with `admin:access:write` scope
+
+**Purpose**: Revokes all consents granted by a user to a specific client application. The client will no longer be
+able to access the user's data until the user re-authorizes.
+
+**Path Parameters**:
+
+- `user_id`: Unique identifier of the user
+- `client_id`: Identifier of the client application whose consent should be revoked
+
+**Response Format**:
+
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "client_id": "my-web-app",
+  "revoked": true
+}
+```
+
+**Use Cases**:
+
+- Revoke access for a decommissioned client application
+- Respond to user requests to disconnect an application
+- Enforce access policies during security incidents
+
+---
+
+### Monitoring & Audit
+
+Endpoints for viewing active sessions and monitoring authentication activity. Requires the `admin:sessions:read`
+scope for read operations and `admin:sessions:write` for modifications.
+
+#### List Active Sessions
+
+**Path**: `/api/v1/admin/sessions`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:sessions:read` scope
+
+**Purpose**: Retrieves a list of all active sessions across all users.
+
+**Query Parameters**:
+
+- `page` (optional): Page number (default: `0`)
+- `size` (optional): Number of results per page (default: `20`)
+- `user_id` (optional): Filter sessions by user
+
+**Response Format**:
+
+```json
+{
+  "sessions": [
+    {
+      "session_id": "sess_abc123xyz",
+      "user_id": "550e8400-e29b-41d4-a716-446655440000",
+      "client_id": "my-web-app",
+      "created_at": "2026-02-27T10:30:00Z",
+      "last_accessed_at": "2026-03-06T14:45:00Z",
+      "expires_at": "2026-03-13T10:30:00Z"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "total": 156
+}
+```
+
+**Properties**:
+
+- `sessions`: Array of session records
+    - `session_id`: Unique identifier for the session
+    - `user_id`: Unique identifier of the user who owns the session
+    - `client_id`: Identifier of the client application associated with the session
+    - `created_at`: ISO 8601 timestamp (UTC) when the session was created
+    - `last_accessed_at`: ISO 8601 timestamp (UTC) of the last activity
+    - `expires_at`: ISO 8601 timestamp (UTC) when the session will expire
+- `page`: Current page number
+- `size`: Number of results per page
+- `total`: Total number of active sessions matching the query
+
+**Use Cases**:
+
+- Monitor active sessions across the authorization server
+- Detect unusual session patterns or suspicious activity
+- Audit user activity for compliance reporting
+
+---
+
+#### Revoke Session
+
+**Path**: `/api/v1/admin/sessions/{session_id}`
+
+**Method**: DELETE
+
+**Authentication**: Bearer token with `admin:sessions:write` scope
+
+**Purpose**: Revokes a specific active session, forcing the user to re-authenticate for that session.
+
+**Path Parameters**:
+
+- `session_id`: Unique identifier of the session to revoke
+
+**Response Format**:
+
+```json
+{
+  "session_id": "sess_abc123xyz",
+  "revoked": true
+}
+```
+
+**Use Cases**:
+
+- Terminate a specific suspicious session
+- Revoke access from a specific device
+- Respond to security incidents with targeted session invalidation
