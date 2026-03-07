@@ -30,7 +30,7 @@ Standard OAuth 2.0 and OpenID Connect endpoints for authorization and authentica
 - **Discovery Endpoint**: `/.well-known/openid-configuration` - OpenID Connect metadata
 
 This API supports the Authorization Code Grant and Refresh Token flows, with Client Secret Basic and Client Secret Post
-authentication methods. See the [OAuth 2.0 & OpenID Compatibility Matrix](oauth2_compatibility) for full specification
+authentication methods. See the [OAuth 2.0, 2.1 & OpenID Compatibility Matrix](oauth2_compatibility) for full specification
 compliance details.
 
 ### 2. Flow API
