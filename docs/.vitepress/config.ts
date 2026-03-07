@@ -60,6 +60,23 @@ export default defineConfig({
           ]
         }
       ],
+      '/documentation/contributing/': [
+        {
+          text: 'Contributing',
+          items: [
+            { text: 'Overview', link: '/documentation/contributing/' },
+            { text: 'Design FAQ', link: '/documentation/contributing/design_faq' },
+            {
+              text: 'Backend',
+              items: [
+                { text: 'How to design an API endpoint', link: '/documentation/contributing/backend/how-to-design-an-api-endpoint' },
+                { text: 'How to throw an exception', link: '/documentation/contributing/backend/how-to-throw-an-exception' },
+                { text: 'How to write a configuration', link: '/documentation/contributing/backend/how-to-write-a-configuration' }
+              ]
+            }
+          ]
+        }
+      ],
       '/documentation/': [
         {
           text: 'Documentation',
