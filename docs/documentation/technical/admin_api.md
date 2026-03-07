@@ -36,7 +36,7 @@ grant only the minimum necessary privileges.
 
 | Scope | Description |
 |---|---|
-| `admin:clients:read` | List and view client details |
+| `admin:config:read` | List and view configuration resources (clients, claims) |
 | `admin:users:read` | List and view users |
 | `admin:users:write` | Create, update, disable, enable users |
 | `admin:users:delete` | Delete users (separated for GDPR sensitivity) |
@@ -146,7 +146,7 @@ The required scope for each endpoint is documented in the [Endpoints](#endpoints
 
 Endpoints for viewing configured client applications. Since clients are defined in configuration files
 (not in a database), these endpoints expose them as read-only resources. Client secrets are never included
-in responses. Requires the `admin:clients:read` scope.
+in responses. Requires the `admin:config:read` scope.
 
 #### List Clients
 
@@ -154,7 +154,7 @@ in responses. Requires the `admin:clients:read` scope.
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:clients:read` scope
+**Authentication**: Bearer token with `admin:config:read` scope
 
 **Purpose**: Retrieves a paginated list of all configured client applications.
 
@@ -206,7 +206,7 @@ in responses. Requires the `admin:clients:read` scope.
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:clients:read` scope
+**Authentication**: Bearer token with `admin:config:read` scope
 
 **Purpose**: Retrieves details for a specific client.
 
