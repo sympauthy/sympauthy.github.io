@@ -12,6 +12,11 @@ This document provides an overview of SympAuthy's compatibility with OAuth 2.0 a
 | Client Credentials Grant                  | Supported     | [RFC 6749 - section 4.4](https://datatracker.ietf.org/doc/html/rfc6749#section-4.4) |
 | Refresh Token Grant                       | Supported     | [RFC 6749 - section 6](https://datatracker.ietf.org/doc/html/rfc6749#section-6)     |
 
+> The Resource Owner Password Credentials grant will not be implemented. It exposes user credentials directly to the
+> client, bypassing the delegated authorization model that OAuth was designed to provide. It also offers no support for
+> multi-factor authentication. This grant type has been removed from
+> the [OAuth 2.1 specification](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1).
+
 ## Token Types
 
 | Token Type     | Status    |
@@ -38,7 +43,9 @@ This document provides an overview of SympAuthy's compatibility with OAuth 2.0 a
 | S256 Challenge Method  | Supported     | [RFC 7636](https://datatracker.ietf.org/doc/html/rfc7636) |
 | Plain Challenge Method | Not Supported | [RFC 7636](https://datatracker.ietf.org/doc/html/rfc7636) |
 
-> The `plain` challenge method will not be implemented. [RFC 7636 section 7.2](https://www.rfc-editor.org/rfc/rfc7636#section-7.2) identifies it as vulnerable to interception and recommends `S256` for all deployments.
+> The `plain` challenge method will not be
+> implemented. [RFC 7636 section 7.2](https://www.rfc-editor.org/rfc/rfc7636#section-7.2) identifies it as vulnerable to
+> interception and recommends `S256` for all deployments.
 
 ## Security Best Practices
 
