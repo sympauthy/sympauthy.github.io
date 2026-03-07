@@ -138,13 +138,15 @@ The required scope for each endpoint is documented in the [Endpoints](#endpoints
 
 ## Endpoints
 
-> **Work in progress** — The endpoints below are planned but not yet implemented. The paths and response formats shown
-> are preliminary and may change. See [GitHub issue #109](https://github.com/sympauthy/sympauthy/issues/109) for
-> progress.
+> **Work in progress** — [Client Management](#client-management) endpoints are implemented. The remaining endpoints
+> below are planned but not yet implemented. The paths and response formats shown are preliminary and may change. See
+> [GitHub issue #109](https://github.com/sympauthy/sympauthy/issues/109) for progress.
 
 ### Client Management
 
-Endpoints for viewing registered client applications. Requires the `admin:clients:read` scope.
+Endpoints for viewing configured client applications. Since clients are defined in configuration files
+(not in a database), these endpoints expose them as read-only resources. Client secrets are never included
+in responses. Requires the `admin:clients:read` scope.
 
 #### List Clients
 
@@ -154,7 +156,12 @@ Endpoints for viewing registered client applications. Requires the `admin:client
 
 **Authentication**: Bearer token with `admin:clients:read` scope
 
-**Purpose**: Retrieves a list of all registered client applications.
+**Purpose**: Retrieves a paginated list of all configured client applications.
+
+**Query Parameters**:
+
+- `page` (optional): Zero-indexed page number (default: `0`)
+- `size` (optional): Number of results per page (default: `20`)
 
 **Response Format**:
 
@@ -162,34 +169,34 @@ Endpoints for viewing registered client applications. Requires the `admin:client
 {
   "clients": [
     {
-      "client_id": "my-web-app",
-      "public": false,
-      "allowed_scopes": ["openid", "profile", "email"],
-      "allowed_redirect_uris": ["https://app.example.com/callback"]
-    },
-    {
-      "client_id": "admin",
-      "public": false,
-      "allowed_scopes": ["admin:clients:read", "admin:users:read", "admin:users:write"],
-      "allowed_redirect_uris": []
+      "client_id": "my-app",
+      "allowed_scopes": ["openid", "profile"],
+      "default_scopes": ["openid"],
+      "allowed_redirect_uris": ["https://my-app.com/callback"]
     }
-  ]
+  ],
+  "page": 0,
+  "size": 20,
+  "total": 1
 }
 ```
 
 **Properties**:
 
 - `clients`: Array of client records
-    - `client_id`: Unique identifier of the client application
-    - `public`: Whether the client is a [public client](/documentation/functional/client#confidential-and-public-clients)
-    - `allowed_scopes`: List of scopes this client is allowed to request
-    - `allowed_redirect_uris`: List of redirect URIs permitted for this client
+    - `client_id`: Unique identifier of the client, as defined in configuration
+    - `allowed_scopes`: Scopes the client is allowed to request
+    - `default_scopes`: Scopes granted by default when the client does not explicitly request any
+    - `allowed_redirect_uris`: Redirect URIs the client is allowed to use during authorization
+- `page`: Current page number
+- `size`: Number of results per page
+- `total`: Total number of clients
 
 **Use Cases**:
 
-- Audit registered clients and their permissions
-- Review client configurations for security compliance
-- Inventory all applications connected to the authorization server
+- Admin dashboard listing all registered clients and their permissions
+- Verifying which scopes and redirect URIs are configured for a specific client
+- Auditing client configurations without accessing configuration files directly
 
 ---
 
@@ -201,35 +208,46 @@ Endpoints for viewing registered client applications. Requires the `admin:client
 
 **Authentication**: Bearer token with `admin:clients:read` scope
 
-**Purpose**: Retrieves detailed information about a specific client application.
+**Purpose**: Retrieves details for a specific client.
 
 **Path Parameters**:
 
-- `client_id`: Unique identifier of the client application
+- `client_id`: Unique identifier of the client
 
 **Response Format**:
 
+`200 OK`:
+
 ```json
 {
-  "client_id": "my-web-app",
-  "public": false,
-  "allowed_scopes": ["openid", "profile", "email"],
-  "allowed_redirect_uris": ["https://app.example.com/callback"]
+  "client_id": "my-app",
+  "allowed_scopes": ["openid", "profile"],
+  "default_scopes": ["openid"],
+  "allowed_redirect_uris": ["https://my-app.com/callback"]
+}
+```
+
+`404 Not Found`:
+
+```json
+{
+  "error": "not_found",
+  "error_description": "No client found with id: my-app"
 }
 ```
 
 **Properties**:
 
-- `client_id`: Unique identifier of the client application
-- `public`: Whether the client is a [public client](/documentation/functional/client#confidential-and-public-clients)
-- `allowed_scopes`: List of scopes this client is allowed to request
-- `allowed_redirect_uris`: List of redirect URIs permitted for this client
+- `client_id`: Unique identifier of the client, as defined in configuration
+- `allowed_scopes`: Scopes the client is allowed to request
+- `default_scopes`: Scopes granted by default when the client does not explicitly request any
+- `allowed_redirect_uris`: Redirect URIs the client is allowed to use during authorization
 
 **Use Cases**:
 
-- Review a specific client's configuration
-- Troubleshoot client authentication issues
-- Verify allowed scopes and redirect URIs
+- Admin dashboard listing all registered clients and their permissions
+- Verifying which scopes and redirect URIs are configured for a specific client
+- Auditing client configurations without accessing configuration files directly
 
 ---
 
