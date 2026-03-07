@@ -138,9 +138,10 @@ The required scope for each endpoint is documented in the [Endpoints](#endpoints
 
 ## Endpoints
 
-> **Work in progress** — [Client Management](#client-management) endpoints are implemented. The remaining endpoints
-> below are planned but not yet implemented. The paths and response formats shown are preliminary and may change. See
-> [GitHub issue #109](https://github.com/sympauthy/sympauthy/issues/109) for progress.
+> **Work in progress** — [Client Management](#client-management) and [Claim Management](#claim-management) endpoints
+> are implemented. The remaining endpoints below are planned but not yet implemented. The paths and response formats
+> shown are preliminary and may change. See [GitHub issue #109](https://github.com/sympauthy/sympauthy/issues/109)
+> for progress.
 
 ### Client Management
 
@@ -248,6 +249,91 @@ in responses. Requires the `admin:config:read` scope.
 - Admin dashboard listing all registered clients and their permissions
 - Verifying which scopes and redirect URIs are configured for a specific client
 - Auditing client configurations without accessing configuration files directly
+
+---
+
+### Claim Management
+
+Endpoints for viewing configured claims. Since claims are defined in configuration files
+(not in a database), these endpoints expose them as read-only resources — following the same pattern as
+[Client Management](#client-management). Both standard (OpenID Connect) and custom claims are returned.
+Requires the `admin:config:read` scope.
+
+#### List Claims
+
+**Path**: `/api/v1/admin/claims`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:config:read` scope
+
+**Purpose**: Retrieves a paginated list of all configured claims (standard and custom).
+
+**Query Parameters**:
+
+- `page` (optional): Zero-indexed page number (default: `0`)
+- `size` (optional): Number of results per page (default: `20`)
+- `enabled` (optional): Filter by enabled status (`true`, `false`)
+- `required` (optional): Filter by required status (`true`, `false`)
+
+**Response Format**:
+
+```json
+{
+  "claims": [
+    {
+      "id": "email",
+      "type": "string",
+      "standard": true,
+      "enabled": true,
+      "required": true,
+      "allowed_values": null,
+      "group": null
+    },
+    {
+      "id": "name",
+      "type": "string",
+      "standard": true,
+      "enabled": true,
+      "required": false,
+      "allowed_values": null,
+      "group": "profile"
+    },
+    {
+      "id": "custom_department",
+      "type": "string",
+      "standard": false,
+      "enabled": true,
+      "required": false,
+      "allowed_values": ["Engineering", "Marketing", "Sales"],
+      "group": null
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "total": 3
+}
+```
+
+**Properties**:
+
+- `claims`: Array of claim records
+    - `id`: Unique claim identifier, as defined in configuration
+    - `type`: Data type expected for this claim (`string`, `number`, or `date`)
+    - `standard`: `true` if this is an OpenID Connect standard claim, `false` for custom claims
+    - `enabled`: Whether collection is enabled for this claim
+    - `required`: Whether the end-user must provide this claim to complete an authorization flow
+    - `allowed_values`: Array of accepted values, or `null` if any value is accepted
+    - `group`: Optional grouping identifier (e.g., `"profile"`, `"address"`), or `null`
+- `page`: Current page number
+- `size`: Number of results per page
+- `total`: Total number of claims
+
+**Use Cases**:
+
+- Admin dashboard displaying all configured claims and their settings
+- Auditing which claims are enabled and required without accessing configuration files
+- Reviewing allowed values for claims with restricted inputs
 
 ---
 
