@@ -1,6 +1,6 @@
 # Getting started
 
-In this quickstart guide, you will learn how to run SympAuthy locally using Docker and connect to it using OAuth 2.
+In this quickstart guide, you will learn how to run SympAuthy locally using Docker and connect to it using OAuth 2.1.
 
 In order to make this guide works on Windows, macOS and Linux, we will run both
 the SympAuthy server and the PostgreSQL in a Docker container.
@@ -165,7 +165,7 @@ the [r2dbc configuration](/documentation/technical/configuration#r2dbc).
   configuration at `<issuer>/.well-known/openid-configuration`.
 - ```urls.root```: An URL that end-users and clients are able to use to reach the SympAuthy server. This URL will be
   used as base when redirecting the end-user to an authentication flow.
-- ```clients.example.secret```: Provide the secret the OAuth 2 client identified by ```example``` must use to communicate
+- ```clients.example.secret```: Provide the secret the OAuth 2.1 client identified by ```example``` must use to communicate
   with this authorization server. Simply declaring the secret in the configuration will be enough to register the
   client. To learn more about the management of client, you can refer to
   the [Client](/documentation/functional/client) section of this documentation.
@@ -190,7 +190,7 @@ like [OAuth Debugger](https://oauthdebugger.com/).
 4. You will be redirected to the SympAuthy authentication page where you can create an account or sign in
 5. After successful authentication, you will be redirected back to OAuth Debugger with an authorization code
 
-This confirms that your SympAuthy instance is running correctly and can handle OAuth 2.0 authentication flows.
+This confirms that your SympAuthy instance is running correctly and can handle OAuth 2.1 authentication flows.
 
 ## Cleanup
 

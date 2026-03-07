@@ -7,12 +7,12 @@ All Client API endpoints are under `/api/v1/client/` and require client authenti
 
 ## Authentication
 
-All Client API endpoints require authentication using an OAuth 2.0 access token obtained via the Client Credentials
+All Client API endpoints require authentication using an OAuth 2.1 access token obtained via the Client Credentials
 flow.
 
 ### Obtaining an Access Token
 
-To authenticate with the Client API, you must first obtain an access token using the OAuth 2.0 Client Credentials grant:
+To authenticate with the Client API, you must first obtain an access token using the OAuth 2.1 Client Credentials grant:
 
 **Step 1**: Request an access token from the Token Endpoint
 

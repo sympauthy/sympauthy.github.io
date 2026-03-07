@@ -2,10 +2,10 @@
 
 A **client** is a software that delegates the authentication and authorization of its users to SympAuthy.
 
-Clients interact with SympAuthy through the [OAuth 2](https://datatracker.ietf.org/doc/html/rfc6749) protocol. SympAuthy supports two kinds of clients:
+Clients interact with SympAuthy through the [OAuth 2.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1) protocol. SympAuthy supports two kinds of clients:
 
-- **End-user clients**: Applications that authenticate human users through the [authorization code grant flow](https://datatracker.ietf.org/doc/html/rfc6749#section-4.1). **Ex.** a web application, a mobile application.
-- **Service accounts**: Non-interactive services that authenticate themselves through the [client credentials grant flow](https://datatracker.ietf.org/doc/html/rfc6749#section-4.4). **Ex.** a background job, a micro-service.
+- **End-user clients**: Applications that authenticate human users through the [authorization code grant flow](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-4.1). **Ex.** a web application, a mobile application.
+- **Service accounts**: Non-interactive services that authenticate themselves through the [client credentials grant flow](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-4.2). **Ex.** a background job, a micro-service.
 
 ## Confidential and public clients
 

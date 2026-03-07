@@ -1,7 +1,7 @@
 # Security
 
 SympAuthy is designed with security as a first-class concern. This article describes the technical security measures
-built into SympAuthy, covering password storage, token signing, OAuth 2.0 flow protections, CORS restriction, and
+built into SympAuthy, covering password storage, token signing, OAuth 2.1 flow protections, CORS restriction, and
 default safe configurations.
 
 ## Secure defaults
@@ -73,7 +73,7 @@ rejected immediately rather than waiting for expiration.
 
 ## Authorization code security
 
-The OAuth 2.0 authorization code is a short-lived, single-use credential. SympAuthy enforces the following protections:
+The authorization code is a short-lived, single-use credential. SympAuthy enforces the following protections:
 
 - **One-time use**: Each authorization code can only be exchanged for tokens once. Any subsequent attempt to reuse it is
   rejected.
@@ -103,9 +103,10 @@ Only the `S256` challenge method is supported. The `plain` method is deliberatel
 protect against interception — [RFC 7636 section 7.2](https://www.rfc-editor.org/rfc/rfc7636#section-7.2) recommends
 `S256` for all deployments.
 
-PKCE is **mandatory** for public clients. If a public client omits the `code_challenge` parameter, the authorization
-request is rejected. Confidential clients may also use PKCE — it is optional but recommended as a defence-in-depth
-measure.
+OAuth 2.1 requires PKCE for all clients using the authorization code flow. PKCE is currently **mandatory** for public
+clients — if a public client omits the `code_challenge` parameter, the authorization request is rejected. Confidential
+clients may also use PKCE — it is optional but recommended as a defence-in-depth measure. Enforcement for confidential
+clients is **planned**.
 
 ## CORS restriction on the Flow API
 
@@ -162,20 +163,24 @@ permitted redirect URIs. Any request using a URI outside that list is rejected.
 > Always configure `allowed-redirect-uris` for production deployments. If the list is left empty, any redirect URI is
 > accepted, which opens the authorization server to open redirect attacks.
 
+OAuth 2.1 requires exact redirect URI matching — the redirect URI in the authorization request must be an exact
+string match against a registered URI, with no prefix or pattern matching. Exact matching is **planned** for a future
+release.
+
 ## Secure grant types
 
-SympAuthy deliberately supports only the grant types that follow current security best practices:
+SympAuthy supports only the grant types retained by the OAuth 2.1 specification:
 
-| Grant Type                          | Status        | Reason                                                     |
-|-------------------------------------|---------------|------------------------------------------------------------|
-| Authorization Code Grant            | Supported     | Recommended secure flow                                    |
-| Refresh Token Grant                 | Supported     | Standard mechanism for session continuity                  |
-| Client Credentials Grant            | Supported     | For service-to-service authentication                      |
-| Implicit Grant                      | Not Supported | Exposes tokens in the browser URL; deprecated by OAuth 2.1 |
-| Resource Owner Password Credentials | Not Supported | Requires clients to handle user credentials directly       |
+| Grant Type                          | Status        | Reason                                                    |
+|-------------------------------------|---------------|-----------------------------------------------------------|
+| Authorization Code Grant            | Supported     | Recommended secure flow                                   |
+| Refresh Token Grant                 | Supported     | Standard mechanism for session continuity                 |
+| Client Credentials Grant            | Supported     | For service-to-service authentication                     |
+| Implicit Grant                      | Not Supported | Exposes tokens in the browser URL; removed by OAuth 2.1   |
+| Resource Owner Password Credentials | Not Supported | Requires clients to handle user credentials directly      |
 
-By not supporting the Implicit Grant and Resource Owner Password Credentials flows, SympAuthy prevents patterns that
-expose credentials or tokens to third parties.
+The Implicit Grant and Resource Owner Password Credentials flows have been removed from OAuth 2.1. By not supporting
+them, SympAuthy prevents patterns that expose credentials or tokens to third parties.
 
 ## Scope restriction per client
 
@@ -238,7 +243,7 @@ Several safeguards are in place:
 
 ## Third-party authentication
 
-When a user authenticates through a third-party provider (such as Google or Discord), SympAuthy acts as an OAuth 2.0
+When a user authenticates through a third-party provider (such as Google or Discord), SympAuthy acts as an OAuth 2
 client towards that provider. The user authenticates directly on the provider's login page — their credentials are never
 shared with SympAuthy or with the client application.
 

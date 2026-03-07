@@ -5,7 +5,7 @@ This part of the documentation describes the technical aspects of SympAuthy, lik
 ## Security
 
 SympAuthy is designed with security as a first-class concern. See the [Security](security) documentation for a detailed
-description of the measures in place, including password hashing, token signing, OAuth 2.0 flow protections, and safe
+description of the measures in place, including password hashing, token signing, OAuth 2.1 flow protections, and safe
 configuration defaults.
 
 ## Configuration
@@ -20,17 +20,17 @@ and [Well-known providers](well-known_providers) for pre-configured OAuth provid
 
 Sympauthy implements four distinct APIs to support different use cases:
 
-### 1. OAuth 2.0 & OpenID Connect API
+### 1. OAuth 2.1 & OpenID Connect API
 
-Standard OAuth 2.0 and OpenID Connect endpoints for authorization and authentication:
+Standard OAuth 2.1 and OpenID Connect endpoints for authorization and authentication:
 
-- **Authorization Endpoint**: `/api/oauth2/authorize` - Initiates OAuth 2.0 authorization flows
+- **Authorization Endpoint**: `/api/oauth2/authorize` - Initiates OAuth 2.1 authorization flows
 - **Token Endpoint**: `/api/oauth2/token` - Issues access tokens, refresh tokens, and ID tokens
 - **UserInfo Endpoint**: `/api/openid/userinfo` - Returns user profile claims
 - **Discovery Endpoint**: `/.well-known/openid-configuration` - OpenID Connect metadata
 
 This API supports the Authorization Code Grant and Refresh Token flows, with Client Secret Basic and Client Secret Post
-authentication methods. See the [OAuth 2.0, 2.1 & OpenID Compatibility Matrix](oauth2_compatibility) for full specification
+authentication methods. See the [OAuth 2.1 & OpenID Compatibility Matrix](oauth2_compatibility) for full specification
 compliance details.
 
 ### 2. Flow API
@@ -59,7 +59,7 @@ See the [Client API](client_api) documentation for detailed information on avail
 ### 4. Admin API
 
 Endpoints for administering the authorization server, including client management, user administration, access control,
-and monitoring. The Admin API requires activation of the `admin` Micronaut environment and uses OAuth 2.0 Client
+and monitoring. The Admin API requires activation of the `admin` Micronaut environment and uses OAuth 2.1 Client
 Credentials authentication with fine-grained admin scopes.
 
 See the [Admin API](admin_api) documentation for detailed information on authentication, scopes, and available

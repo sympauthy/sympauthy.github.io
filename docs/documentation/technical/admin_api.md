@@ -50,13 +50,13 @@ irreversible operation with GDPR implications and should require explicit author
 
 ## Authentication
 
-All Admin API endpoints require authentication using an OAuth 2.0 access token obtained via the Client Credentials
+All Admin API endpoints require authentication using an OAuth 2.1 access token obtained via the Client Credentials
 flow with [PKCE](/documentation/technical/security#pkce-proof-key-for-code-exchange). The default admin client is a
 public client — it authenticates using a code verifier instead of a client secret.
 
 ### Obtaining an Access Token
 
-To authenticate with the Admin API, you must first obtain an access token using the OAuth 2.0 Client Credentials grant
+To authenticate with the Admin API, you must first obtain an access token using the OAuth 2.1 Client Credentials grant
 with PKCE:
 
 **Step 1**: Generate a PKCE code verifier and challenge

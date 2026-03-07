@@ -135,7 +135,7 @@ Returns the flow configuration including enabled features, collectable claims, a
     - `login_claims`: Claims that can be used as login identifiers
     - `sign_up_claims`: Claims required during registration
 
-- `providers`: Available OAuth 2.0 identity providers
+- `providers`: Available OAuth 2 identity providers
     - `id`: Provider identifier
     - `name`: Display name
     - `authorize_url`: URL to initiate OAuth flow (state parameter must be added)
@@ -237,7 +237,7 @@ Validates user credentials and establishes an authenticated session.
 
 **Base Path**: `/api/v1/flow/providers/{providerId}`
 
-**Purpose**: Handles OAuth 2.0 authorization with third-party identity providers.
+**Purpose**: Handles OAuth 2 authorization with third-party identity providers.
 
 #### Authorize Endpoint
 
