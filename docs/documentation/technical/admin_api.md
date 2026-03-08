@@ -405,13 +405,22 @@ read operations, `admin:users:write` for modifications, and `admin:users:delete`
 
 **Authentication**: Bearer token with `admin:users:read` scope
 
-**Purpose**: Retrieves a paginated list of users. Supports filtering by status and search by claims.
+**Purpose**: Retrieves a paginated list of users. Supports filtering by status, searching by claim values, selecting which claims to include, and sorting.
 
 **Query Parameters**:
 
-- `page` (optional): Page number (default: `0`)
+- `page` (optional): Zero-indexed page number (default: `0`)
 - `size` (optional): Number of results per page (default: `20`)
 - `status` (optional): Filter by account status (`enabled`, `disabled`)
+- `claims` (optional): Comma-separated claim IDs to include in the response (default: all enabled claims)
+- `q` (optional): Partial, case-insensitive search across all enabled claim values
+- `{claim_id}` (optional): Exact-match filter on a specific claim (e.g., `?email=jane@example.com`)
+- `sort` (optional): Property to sort by: `created_at`, `status`, or any enabled claim ID
+- `order` (optional): Sort direction — `asc` or `desc` (default: `asc`)
+
+::: info Reserved parameter names
+The names `page`, `size`, `status`, `claims`, `q`, `sort`, and `order` are reserved and cannot be used as claim IDs for filtering.
+:::
 
 **Response Format**:
 
@@ -420,13 +429,12 @@ read operations, `admin:users:write` for modifications, and `admin:users:delete`
   "users": [
     {
       "user_id": "550e8400-e29b-41d4-a716-446655440000",
+      "claims": {
+        "email": "jane@example.com",
+        "name": "Jane Doe"
+      },
       "status": "enabled",
       "created_at": "2026-01-15T14:30:00Z"
-    },
-    {
-      "user_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
-      "status": "disabled",
-      "created_at": "2026-02-20T09:15:30Z"
     }
   ],
   "page": 0,
@@ -439,17 +447,34 @@ read operations, `admin:users:write` for modifications, and `admin:users:delete`
 
 - `users`: Array of user records
     - `user_id`: Unique identifier of the user
+    - `claims`: Object containing the user's claim values. By default includes all enabled claims; use the `claims` query parameter to select specific claims.
     - `status`: Account status (`enabled` or `disabled`)
     - `created_at`: ISO 8601 timestamp (UTC) when the account was created
 - `page`: Current page number
 - `size`: Number of results per page
 - `total`: Total number of users matching the query
 
+**Errors**:
+
+Returns **400 Bad Request** with error code `invalid_claim` when:
+
+- `claims` contains a disabled or unknown claim ID
+- `sort` references a disabled or unknown claim ID
+- A claim filter query parameter references a disabled or unknown claim ID
+
+```json
+{
+  "error": "invalid_claim",
+  "error_description": "Unknown or disabled claim: department"
+}
+```
+
 **Use Cases**:
 
-- Display user lists in an admin dashboard
-- Audit user accounts and their statuses
-- Export user data for compliance reporting
+- Display user lists with profile details in an admin dashboard
+- Search for users by name or email
+- Sort users by a specific claim value (e.g., alphabetically by name)
+- Filter users by a specific claim value (e.g., all users in a department)
 
 ---
 
