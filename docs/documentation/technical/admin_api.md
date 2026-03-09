@@ -34,16 +34,16 @@ Everything is ready out of the box — no secret to configure.
 Admin scopes follow the naming convention `admin:{domain}:{action}`, providing fine-grained control so operators can
 grant only the minimum necessary privileges.
 
-| Scope | Description |
-|---|---|
-| `admin:config:read` | List and view configuration resources (clients, claims) |
-| `admin:users:read` | List and view users |
-| `admin:users:write` | Create, update, disable, enable users |
-| `admin:users:delete` | Delete users (separated for GDPR sensitivity) |
-| `admin:access:read` | View consents |
-| `admin:access:write` | Revoke consents |
-| `admin:sessions:read` | View active sessions |
-| `admin:sessions:write` | Force logout, revoke sessions |
+| Scope                  | Description                                             |
+|------------------------|---------------------------------------------------------|
+| `admin:config:read`    | List and view configuration resources (clients, claims) |
+| `admin:users:read`     | List and view users                                     |
+| `admin:users:write`    | Create, update, disable, enable users                   |
+| `admin:users:delete`   | Delete users (separated for GDPR sensitivity)           |
+| `admin:access:read`    | View consents                                           |
+| `admin:access:write`   | Revoke consents                                         |
+| `admin:sessions:read`  | View active sessions                                    |
+| `admin:sessions:write` | Force logout, revoke sessions                           |
 
 The `admin:users:delete` scope is intentionally separated from `admin:users:write` because user deletion is an
 irreversible operation with GDPR implications and should require explicit authorization.
@@ -171,9 +171,17 @@ in responses. Requires the `admin:config:read` scope.
   "clients": [
     {
       "client_id": "my-app",
-      "allowed_scopes": ["openid", "profile"],
-      "default_scopes": ["openid"],
-      "allowed_redirect_uris": ["https://my-app.com/callback"]
+      "type": "public",
+      "allowed_scopes": [
+        "openid",
+        "profile"
+      ],
+      "default_scopes": [
+        "openid"
+      ],
+      "allowed_redirect_uris": [
+        "https://my-app.com/callback"
+      ]
     }
   ],
   "page": 0,
@@ -186,6 +194,9 @@ in responses. Requires the `admin:config:read` scope.
 
 - `clients`: Array of client records
     - `client_id`: Unique identifier of the client, as defined in configuration
+    - `type`: Type of the client as defined by
+      the [OAuth 2.1 specification](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-12#section-2.1).
+      Possible values: `"public"` | `"confidential"`
     - `allowed_scopes`: Scopes the client is allowed to request
     - `default_scopes`: Scopes granted by default when the client does not explicitly request any
     - `allowed_redirect_uris`: Redirect URIs the client is allowed to use during authorization
@@ -222,9 +233,17 @@ in responses. Requires the `admin:config:read` scope.
 ```json
 {
   "client_id": "my-app",
-  "allowed_scopes": ["openid", "profile"],
-  "default_scopes": ["openid"],
-  "allowed_redirect_uris": ["https://my-app.com/callback"]
+  "type": "public",
+  "allowed_scopes": [
+    "openid",
+    "profile"
+  ],
+  "default_scopes": [
+    "openid"
+  ],
+  "allowed_redirect_uris": [
+    "https://my-app.com/callback"
+  ]
 }
 ```
 
@@ -240,6 +259,9 @@ in responses. Requires the `admin:config:read` scope.
 **Properties**:
 
 - `client_id`: Unique identifier of the client, as defined in configuration
+- `type`: Type of the client as defined by
+  the [OAuth 2.1 specification](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-12#section-2.1). Possible
+  values: `"public"` | `"confidential"`
 - `allowed_scopes`: Scopes the client is allowed to request
 - `default_scopes`: Scopes granted by default when the client does not explicitly request any
 - `allowed_redirect_uris`: Redirect URIs the client is allowed to use during authorization
@@ -305,7 +327,11 @@ Requires the `admin:config:read` scope.
       "standard": false,
       "enabled": true,
       "required": false,
-      "allowed_values": ["Engineering", "Marketing", "Sales"],
+      "allowed_values": [
+        "Engineering",
+        "Marketing",
+        "Sales"
+      ],
       "group": null
     }
   ],
@@ -405,7 +431,8 @@ read operations, `admin:users:write` for modifications, and `admin:users:delete`
 
 **Authentication**: Bearer token with `admin:users:read` scope
 
-**Purpose**: Retrieves a paginated list of users. Supports filtering by status, searching by claim values, selecting which claims to include, and sorting.
+**Purpose**: Retrieves a paginated list of users. Supports filtering by status, searching by claim values, selecting
+which claims to include, and sorting.
 
 **Query Parameters**:
 
@@ -419,7 +446,8 @@ read operations, `admin:users:write` for modifications, and `admin:users:delete`
 - `order` (optional): Sort direction — `asc` or `desc` (default: `asc`)
 
 ::: info Reserved parameter names
-The names `page`, `size`, `status`, `claims`, `q`, `sort`, and `order` are reserved and cannot be used as claim IDs for filtering.
+The names `page`, `size`, `status`, `claims`, `q`, `sort`, and `order` are reserved and cannot be used as claim IDs for
+filtering.
 :::
 
 **Response Format**:
@@ -447,7 +475,8 @@ The names `page`, `size`, `status`, `claims`, `q`, `sort`, and `order` are reser
 
 - `users`: Array of user records
     - `user_id`: Unique identifier of the user
-    - `claims`: Object containing the user's claim values. By default includes all enabled claims; use the `claims` query parameter to select specific claims.
+    - `claims`: Object containing the user's claim values. By default includes all enabled claims; use the `claims`query
+      parameter to select specific claims.
     - `status`: Account status (`enabled` or `disabled`)
     - `created_at`: ISO 8601 timestamp (UTC) when the account was created
 - `page`: Current page number
@@ -784,12 +813,19 @@ and `admin:access:write` for modifications.
   "consents": [
     {
       "client_id": "my-web-app",
-      "granted_scopes": ["openid", "profile", "email"],
+      "granted_scopes": [
+        "openid",
+        "profile",
+        "email"
+      ],
       "granted_at": "2026-01-15T14:30:00Z"
     },
     {
       "client_id": "mobile-app",
-      "granted_scopes": ["openid", "email"],
+      "granted_scopes": [
+        "openid",
+        "email"
+      ],
       "granted_at": "2026-02-20T09:15:30Z"
     }
   ]
