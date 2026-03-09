@@ -81,6 +81,14 @@ application. This is controlled through **scopes** — named permissions that ar
 A client can check whether the user's token includes a given scope before allowing access to a protected feature or
 resource.
 
+## Keeping track of who uses what
+
+When scopes are granted to a client on behalf of a user, SympAuthy records that relationship as a
+**[consent](consent)**. A consent captures which scopes a given user has authorized for a given client.
+
+This allows a client to know which users it serves, and gives administrators and users visibility into which
+applications have access to their data.
+
 ## Summary
 
 | Concept              | What it means in plain terms                                                                          |
@@ -91,4 +99,5 @@ resource.
 | Provider             | A trusted third-party service (e.g. Google) that can authenticate a user on SympAuthy's behalf       |
 | Claim                | A piece of information about the user (name, email, role…)                                            |
 | Scope                | A permission controlling what the user can access                                                     |
+| Consent              | The record that a user has authorized a client to access specific scopes                              |
 | Token                | A credential the client receives after authentication, containing the user's identity and permissions |

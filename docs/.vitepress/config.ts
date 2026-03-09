@@ -40,6 +40,7 @@ export default defineConfig({
             { text: 'Tokens', link: '/documentation/functional/tokens' },
             { text: 'Claims', link: '/documentation/functional/claims' },
             { text: 'Authorization', link: '/documentation/functional/authorization' },
+            { text: 'Consent', link: '/documentation/functional/consent' },
             { text: 'End-User Management', link: '/documentation/functional/end-user_management' },
             { text: 'Client', link: '/documentation/functional/client' },
             { text: 'Interactive Flow', link: '/documentation/functional/interactive_flow' },
