@@ -25,10 +25,4 @@ features:
     details: Fully compliant with OAuth 2.1 and OpenID standards, allowing integration with any compatible client library like Spring Security OAuth2.
   - title: Self-Hosted & On-Premise
     details: Deploy your own instance in your infrastructure within minutes. No reliance on third-party services, keeping your authentication in your control.
-  - title: End-User Authentication
-    details: Support for email/password authentication and third-party authentication providers with OAuth2 authorization code grant flow.
-  - title: Flexible Authorization
-    details: Fine-grained access control using standard and custom scopes with powerful rule-based granting mechanisms and API delegation.
-  - title: End-User Management
-    details: Built-in support for end-user account management with customizable claims collection and user merging strategies.
 ---
