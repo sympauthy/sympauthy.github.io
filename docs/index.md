@@ -9,6 +9,9 @@ hero:
       text: Get Started
       link: /getting-started
     - theme: alt
+      text: How it works
+      link: /documentation/functional/how_it_works
+    - theme: alt
       text: Read documentation
       link: /documentation
     - theme: alt
