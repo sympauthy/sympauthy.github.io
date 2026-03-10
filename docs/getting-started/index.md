@@ -213,7 +213,7 @@ This confirms that your SympAuthy instance is running correctly and can handle O
 
 ## Test the Admin UI
 
-1. Go to [http://localhost:8080/admin](http://localhost:8080/admin)
+1. Go to `http://localhost:8080/admin`
 2. Create an account using the email ```admin@example.com```
 3. After signing in, you will have access to the Admin UI with full admin permissions
 
