@@ -309,6 +309,7 @@ Requires the `admin:config:read` scope.
       "standard": true,
       "enabled": true,
       "required": true,
+      "identifier": true,
       "allowed_values": null,
       "group": null
     },
@@ -318,6 +319,7 @@ Requires the `admin:config:read` scope.
       "standard": true,
       "enabled": true,
       "required": false,
+      "identifier": false,
       "allowed_values": null,
       "group": "profile"
     },
@@ -327,6 +329,7 @@ Requires the `admin:config:read` scope.
       "standard": false,
       "enabled": true,
       "required": false,
+      "identifier": false,
       "allowed_values": [
         "Engineering",
         "Marketing",
@@ -349,6 +352,7 @@ Requires the `admin:config:read` scope.
     - `standard`: `true` if this is an OpenID Connect standard claim, `false` for custom claims
     - `enabled`: Whether collection is enabled for this claim
     - `required`: Whether the end-user must provide this claim to complete an authorization flow
+    - `identifier`: Whether this claim is configured as an [identifier claim](/documentation/technical/configuration#auth), used for password login and cross-provider account merging
     - `allowed_values`: Array of accepted values, or `null` if any value is accepted
     - `group`: Optional grouping identifier (e.g., `"profile"`, `"address"`), or `null`
 - `page`: Current page number

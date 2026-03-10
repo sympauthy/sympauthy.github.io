@@ -101,10 +101,7 @@ Returns the flow configuration including enabled features, collectable claims, a
     "sign_up": true
   },
   "password": {
-    "login_claims": [
-      "email"
-    ],
-    "sign_up_claims": [
+    "identifier_claims": [
       "email"
     ]
   },
@@ -132,8 +129,7 @@ Returns the flow configuration including enabled features, collectable claims, a
     - `sign_up`: Whether user registration is available
 
 - `password`: Password authentication configuration
-    - `login_claims`: Claims that can be used as login identifiers
-    - `sign_up_claims`: Claims required during registration
+    - `identifier_claims`: Claims used as login identifiers and required during registration
 
 - `providers`: Available OAuth 2 identity providers
     - `id`: Provider identifier
@@ -173,7 +169,7 @@ Creates a new user account with the provided password and claims.
 The request accepts:
 
 - `password`: User's chosen password (required)
-- Additional claims as configured in `sign_up_claims` (dynamic properties)
+- Additional claims as configured in `identifier_claims` (dynamic properties)
 
 **Response Format**:
 
@@ -214,7 +210,7 @@ Validates user credentials and establishes an authenticated session.
 
 **Properties**:
 
-- `login`: User identifier (matched against claims configured in `login_claims`)
+- `login`: User identifier (matched against claims configured in `identifier_claims`)
 - `password`: User's password
 
 **Response Format**:
@@ -228,7 +224,7 @@ Validates user credentials and establishes an authenticated session.
 **Workflow**:
 
 1. Validates login/password combination
-2. Identifies user by matching login against configured `login_claims`
+2. Identifies user by matching login against configured `identifier_claims`
 3. Returns redirect to next step (typically claims collection or flow completion)
 
 ---
@@ -370,7 +366,7 @@ it.
 
 **Notes**:
 
-- Sign-up claims are filtered out (already collected during registration)
+- Identifier claims are filtered out (already collected during registration)
 - Pre-filled values from providers can be edited by the user
 
 ---

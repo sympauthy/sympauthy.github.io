@@ -60,11 +60,13 @@ Any other OAuth 2-compatible service can also be configured manually. Refer to t
 A user may authenticate with multiple methods over time — for example, first with email and password, then later with
 Google — while using the same email address for both.
 
-By default, SympAuthy recognises that these are the same person and merges the two into a single account. The user ends
-up with one account regardless of the method they used to sign in.
+When account merging is enabled, SympAuthy recognises that these are the same person and merges the two into a single
+account. The user ends up with one account regardless of the method they used to sign in. The merging is based on the
+configured identifier claims — any accounts that share the same value for an identifier claim are treated as the same
+person.
 
-This behavior is controlled by the `advanced.user-merging-strategy` configuration key. Refer to the
-[configuration](/documentation/technical/configuration#advanced) section for available options.
+This behavior is controlled by the `auth.user-merging-enabled` configuration key. Refer to the
+[configuration](/documentation/technical/configuration#auth) section for details.
 
 ### Multi-factor authentication (MFA)
 
