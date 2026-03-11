@@ -131,7 +131,7 @@ docker run -ti --rm -p 8080:8080 \
   '-r2dbc.datasources.default.password=sympauthy_pg_password' \
   '-auth.issuer=http://localhost:8080' \
   '-auth.by-password.enabled=true' \
-  '-auth.login-claims=email' \
+  '-auth.identifier-claims=email' \
   '-claims.email.enabled=true' \
   '-rules[0].scopes=admin:config:read,admin:users:read,admin:users:write,admin:users:delete,admin:access:read,admin:access:write,admin:sessions:read,admin:sessions:write' \
   '-rules[0].behavior=grant' \
@@ -170,9 +170,9 @@ the [r2dbc configuration](/documentation/technical/configuration#r2dbc).
   configuration at `<issuer>/.well-known/openid-configuration`.
 - ```auth.by-password.enabled```: Enable password-based authentication, allowing end-users to sign up and sign in
   using a password. See [auth.by-password](/documentation/technical/configuration#auth-by-password) for details.
-- ```auth.login-claims```: The list of claims that end-users can use to identify themselves when signing in. Here we
-  use ```email``` so users sign in with their email address. See
-  [auth.login-claims](/documentation/technical/configuration#auth-login-claims) for details.
+- ```auth.identifier-claims```: The list of claims that uniquely identify a person. These claims are used as the login
+  identifier for password authentication. Here we use ```email``` so users sign in with their email address. See
+  [auth.identifier-claims](/documentation/technical/configuration#auth-identifier-claims) for details.
 - ```claims.email.enabled```: Enable the ```email``` claim, allowing end-users to provide an email address during
   sign-up. See [claims](/documentation/technical/configuration#claims) for details.
 - ```urls.root```: An URL that end-users and clients are able to use to reach the SympAuthy server. This URL will be
