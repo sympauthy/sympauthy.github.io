@@ -46,7 +46,11 @@ Two categories of keys are used:
   `advanced.jwt.public-alg` (default: `RS256`).
 - **Private-key tokens** — used for internal operations. Configured with `advanced.jwt.private-alg` (default: `RS256`).
 
-The active public key is exposed through the OpenID Connect discovery endpoint (`/.well-known/openid-configuration`),
+Access tokens and ID tokens are signed with **separate keys** as recommended
+by [RFC 9068](https://datatracker.ietf.org/doc/html/rfc9068). This prevents a token intended for one purpose from being
+accepted as the other. The access token key uses the `kid` value `access`, while the ID token key uses a distinct `kid`.
+
+Both public keys are exposed through the OpenID Connect discovery endpoint (`/.well-known/openid-configuration`),
 allowing clients to verify tokens without a round-trip to SympAuthy.
 
 ## Token expiration

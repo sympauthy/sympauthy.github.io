@@ -20,13 +20,20 @@ uses the [refresh token](#refresh-token) to obtain a new one without asking the 
 
 ### Structure of an access token
 
-An access token is encoded as a JSON Web Token (JWT) — a compact, tamper-proof string that contains a set of
-information inside it:
+An access token is encoded as a JSON Web Token (JWT) following
+the [JWT Profile for OAuth 2.0 Access Tokens (RFC 9068)](https://datatracker.ietf.org/doc/html/rfc9068). The JWT uses
+the `at+jwt` type header and contains the following claims:
 
-- who the token was issued for (the user's identifier),
-- which client application it was issued to,
-- which scopes have been granted,
-- when it was issued and when it expires.
+| Claim       | Description                                        | RFC 9068    |
+|-------------|----------------------------------------------------|-------------|
+| `iss`       | Issuer — the URL of this authorization server.     | MUST        |
+| `exp`       | Expiration time.                                   | MUST        |
+| `aud`       | Audience the token is intended for.                | MUST        |
+| `sub`       | Subject — the authenticated user's identifier.     | MUST        |
+| `client_id` | The client that requested the token.               | MUST        |
+| `iat`       | Issued-at time.                                    | MUST        |
+| `jti`       | Unique token identifier.                           | MUST        |
+| `scope`     | Space-separated list of granted scopes.            | SHOULD      |
 
 The client can read this information directly from the token without making an additional request to SympAuthy.
 

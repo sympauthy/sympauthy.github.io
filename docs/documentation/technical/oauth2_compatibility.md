@@ -28,6 +28,7 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 | Refresh Token                           | Supported     | [draft-ietf-oauth-v2-1 - section 1.5](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-1.5) |
 | ID Token (JWT)                          | Supported     | [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html)                               |
 | Refresh Token Rotation (Public Clients) | Supported     | [draft-ietf-oauth-v2-1 - section 6.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-6.1) |
+| JWT Profile for Access Tokens           | Supported     | [RFC 9068](https://datatracker.ietf.org/doc/html/rfc9068)                                                       |
 | Sender-constrained Tokens               | Not Supported | [draft-ietf-oauth-v2-1 - section 6.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-6.1) |
 | Bearer Tokens in Query Strings          | Not Supported | [draft-ietf-oauth-v2-1 - section 5.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-5.1) |
 
@@ -115,4 +116,5 @@ For more information about OAuth specifications, visit:
 
 - [OAuth 2.1 (draft-ietf-oauth-v2-1)](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1)
 - [OAuth 2.0 Framework (RFC 6749)](https://datatracker.ietf.org/doc/html/rfc6749)
+- [JWT Profile for OAuth 2.0 Access Tokens (RFC 9068)](https://datatracker.ietf.org/doc/html/rfc9068)
 - [OpenID Connect Specifications](https://openid.net/connect/)
