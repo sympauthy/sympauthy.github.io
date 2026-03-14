@@ -41,9 +41,7 @@ grant only the minimum necessary privileges.
 | `admin:users:write`    | Create, update, disable, enable users                   |
 | `admin:users:delete`   | Delete users (separated for GDPR sensitivity)           |
 | `admin:access:read`    | View consents                                           |
-| `admin:access:write`   | Revoke consents                                         |
-| `admin:sessions:read`  | View active sessions                                    |
-| `admin:sessions:write` | Force logout, revoke sessions                           |
+| `admin:access:write`   | Revoke consents, force logout                           |
 
 The `admin:users:delete` scope is intentionally separated from `admin:users:write` because user deletion is an
 irreversible operation with GDPR implications and should require explicit authorization.
@@ -760,9 +758,9 @@ Returns **400 Bad Request** with error code `invalid_claim` when:
 
 **Method**: POST
 
-**Authentication**: Bearer token with `admin:sessions:write` scope
+**Authentication**: Bearer token with `admin:access:write` scope
 
-**Purpose**: Invalidates all active sessions for a specific user, forcing them to re-authenticate.
+**Purpose**: Revokes all tokens for a specific user, forcing them to re-authenticate.
 
 **Path Parameters**:
 
@@ -773,20 +771,60 @@ Returns **400 Bad Request** with error code `invalid_claim` when:
 ```json
 {
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "sessions_revoked": 3
+  "tokens_revoked": 3
 }
 ```
 
 **Properties**:
 
 - `user_id`: Unique identifier of the user
-- `sessions_revoked`: Number of active sessions that were invalidated
+- `tokens_revoked`: Number of active tokens that were revoked
 
 **Use Cases**:
 
 - Respond to a compromised account by terminating all sessions
 - Enforce re-authentication after a password reset
 - Remove access for a departing employee immediately
+
+---
+
+#### Force Client Logout
+
+**Path**: `/api/v1/admin/users/{user_id}/logout/{client_id}`
+
+**Method**: POST
+
+**Authentication**: Bearer token with `admin:access:write` scope
+
+**Purpose**: Revokes all tokens for a specific user on a specific client application, forcing them to re-authenticate on
+that client only.
+
+**Path Parameters**:
+
+- `user_id`: Unique identifier of the user
+- `client_id`: Unique identifier of the client application
+
+**Response Format**:
+
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "client_id": "my-client-app",
+  "tokens_revoked": 2
+}
+```
+
+**Properties**:
+
+- `user_id`: Unique identifier of the user
+- `client_id`: Identifier of the client application whose tokens were revoked
+- `tokens_revoked`: Number of active tokens that were revoked for the specified client
+
+**Use Cases**:
+
+- Revoke access for a user on a specific application without affecting their other sessions
+- Respond to a client-specific security incident
+- Remove access to a particular service for a departing team member
 
 ---
 
@@ -906,65 +944,4 @@ be obtained.
 - Respond to user requests to disconnect an application
 - Enforce access policies during security incidents
 
----
-
-### Monitoring & Audit
-
-Endpoints for viewing active sessions and monitoring authentication activity. Requires the `admin:sessions:read`
-scope for read operations and `admin:sessions:write` for modifications.
-
-#### List Active Sessions
-
-**Path**: `/api/v1/admin/sessions`
-
-**Method**: GET
-
-**Authentication**: Bearer token with `admin:sessions:read` scope
-
-**Purpose**: Retrieves a list of all active sessions across all users.
-
-**Query Parameters**:
-
-- `page` (optional): Page number (default: `0`)
-- `size` (optional): Number of results per page (default: `20`)
-- `user_id` (optional): Filter sessions by user
-
-**Response Format**:
-
-```json
-{
-  "sessions": [
-    {
-      "session_id": "sess_abc123xyz",
-      "user_id": "550e8400-e29b-41d4-a716-446655440000",
-      "client_id": "my-web-app",
-      "created_at": "2026-02-27T10:30:00Z",
-      "last_accessed_at": "2026-03-06T14:45:00Z",
-      "expires_at": "2026-03-13T10:30:00Z"
-    }
-  ],
-  "page": 0,
-  "size": 20,
-  "total": 156
-}
-```
-
-**Properties**:
-
-- `sessions`: Array of session records
-    - `session_id`: Unique identifier for the session
-    - `user_id`: Unique identifier of the user who owns the session
-    - `client_id`: Identifier of the client application associated with the session
-    - `created_at`: ISO 8601 timestamp (UTC) when the session was created
-    - `last_accessed_at`: ISO 8601 timestamp (UTC) of the last activity
-    - `expires_at`: ISO 8601 timestamp (UTC) when the session will expire
-- `page`: Current page number
-- `size`: Number of results per page
-- `total`: Total number of active sessions matching the query
-
-**Use Cases**:
-
-- Monitor active sessions across the authorization server
-- Detect unusual session patterns or suspicious activity
-- Audit user activity for compliance reporting
 
