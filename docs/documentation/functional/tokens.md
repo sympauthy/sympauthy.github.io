@@ -82,4 +82,6 @@ The user will be prompted to sign in again when:
 
 - the refresh token has expired (controlled by `token.refresh-token.lifespan`),
 - the refresh token has been revoked (for example, following an account action),
+- the [consent](/documentation/functional/consent) for the user and client pair has been revoked — either by an
+  administrator or because the user re-authorized with new scopes,
 - the client explicitly signs the user out.

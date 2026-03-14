@@ -803,46 +803,55 @@ and `admin:access:write` for modifications.
 
 **Authentication**: Bearer token with `admin:access:read` scope
 
-**Purpose**: Retrieves all consents granted by a specific user to client applications.
+**Purpose**: Retrieves all active consents granted by a specific user to client applications.
 
 **Path Parameters**:
 
 - `user_id`: Unique identifier of the user
 
+**Query Parameters**:
+
+- `page` (optional): Zero-indexed page number (default: `0`)
+- `size` (optional): Number of results per page (default: `20`)
+
 **Response Format**:
 
 ```json
 {
-  "user_id": "550e8400-e29b-41d4-a716-446655440000",
   "consents": [
     {
       "client_id": "my-web-app",
-      "granted_scopes": [
+      "scopes": [
         "openid",
         "profile",
         "email"
       ],
-      "granted_at": "2026-01-15T14:30:00Z"
+      "consented_at": "2026-01-15T14:30:00Z"
     },
     {
       "client_id": "mobile-app",
-      "granted_scopes": [
+      "scopes": [
         "openid",
         "email"
       ],
-      "granted_at": "2026-02-20T09:15:30Z"
+      "consented_at": "2026-02-20T09:15:30Z"
     }
-  ]
+  ],
+  "page": 0,
+  "size": 20,
+  "total": 2
 }
 ```
 
 **Properties**:
 
-- `user_id`: Unique identifier of the user
-- `consents`: Array of consent records
+- `consents`: Array of active consent records
     - `client_id`: Identifier of the client application that received consent
-    - `granted_scopes`: List of scopes the user has granted to this client
-    - `granted_at`: ISO 8601 timestamp (UTC) when consent was granted
+    - `scopes`: List of scopes the user has consented usage to this client
+    - `consented_at`: ISO 8601 timestamp (UTC) when consent was granted
+- `page`: Current page number
+- `size`: Current page size
+- `total`: Total number of active consents for this user
 
 **Use Cases**:
 
@@ -860,8 +869,9 @@ and `admin:access:write` for modifications.
 
 **Authentication**: Bearer token with `admin:access:write` scope
 
-**Purpose**: Revokes all consents granted by a user to a specific client application. The client will no longer be
-able to access the user's data until the user re-authorizes.
+**Purpose**: Revokes the active consent granted by a user to a specific client application. The client will no longer be
+able to access the user's data until the user re-authorizes. Returns 404 if no active consent exists for the
+user and client pair.
 
 **Path Parameters**:
 
@@ -877,6 +887,18 @@ able to access the user's data until the user re-authorizes.
   "revoked": true
 }
 ```
+
+**Revocation behavior**:
+
+When a consent is revoked through this endpoint:
+
+1. The consent is marked as revoked (`revoked_by = ADMIN`) with the administrator's identifier.
+2. All refresh tokens for the user and client pair are immediately invalidated.
+3. As a safety net, subsequent token refresh attempts also verify that a valid consent exists — so even if a refresh
+   token was missed, it cannot be used.
+
+The client's existing access tokens remain valid until they expire naturally (typically minutes), but no new tokens can
+be obtained.
 
 **Use Cases**:
 
