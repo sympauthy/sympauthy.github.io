@@ -517,7 +517,7 @@ Returns **400 Bad Request** with error code `invalid_claim` when:
 
 **Authentication**: Bearer token with `admin:users:read` scope
 
-**Purpose**: Retrieves detailed information about a specific user, including their claims and account status.
+**Purpose**: Retrieves the account status, metadata, and identifier claim values for a specific user.
 
 **Path Parameters**:
 
@@ -528,30 +528,26 @@ Returns **400 Bad Request** with error code `invalid_claim` when:
 ```json
 {
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "claims": {
-    "email": "user@example.com",
-    "email_verified": true,
-    "name": "Jane Doe",
-    "given_name": "Jane",
-    "family_name": "Doe"
-  },
   "status": "enabled",
-  "created_at": "2026-01-15T14:30:00Z"
+  "created_at": "2026-01-15T14:30:00Z",
+  "identifier_claims": {
+    "email": "jane@example.com"
+  }
 }
 ```
 
 **Properties**:
 
 - `user_id`: Unique identifier of the user
-- `claims`: Object containing the user's claims (standard and custom)
 - `status`: Account status (`enabled` or `disabled`)
 - `created_at`: ISO 8601 timestamp (UTC) when the account was created
+- `identifier_claims`: Object containing the user's identifier claim values as key/value pairs. Only claims configured as identifiers are included.
 
 **Use Cases**:
 
-- View user details in an admin dashboard
-- Investigate user account issues
-- Verify user claim data
+- Check a user's account status in an admin dashboard
+- Verify whether a user account exists and is active
+- Display a user summary with their identifying information (e.g., email) without loading full claim data
 
 ---
 
