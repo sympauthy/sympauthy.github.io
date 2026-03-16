@@ -551,6 +551,104 @@ Returns **400 Bad Request** with error code `invalid_claim` when:
 
 ---
 
+#### List User Claims
+
+**Path**: `/api/v1/admin/users/{user_id}/claims`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:users:read` scope
+
+**Purpose**: Retrieves a paginated list of claim values for a specific user, with claim definition metadata. Only claims
+enabled in the configuration are returned. OpenID `*_verified` claims (e.g., `email_verified`, `phone_number_verified`)
+are excluded — their status is represented by the `verified_at` field on the parent claim.
+
+**Path Parameters**:
+
+- `user_id`: Unique identifier of the user
+
+**Query Parameters**:
+
+- `page` (optional): Zero-indexed page number (default: `0`)
+- `size` (optional): Number of results per page (default: `20`)
+- `claim_id` (optional): Filter by specific claim ID (e.g., `?claim_id=email`)
+- `identifier` (optional): Filter by identifier status (`true`, `false`)
+- `required` (optional): Filter by required status (`true`, `false`)
+- `collected` (optional): Filter by whether a value has been collected (`true`, `false`)
+- `verified` (optional): Filter by whether the claim has been verified (`true`, `false`)
+- `standard` (optional): Filter by standard vs custom claims (`true` for OpenID standard, `false` for custom)
+
+**Response Format**:
+
+```json
+{
+  "claims": [
+    {
+      "claim_id": "email",
+      "value": "jane@example.com",
+      "type": "string",
+      "standard": true,
+      "required": true,
+      "identifier": true,
+      "group": null,
+      "collected_at": "2026-01-15T14:30:00Z",
+      "verified_at": "2026-01-15T14:35:00Z"
+    },
+    {
+      "claim_id": "name",
+      "value": "Jane Doe",
+      "type": "string",
+      "standard": true,
+      "required": false,
+      "identifier": false,
+      "group": "profile",
+      "collected_at": "2026-01-15T14:30:00Z",
+      "verified_at": null
+    },
+    {
+      "claim_id": "custom_department",
+      "value": null,
+      "type": "string",
+      "standard": false,
+      "required": false,
+      "identifier": false,
+      "group": null,
+      "collected_at": null,
+      "verified_at": null
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "total": 3
+}
+```
+
+**Properties**:
+
+- `claims`: Array of claim records
+    - `claim_id`: Unique claim identifier, as defined in configuration
+    - `value`: The user's value for this claim, or `null` if not yet provided
+    - `type`: Data type (`string`, `number`, or `date`)
+    - `standard`: `true` if this is an OpenID Connect standard claim, `false` for custom claims
+    - `required`: Whether the end-user must provide this claim
+    - `identifier`: Whether this claim is configured as an identifier claim
+    - `group`: Optional grouping identifier (e.g., `"profile"`, `"address"`), or `null`
+    - `collected_at`: ISO 8601 timestamp (UTC) when the value was collected, or `null`
+    - `verified_at`: ISO 8601 timestamp (UTC) when the value was verified, or `null`
+- `page`: Current page number
+- `size`: Number of results per page
+- `total`: Total number of claims matching the filters
+
+**Use Cases**:
+
+- View a user's profile data in an admin dashboard
+- Audit which required claims are missing (`?collected=false&required=true`)
+- Check which claims have been verified (`?verified=true`)
+- Find unverified identifier claims (`?identifier=true&verified=false`)
+- List only custom claims (`?standard=false`)
+
+---
+
 #### Update User
 
 **Path**: `/api/v1/admin/users/{user_id}`
