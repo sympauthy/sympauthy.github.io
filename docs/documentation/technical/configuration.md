@@ -255,7 +255,7 @@ This section holds configuration related to features that can be enabled or disa
 |--------------------------------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
 | ```allow-access-to-client-without-scope``` | boolean | Allow the end-user to be redirected back to the client application even when none of the requested authorization scopes have been granted                                                                                                                                                                                                                                                                                                                                             | NO<br>```false```   |
 | ```email-validation```                     | boolean | Enforce the validation of the end-user's emails. A SMTP must be configured (see [javamail](#javamail)) to enable this feature.                                                                                                                                                                                                                                                                                                                                                        | NO<br>```false```   |
-| ```grant-unhandled-scopes```               | boolean | ⚠️ **UNSAFE - DEVELOPMENT ONLY**. Automatically grant ALL scopes requested by the client that are not explicitly granted nor declined by any scope granting method.<br>When enabled: Any scope not explicitly granted nor declined is automatically granted.<br>When disabled: Scopes not explicitly granted are rejected (secure default).<br>To know more about existing scope granting methods, see this [documentation](/documentation/functional/authorization#granting-scopes). | NO<br>```false```   |
+| ```grant-unhandled-scopes```               | boolean | ⚠️ **UNSAFE - DEVELOPMENT ONLY**. Automatically grant ALL scopes requested by the client that are not explicitly granted nor declined by any scope granting method.<br>When enabled: Any scope not explicitly granted nor declined is automatically granted.<br>When disabled: Scopes not explicitly granted are rejected (secure default).<br>To know more about existing scope granting methods, see this [documentation](/documentation/functional/user_authorization#scope-granting-rules). | NO<br>```false```   |
 
 ## ```mfa```
 
@@ -341,7 +341,7 @@ authenticate itself.
 ## ```rules```
 
 This section holds the configuration of
-the [scope granting rules](/documentation/functional/authorization#scope-granting-rules).
+the [scope granting rules](/documentation/functional/user_authorization#scope-granting-rules).
 
 | Key | Type | Description | Required<br>Default |
 |-----|------|-------------|---------------------|

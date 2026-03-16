@@ -13,7 +13,7 @@ SympAuthy issues three kinds of tokens, each with a distinct purpose:
 ## Access token
 
 The **access token** is the credential the client presents whenever it wants to access a protected resource. It is
-proof that the user has been authenticated and that certain permissions ([scopes](authorization)) have been granted.
+proof that the user has been authenticated and that certain permissions ([scopes](scope)) have been granted.
 
 Access tokens are intentionally short-lived. If one is stolen, it becomes useless quickly. When it expires, the client
 uses the [refresh token](#refresh-token) to obtain a new one without asking the user to sign in again.
@@ -33,7 +33,7 @@ the `at+jwt` type header and contains the following claims:
 | `client_id` | The client that requested the token.               | MUST        |
 | `iat`       | Issued-at time.                                    | MUST        |
 | `jti`       | Unique token identifier.                           | MUST        |
-| `scope`     | Space-separated list of granted scopes.            | SHOULD      |
+| `scope`     | Space-separated list of granted scopes (both [consentable](/documentation/functional/scope#consentable-scope) and [grantable](/documentation/functional/scope#grantable-scope)). | SHOULD      |
 
 The client can read this information directly from the token without making an additional request to SympAuthy.
 

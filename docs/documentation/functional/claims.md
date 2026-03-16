@@ -7,6 +7,9 @@ it from the claims provided by SympAuthy.
 SympAuthy acts as a central repository for these claims: a user fills in their information once, and all clients sharing
 the same authorization server can access it without asking the user again.
 
+Claims are protected by [consentable scopes](/documentation/functional/scope#consentable-scope) — a client can
+only access a claim if the end-user has explicitly consented to the corresponding scope.
+
 Out of the box, SympAuthy supports all claims standardized in
 the [OpenID specification](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims). They are referred to
 as [standard claims](#standard-claims) throughout this documentation.

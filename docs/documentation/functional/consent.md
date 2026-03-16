@@ -2,15 +2,22 @@
 
 A **consent** is the record that an end-user has authorized a specific
 [client](/documentation/functional/client) to access specific
-[scopes](/documentation/functional/authorization#scope). When a user logs in through a client and scopes are granted,
-SympAuthy creates a consent to keep track of that relationship.
+[consentable scopes](/documentation/functional/scope#consentable-scope). When a user logs in through a client and
+consentable scopes are granted through the user's explicit approval, SympAuthy creates a consent to keep track of that
+relationship.
 
 Consents serve several purposes:
 
-- They record exactly which scopes each user has granted to each client.
+- They record exactly which consentable scopes each user has granted to each client.
 - They support audit and compliance needs, such as answering the question "which third-party applications have access to
   my data?"
 - They enable revocation of a client's access to a user's data.
+
+::: info
+Consents only apply to [consentable scopes](/documentation/functional/scope#consentable-scope).
+[Grantable scopes](/documentation/functional/scope#grantable-scope) — which protect resources rather than user
+claims — are managed through scope granting rules or the API and do not involve end-user consent.
+:::
 
 ::: info
 Consents only apply to user-facing authorization flows (e.g., authorization code). `client_credentials` grants operate
@@ -19,9 +26,9 @@ without a user and do not create consents.
 
 ## How consents are created
 
-A consent is created automatically the first time scopes are granted to a client on behalf of a user. This happens as a
-result of the mechanisms described in [Authorization](/documentation/functional/authorization#granting-scope) — either
-through scope granting rules or through the API.
+A consent is created automatically the first time an end-user approves
+[consentable scopes](/documentation/functional/scope#consentable-scope) for a client during an authorization
+flow.
 
 If the user re-authorizes with the same client, the previous consent is revoked and a new one is created with the scopes
 granted during this authorization. The new consent **replaces** the previous one — scopes are never merged across
@@ -59,8 +66,8 @@ tokens.
 
 ## Relation to other concepts
 
-- **[Scopes](/documentation/functional/authorization#scope)** — a consent records which scopes were granted. Without
-  scopes, there is nothing to consent to.
+- **[Consentable scopes](/documentation/functional/scope#consentable-scope)** — a consent records which
+  consentable scopes were granted. Only consentable scopes — those protecting user claims — are subject to consent.
 - **[Clients](/documentation/functional/client)** — a consent ties a user to a client.
 - **[Claims](/documentation/functional/claims)** — only claims covered by the consented scopes are shared with the
   client.

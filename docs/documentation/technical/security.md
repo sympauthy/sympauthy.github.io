@@ -192,11 +192,13 @@ A client can be limited to a specific subset of scopes through `clients.<id>.all
 outside this list is silently removed before processing, preventing a misconfigured or compromised client from obtaining
 unintended access.
 
-The `features.grant-unhandled-scopes` option is `false` by default. When disabled, any scope that is not explicitly
-granted by a rule or the API is rejected rather than automatically granted. Enabling this setting is marked as unsafe
-and intended for development use only.
+The `features.grant-unhandled-scopes` option is `false` by default. When disabled, any
+[grantable scope](/documentation/functional/scope#grantable-scope) that is not explicitly granted by a rule or
+the API is rejected rather than automatically granted. This setting does not affect
+[consentable scopes](/documentation/functional/scope#consentable-scope), which are always granted through
+end-user consent. Enabling this setting is marked as unsafe and intended for development use only.
 
-See the [Authorization](../functional/authorization) documentation for details on scope granting rules.
+See the [User Authorization](../functional/user_authorization) and [Client Authorization](../functional/client_authorization) documentation for details on scope granting rules.
 
 ## Client authentication
 

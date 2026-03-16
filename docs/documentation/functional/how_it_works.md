@@ -75,8 +75,10 @@ provides — rather than maintaining its own copy.
 
 ## What users are allowed to do
 
-SympAuthy also manages **[authorization](authorization)**: what a signed-in user is permitted to do within a client
+SympAuthy also manages **[authorization](scope)**: what a signed-in user is permitted to do within a client
 application. This is controlled through **scopes** — named permissions that are included in the tokens SympAuthy issues.
+Scopes come in two types: **consentable scopes** protect user information and require the end-user's explicit consent,
+while **grantable scopes** protect resources and are managed by the authorization server.
 
 A client can check whether the user's token includes a given scope before allowing access to a protected feature or
 resource.
@@ -96,8 +98,8 @@ applications have access to their data.
 | Authorization server | SympAuthy itself — the service that authenticates users and issues tokens                             |
 | Client               | An application that uses SympAuthy for its login                                                      |
 | End-user             | A person signing into a client application                                                            |
-| Provider             | A trusted third-party service (e.g. Google) that can authenticate a user on SympAuthy's behalf       |
+| Provider             | A trusted third-party service (e.g. Google) that can authenticate a user on SympAuthy's behalf        |
 | Claim                | A piece of information about the user (name, email, role…)                                            |
-| Scope                | A permission controlling what the user can access                                                     |
+| Scope                | A named permission — consentable (protecting user claims), grantable (protecting resources), or client (protecting client operations) |
 | Consent              | The record that a user has authorized a client to access specific scopes                              |
 | Token                | A credential the client receives after authentication, containing the user's identity and permissions |

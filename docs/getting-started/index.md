@@ -186,7 +186,7 @@ the [r2dbc configuration](/documentation/technical/configuration#r2dbc).
 
 ##### Grant admin permissions
 
-- ```rules[0]```: A [scope granting rule](/documentation/functional/authorization#scope-granting-rules) that
+- ```rules[0]```: A [scope granting rule](/documentation/functional/user_authorization#scope-granting-rules) that
   automatically grants all admin scopes to the user who signs up with the email ```admin@example.com```.
 
 You can pass additional configurations to the server by appending the following to the command:
@@ -217,7 +217,7 @@ This confirms that your SympAuthy instance is running correctly and can handle O
 2. Create an account using the email ```admin@example.com```
 3. After signing in, you will have access to the Admin UI with full admin permissions
 
-The [scope granting rule](/documentation/functional/authorization#scope-granting-rules) configured in the Docker
+The [scope granting rule](/documentation/functional/user_authorization#scope-granting-rules) configured in the Docker
 command automatically grants all admin scopes to the user with this email address.
 
 To learn more about the Admin API and available admin features, see
