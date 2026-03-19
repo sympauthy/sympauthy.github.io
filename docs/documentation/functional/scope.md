@@ -58,6 +58,21 @@ Examples of grantable scopes:
 
 See [User Authorization](/documentation/functional/user_authorization) for details on scope granting rules.
 
+### Admin scopes
+
+Admin scopes are grantable scopes defined by SympAuthy that protect operations of the
+[Admin API](/documentation/technical/admin_api). They follow the naming convention `admin:{domain}:{action}`,
+providing fine-grained control so operators can grant only the minimum necessary privileges.
+
+| Scope                  | Description                                        |
+|------------------------|----------------------------------------------------|
+| `admin:config:read`    | View configuration resources (clients, claims)     |
+| `admin:users:read`     | View users                                         |
+| `admin:users:write`    | Create, update, disable, enable users              |
+| `admin:users:delete`   | Delete users (separated for GDPR sensitivity)      |
+| `admin:consent:read`   | View consents                                      |
+| `admin:consent:write`  | Revoke consents, force logout                      |
+
 ## Client scope
 
 A **client scope** represents an operation that the client application itself is authorized to perform — independently
@@ -68,10 +83,14 @@ Client scopes are granted through
 [delegating to a third-party through API](/documentation/functional/client_authorization#delegating-to-a-third-party-through-api).
 Their granting rules evaluate client attributes rather than user claims.
 
-Examples of client scopes:
+Client scopes are defined by SympAuthy and protect operations of the
+[Client API](/documentation/technical/client_api). They follow the naming convention `{resource}:{action}`.
 
-- `users:claims:write` — allows the client to update user claims through the Client API.
-- Any custom scope that represents an operation the client performs as itself, not on behalf of a user.
+| Scope                | Description                                          |
+|----------------------|------------------------------------------------------|
+| `users:read`         | List users with granted scopes or claims             |
+| `users:claims:read`  | Read consented and custom claims                     |
+| `users:claims:write` | Write custom claims                                  |
 
 See [Client Authorization](/documentation/functional/client_authorization) for details on client scope granting rules.
 
@@ -91,10 +110,9 @@ You can define your own scopes to:
 
 - protect the [claims](/documentation/functional/claims) of the end-user — making the scope **consentable**.
 - protect resources on behalf of a user — making the scope **grantable**.
-- protect operations performed by the client itself — making the scope a **client scope**.
 
-A custom scope is **consentable** if it protects custom claims, **grantable** if it protects resources in a user
-context, and a **client scope** if it protects client operations.
+A custom scope is **consentable** if it protects custom claims and **grantable** if it protects resources in a user
+context. Custom client scopes are not supported — client scopes are defined exclusively by SympAuthy.
 
 They can be declared either by configuration or by API.
 

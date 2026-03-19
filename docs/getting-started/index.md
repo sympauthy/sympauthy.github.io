@@ -133,7 +133,7 @@ docker run -ti --rm -p 8080:8080 \
   '-auth.by-password.enabled=true' \
   '-auth.identifier-claims=email' \
   '-claims.email.enabled=true' \
-  '-rules[0].scopes=admin:config:read,admin:users:read,admin:users:write,admin:users:delete,admin:access:read,admin:access:write,admin:sessions:read,admin:sessions:write' \
+  '-rules[0].scopes=admin:config:read,admin:users:read,admin:users:write,admin:users:delete,admin:consent:read,admin:consent:write,admin:sessions:read,admin:sessions:write' \
   '-rules[0].behavior=grant' \
   '-rules[0].expressions=CLAIM("email") = "admin@example.com"' \
   '-urls.root=http://localhost:8080'

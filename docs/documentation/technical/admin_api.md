@@ -40,8 +40,8 @@ grant only the minimum necessary privileges.
 | `admin:users:read`     | List and view users                                     |
 | `admin:users:write`    | Create, update, disable, enable users                   |
 | `admin:users:delete`   | Delete users (separated for GDPR sensitivity)           |
-| `admin:access:read`    | View consents                                           |
-| `admin:access:write`   | Revoke consents, force logout                           |
+| `admin:consent:read`   | View consents                                           |
+| `admin:consent:write`  | Revoke consents, force logout                           |
 
 The `admin:users:delete` scope is intentionally separated from `admin:users:write` because user deletion is an
 irreversible operation with GDPR implications and should require explicit authorization.
@@ -852,7 +852,7 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 **Method**: POST
 
-**Authentication**: Bearer token with `admin:access:write` scope
+**Authentication**: Bearer token with `admin:consent:write` scope
 
 **Purpose**: Revokes all tokens for a specific user, forcing them to re-authenticate.
 
@@ -888,7 +888,7 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 **Method**: POST
 
-**Authentication**: Bearer token with `admin:access:write` scope
+**Authentication**: Bearer token with `admin:consent:write` scope
 
 **Purpose**: Revokes all tokens for a specific user on a specific client application, forcing them to re-authenticate on
 that client only.
@@ -924,8 +924,8 @@ that client only.
 
 ### Access Control
 
-Endpoints for viewing and managing end-user consents. Requires the `admin:access:read` scope for read operations
-and `admin:access:write` for modifications.
+Endpoints for viewing and managing end-user consents. Requires the `admin:consent:read` scope for read operations
+and `admin:consent:write` for modifications.
 
 #### List User Consents
 
@@ -933,7 +933,7 @@ and `admin:access:write` for modifications.
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:access:read` scope
+**Authentication**: Bearer token with `admin:consent:read` scope
 
 **Purpose**: Retrieves all active consents granted by a specific user to client applications.
 
@@ -999,7 +999,7 @@ and `admin:access:write` for modifications.
 
 **Method**: DELETE
 
-**Authentication**: Bearer token with `admin:access:write` scope
+**Authentication**: Bearer token with `admin:consent:write` scope
 
 **Purpose**: Revokes the active consent granted by a user to a specific client application. The client will no longer be
 able to access the user's data until the user re-authorizes. Returns 404 if no active consent exists for the
