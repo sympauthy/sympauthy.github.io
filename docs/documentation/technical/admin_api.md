@@ -954,7 +954,6 @@ and `admin:consent:write` for modifications.
     {
       "client_id": "my-web-app",
       "scopes": [
-        "openid",
         "profile",
         "email"
       ],
@@ -963,7 +962,6 @@ and `admin:consent:write` for modifications.
     {
       "client_id": "mobile-app",
       "scopes": [
-        "openid",
         "email"
       ],
       "consented_at": "2026-02-20T09:15:30Z"

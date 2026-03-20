@@ -111,19 +111,21 @@ You can define your own scopes to:
 - protect the [claims](/documentation/functional/claims) of the end-user — making the scope **consentable**.
 - protect resources on behalf of a user — making the scope **grantable**.
 
-A custom scope is **consentable** if it protects custom claims and **grantable** if it protects resources in a user
-context. Custom client scopes are not supported — client scopes are defined exclusively by SympAuthy.
+The scope type is set explicitly via the `type` configuration property. A scope is **grantable** by default. Set
+`type: consentable` to create a scope that protects user claims and requires end-user consent. Custom client scopes are
+not supported — client scopes are defined exclusively by SympAuthy.
 
 They can be declared either by configuration or by API.
 
 ### By configuration
 
-To create a custom scope using configuration, you simply need to define a name for it and enable it:
+To create a custom scope using configuration, define a name, enable it, and set its type:
 
 ```
 scope:
 - <scope>:
   enabled: true
+  type: consentable  # or grantable (default)
 ```
 
-You can refer to the [configuration](/documentation/technical/configuration) to learn more.
+You can refer to the [configuration](/documentation/technical/configuration#scopes-id) to learn more.

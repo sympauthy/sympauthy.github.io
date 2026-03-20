@@ -33,7 +33,7 @@ the `at+jwt` type header and contains the following claims:
 | `client_id` | The client that requested the token.               | MUST        |
 | `iat`       | Issued-at time.                                    | MUST        |
 | `jti`       | Unique token identifier.                           | MUST        |
-| `scope`     | Space-separated list of granted scopes (both [consentable](/documentation/functional/scope#consentable-scope) and [grantable](/documentation/functional/scope#grantable-scope)). | SHOULD      |
+| `scope`     | Space-separated list of granted scopes. For `authorization_code` tokens: [consentable](/documentation/functional/scope#consentable-scope) and [grantable](/documentation/functional/scope#grantable-scope) scopes. For `client_credentials` tokens: [client](/documentation/functional/scope#client-scope) scopes. | SHOULD      |
 
 The client can read this information directly from the token without making an additional request to SympAuthy.
 
