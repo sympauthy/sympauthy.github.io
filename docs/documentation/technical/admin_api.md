@@ -351,8 +351,8 @@ Requires the `admin:config:read` scope.
     - `enabled`: Whether collection is enabled for this claim
     - `required`: Whether the end-user must provide this claim to complete an authorization flow
     - `identifier`: Whether this claim is configured as an [identifier claim](/documentation/technical/configuration#auth), used for password login and cross-provider account merging
-    - `allowed_values`: Array of accepted values, or `null` if any value is accepted
-    - `group`: Optional grouping identifier (e.g., `"profile"`, `"address"`), or `null`
+    - `allowed_values`: Array of accepted values, or `null` if any value is accepted (no restriction)
+    - `group`: Grouping identifier (e.g., `"profile"`, `"address"`), or `null` if the claim belongs to no group
 - `page`: Current page number
 - `size`: Number of results per page
 - `total`: Total number of claims
@@ -362,6 +362,106 @@ Requires the `admin:config:read` scope.
 - Admin dashboard displaying all configured claims and their settings
 - Auditing which claims are enabled and required without accessing configuration files
 - Reviewing allowed values for claims with restricted inputs
+
+---
+
+### Scope Management
+
+Endpoints for viewing configured scopes. Since scopes are defined in configuration files or by SympAuthy itself
+(not in a database), these endpoints expose them as read-only resources — following the same pattern as
+[Client Management](#client-management) and [Claim Management](#claim-management). All three scope types
+(consentable, grantable, client) are returned. Requires the `admin:config:read` scope.
+
+#### List Scopes
+
+**Path**: `/api/v1/admin/scopes`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:config:read` scope
+
+**Purpose**: Retrieves a paginated list of all configured scopes (standard and custom, across all three types).
+
+**Query Parameters**:
+
+- `page` (optional): Zero-indexed page number (default: `0`)
+- `size` (optional): Number of results per page (default: `20`)
+- `type` (optional): Filter by scope type (`consentable`, `grantable`, `client`)
+- `enabled` (optional): Filter by enabled status (`true`, `false`)
+
+**Response Format**:
+
+```json
+{
+  "scopes": [
+    {
+      "id": "openid",
+      "type": "grantable",
+      "origin": "openid",
+      "enabled": true
+    },
+    {
+      "id": "profile",
+      "type": "consentable",
+      "origin": "openid",
+      "enabled": true,
+      "claims": [
+        "name",
+        "family_name",
+        "given_name",
+        "middle_name",
+        "nickname",
+        "preferred_username",
+        "picture",
+        "website",
+        "gender",
+        "birthdate",
+        "zoneinfo",
+        "locale",
+        "updated_at"
+      ]
+    },
+    {
+      "id": "admin:users:read",
+      "type": "grantable",
+      "origin": "system",
+      "enabled": true
+    },
+    {
+      "id": "users:read",
+      "type": "client",
+      "origin": "system",
+      "enabled": true
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "total": 4
+}
+```
+
+**Properties**:
+
+- `scopes`: Array of scope records
+    - `id`: Unique scope identifier
+    - `type`: Scope type. Possible values: `"consentable"` | `"grantable"` | `"client"`.
+      See [Scope](/documentation/functional/scope) for the meaning of each type
+    - `origin`: Where the scope is defined. Possible values:
+      `"oauth2"` (OAuth 2 specification) | `"openid"` (OpenID Connect specification) |
+      `"system"` (defined by SympAuthy) | `"custom"` (defined by the operator in configuration)
+    - `enabled`: Whether the scope is enabled
+    - `claims` (consentable scopes only): Array of [claim](/documentation/functional/claims) identifiers
+      protected by this scope. Omitted for grantable and client scopes
+- `page`: Current page number
+- `size`: Number of results per page
+- `total`: Total number of scopes
+
+**Use Cases**:
+
+- Admin dashboard displaying all available scopes and their types
+- Auditing which scopes are enabled and how they are categorized
+- Reviewing which claims are protected by each consentable scope
+- Filtering scopes by type to inspect admin, client, or user-facing permissions separately
 
 ---
 

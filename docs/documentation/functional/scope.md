@@ -101,8 +101,8 @@ following:
 
 | Scope   | Type        | Origin  | Description                                                       |
 |---------|-------------|---------|-------------------------------------------------------------------|
-| openid  | Grantable   | OAuth 2 | Protocol signal for OpenID Connect. Auto-granted by default rule. |
-| profile | Consentable | OAuth 2 |                                                                   |
+| openid  | Grantable   | OpenID Connect | Protocol signal for OpenID Connect. Auto-granted by default rule. |
+| profile | Consentable | OpenID Connect |                                                                   |
 
 ## Custom scopes
 
