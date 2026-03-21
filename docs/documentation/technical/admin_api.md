@@ -276,7 +276,7 @@ in responses. Requires the `admin:config:read` scope.
 
 Endpoints for viewing configured claims. Since claims are defined in configuration files
 (not in a database), these endpoints expose them as read-only resources — following the same pattern as
-[Client Management](#client-management). Both standard (OpenID Connect) and custom claims are returned.
+[Client Management](#client-management). Both OpenID Connect and custom claims are returned.
 Requires the `admin:config:read` scope.
 
 #### List Claims
@@ -287,7 +287,7 @@ Requires the `admin:config:read` scope.
 
 **Authentication**: Bearer token with `admin:config:read` scope
 
-**Purpose**: Retrieves a paginated list of all configured claims (standard and custom).
+**Purpose**: Retrieves a paginated list of all configured claims (OpenID Connect and custom).
 
 **Query Parameters**:
 
@@ -347,7 +347,7 @@ Requires the `admin:config:read` scope.
 - `claims`: Array of claim records
     - `id`: Unique claim identifier, as defined in configuration
     - `type`: Data type expected for this claim (`string`, `number`, or `date`)
-    - `standard`: `true` if this is an OpenID Connect standard claim, `false` for custom claims
+    - `standard`: `true` if this is an OpenID Connect claim, `false` for custom claims
     - `enabled`: Whether collection is enabled for this claim
     - `required`: Whether the end-user must provide this claim to complete an authorization flow
     - `identifier`: Whether this claim is configured as an [identifier claim](/documentation/technical/configuration#auth), used for password login and cross-provider account merging
@@ -380,7 +380,7 @@ Endpoints for viewing configured scopes. Since scopes are defined in configurati
 
 **Authentication**: Bearer token with `admin:config:read` scope
 
-**Purpose**: Retrieves a paginated list of all configured scopes (standard and custom, across all three types).
+**Purpose**: Retrieves a paginated list of all configured scopes (OpenID Connect and custom, across all three types).
 
 **Query Parameters**:
 
@@ -676,7 +676,7 @@ are excluded — their status is represented by the `verified_at` field on the p
 - `required` (optional): Filter by required status (`true`, `false`)
 - `collected` (optional): Filter by whether a value has been collected (`true`, `false`)
 - `verified` (optional): Filter by whether the claim has been verified (`true`, `false`)
-- `standard` (optional): Filter by standard vs custom claims (`true` for OpenID standard, `false` for custom)
+- `standard` (optional): Filter by OpenID Connect vs custom claims (`true` for OpenID Connect, `false` for custom)
 
 **Response Format**:
 
@@ -729,7 +729,7 @@ are excluded — their status is represented by the `verified_at` field on the p
     - `claim_id`: Unique claim identifier, as defined in configuration
     - `value`: The user's value for this claim, or `null` if not yet provided
     - `type`: Data type (`string`, `number`, or `date`)
-    - `standard`: `true` if this is an OpenID Connect standard claim, `false` for custom claims
+    - `standard`: `true` if this is an OpenID Connect claim, `false` for custom claims
     - `required`: Whether the end-user must provide this claim
     - `identifier`: Whether this claim is configured as an identifier claim
     - `group`: Optional grouping identifier (e.g., `"profile"`, `"address"`), or `null`

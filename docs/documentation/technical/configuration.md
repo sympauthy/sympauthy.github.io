@@ -197,7 +197,7 @@ This section holds the configuration of claim that can be collected by this auth
 
 There are two types of claims that can be collected by this authorization server:
 
-- [Standard claims](#standard-claims).
+- [OpenID Connect claims](#openid-connect-claims).
 - [Custom claims](#custom-claims).
 
 ### Common for both claim types
@@ -208,7 +208,7 @@ There are two types of claims that can be collected by this authorization server
 | ```enabled```        | boolean | Enable the collection of this claim for end-users. If disabled, the claim will never be stored by this authorization server even if it is made available by a client or a provider. In case this config is changed, it is up to the operator of the authorization server to clear the claim that have been already collected. | **NO**<br>```false``` |
 | ```required```       | boolean | The end-user must provide a value for this claim before being allowed to complete an authorization flow.                                                                                                                                                                                                                      | **NO**<br>```false``` |
 
-### Standard claims
+### OpenID Connect claims
 
 | Key        | Type   | Description                                                                                               | Required<br>Default |
 |------------|--------|-----------------------------------------------------------------------------------------------------------|---------------------|

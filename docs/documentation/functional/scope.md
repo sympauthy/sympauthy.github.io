@@ -19,8 +19,8 @@ These three types are **mutually exclusive** — a scope is always exactly one t
 - The end-user should not be asked to consent to system-level permissions they have no control over (**grantable**).
 - Operations that belong to the client itself should not depend on a user context (**client**).
 
-Scopes can be [standard](#standard-scopes) (defined in specifications) or [custom](#custom-scopes) (defined by the
-operator).
+Scopes can be [OpenID Connect](#openid-connect-scopes) (defined in the OpenID Connect specification) or
+[custom](#custom-scopes) (defined by the operator).
 
 ## Consentable scope
 
@@ -34,7 +34,7 @@ approval. This guarantees that the end-user always controls which personal infor
 
 Examples of consentable scopes:
 
-- `profile`, `email`, `address`, `phone` — standard scopes that protect standard claims.
+- `profile`, `email`, `address`, `phone` — OpenID Connect scopes that protect OpenID Connect claims.
 - Any custom scope that protects custom claims.
 
 See [User Authorization](/documentation/functional/user_authorization) for details on how consentable scopes are granted
@@ -94,10 +94,11 @@ Client scopes are defined by SympAuthy and protect operations of the
 
 See [Client Authorization](/documentation/functional/client_authorization) for details on client scope granting rules.
 
-## Standard scopes
+## OpenID Connect scopes
 
-Standard scopes are scopes defined in specifications. The list of standard scopes supported by SympAuthy is the
-following:
+OpenID Connect scopes are scopes defined in the
+[OpenID Connect specification](https://openid.net/specs/openid-connect-core-1_0.html). The list of OpenID Connect scopes
+supported by SympAuthy is the following:
 
 | Scope   | Type        | Origin  | Description                                                       |
 |---------|-------------|---------|-------------------------------------------------------------------|

@@ -177,7 +177,7 @@ consent for the client to access.
 
 - `user_id`: Unique identifier of the end-user
 - `claims`: Object containing claims the user has consented to share with this client
-    - Standard claims (email, name, phone_number, etc.)
+    - OpenID Connect claims (email, name, phone_number, etc.)
     - Custom claims (prefixed with `custom_`)
     - Verification status claims (email_verified, phone_number_verified)
 
@@ -241,13 +241,13 @@ consent for the client to access.
 **Important Notes**:
 
 - Only claims prefixed with `custom_` can be modified through this endpoint
-- Standard claims (email, name, phone_number, etc.) cannot be modified via this endpoint
-- Attempting to modify standard claims will result in an error
+- OpenID Connect claims (email, name, phone_number, etc.) cannot be modified via this endpoint
+- Attempting to modify OpenID Connect claims will result in an error
 - Custom claims can be set to `null` to remove them
 
 **Use Cases**:
 
 - Store application-specific user metadata
 - Tag users with custom attributes (roles, departments, etc.)
-- Maintain additional user information beyond standard claims
+- Maintain additional user information beyond OpenID Connect claims
 - Update user attributes from external systems
