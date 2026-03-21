@@ -22,7 +22,7 @@ Its main design concepts are:
 
 1. [How it works](how_it_works)
 2. [Client](client)
-3. [Authentication](authentication.md)
+3. [Authentication](authentication)
    - [Interactive Flow](interactive_flow)
    - [Tokens](tokens)
 4. [Claims](claims)

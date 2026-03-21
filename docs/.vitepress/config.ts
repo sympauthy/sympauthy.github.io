@@ -74,6 +74,7 @@ export default defineConfig({
               items: [
                 { text: 'How to design an API endpoint', link: '/contributing/backend/how-to-design-an-api-endpoint' },
                 { text: 'How to throw an exception', link: '/contributing/backend/how-to-throw-an-exception' },
+                { text: 'How to write a business manager', link: '/contributing/backend/how-to-write-a-business-manager' },
                 { text: 'How to write a configuration', link: '/contributing/backend/how-to-write-a-configuration' }
               ]
             }
