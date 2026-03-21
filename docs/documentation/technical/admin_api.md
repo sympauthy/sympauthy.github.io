@@ -295,6 +295,7 @@ Requires the `admin:config:read` scope.
 - `size` (optional): Number of results per page (default: `20`)
 - `enabled` (optional): Filter by enabled status (`true`, `false`)
 - `required` (optional): Filter by required status (`true`, `false`)
+- `origin` (optional): Filter by origin (`openid` for OpenID Connect claims, `custom` for operator-defined claims)
 
 **Response Format**:
 
@@ -304,7 +305,7 @@ Requires the `admin:config:read` scope.
     {
       "id": "email",
       "type": "string",
-      "standard": true,
+      "origin": "openid",
       "enabled": true,
       "required": true,
       "identifier": true,
@@ -314,7 +315,7 @@ Requires the `admin:config:read` scope.
     {
       "id": "name",
       "type": "string",
-      "standard": true,
+      "origin": "openid",
       "enabled": true,
       "required": false,
       "identifier": false,
@@ -324,7 +325,7 @@ Requires the `admin:config:read` scope.
     {
       "id": "custom_department",
       "type": "string",
-      "standard": false,
+      "origin": "custom",
       "enabled": true,
       "required": false,
       "identifier": false,
@@ -347,7 +348,7 @@ Requires the `admin:config:read` scope.
 - `claims`: Array of claim records
     - `id`: Unique claim identifier, as defined in configuration
     - `type`: Data type expected for this claim (`string`, `number`, or `date`)
-    - `standard`: `true` if this is an OpenID Connect claim, `false` for custom claims
+    - `origin`: Where the claim is defined. Possible values: `"openid"` (OpenID Connect specification) | `"custom"` (defined by the operator in configuration)
     - `enabled`: Whether collection is enabled for this claim
     - `required`: Whether the end-user must provide this claim to complete an authorization flow
     - `identifier`: Whether this claim is configured as an [identifier claim](/documentation/technical/configuration#auth), used for password login and cross-provider account merging
@@ -676,7 +677,7 @@ are excluded — their status is represented by the `verified_at` field on the p
 - `required` (optional): Filter by required status (`true`, `false`)
 - `collected` (optional): Filter by whether a value has been collected (`true`, `false`)
 - `verified` (optional): Filter by whether the claim has been verified (`true`, `false`)
-- `standard` (optional): Filter by OpenID Connect vs custom claims (`true` for OpenID Connect, `false` for custom)
+- `origin` (optional): Filter by origin (`openid` for OpenID Connect claims, `custom` for operator-defined claims)
 
 **Response Format**:
 
@@ -687,7 +688,7 @@ are excluded — their status is represented by the `verified_at` field on the p
       "claim_id": "email",
       "value": "jane@example.com",
       "type": "string",
-      "standard": true,
+      "origin": "openid",
       "required": true,
       "identifier": true,
       "group": null,
@@ -698,7 +699,7 @@ are excluded — their status is represented by the `verified_at` field on the p
       "claim_id": "name",
       "value": "Jane Doe",
       "type": "string",
-      "standard": true,
+      "origin": "openid",
       "required": false,
       "identifier": false,
       "group": "profile",
@@ -709,7 +710,7 @@ are excluded — their status is represented by the `verified_at` field on the p
       "claim_id": "custom_department",
       "value": null,
       "type": "string",
-      "standard": false,
+      "origin": "custom",
       "required": false,
       "identifier": false,
       "group": null,
@@ -729,7 +730,7 @@ are excluded — their status is represented by the `verified_at` field on the p
     - `claim_id`: Unique claim identifier, as defined in configuration
     - `value`: The user's value for this claim, or `null` if not yet provided
     - `type`: Data type (`string`, `number`, or `date`)
-    - `standard`: `true` if this is an OpenID Connect claim, `false` for custom claims
+    - `origin`: Where the claim is defined. Possible values: `"openid"` (OpenID Connect specification) | `"custom"` (defined by the operator in configuration)
     - `required`: Whether the end-user must provide this claim
     - `identifier`: Whether this claim is configured as an identifier claim
     - `group`: Optional grouping identifier (e.g., `"profile"`, `"address"`), or `null`
@@ -745,7 +746,7 @@ are excluded — their status is represented by the `verified_at` field on the p
 - Audit which required claims are missing (`?collected=false&required=true`)
 - Check which claims have been verified (`?verified=true`)
 - Find unverified identifier claims (`?identifier=true&verified=false`)
-- List only custom claims (`?standard=false`)
+- List only custom claims (`?origin=custom`)
 
 ---
 
