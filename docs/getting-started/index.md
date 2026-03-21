@@ -161,7 +161,7 @@ Let's break down the previous command in parts to help you understand how it wor
 
 These parameters tell SympAuthy where to find and how to authenticate to its PostgreSQL database.
 For the full list of supported databases and configuration options, see
-the [r2dbc configuration](/documentation/technical/configuration#r2dbc).
+the [r2dbc configuration](/technical/configuration#r2dbc).
 
 ##### Configure the authorization server
 
@@ -169,29 +169,29 @@ the [r2dbc configuration](/documentation/technical/configuration#r2dbc).
   issues. Clients use it to verify that a token was issued by the expected server and to discover the OpenID Connect
   configuration at `<issuer>/.well-known/openid-configuration`.
 - ```auth.by-password.enabled```: Enable password-based authentication, allowing end-users to sign up and sign in
-  using a password. See [auth.by-password](/documentation/technical/configuration#auth-by-password) for details.
+  using a password. See [auth.by-password](/technical/configuration#auth-by-password) for details.
 - ```auth.identifier-claims```: The list of claims that uniquely identify a person. These claims are used as the login
   identifier for password authentication. Here we use ```email``` so users sign in with their email address. See
-  [auth.identifier-claims](/documentation/technical/configuration#auth-identifier-claims) for details.
+  [auth.identifier-claims](/technical/configuration#auth-identifier-claims) for details.
 - ```claims.email.enabled```: Enable the ```email``` claim, allowing end-users to provide an email address during
-  sign-up. See [claims](/documentation/technical/configuration#claims) for details.
+  sign-up. See [claims](/technical/configuration#claims) for details.
 - ```urls.root```: An URL that end-users and clients are able to use to reach the SympAuthy server. This URL will be
   used as base when redirecting the end-user to an authentication flow.
 
 ##### Enable the Admin UI
 
-- ```MICRONAUT_ENVIRONMENTS=default,admin```: The ```admin``` [Micronaut environment](/documentation/technical/configuration#micronaut-environments)
+- ```MICRONAUT_ENVIRONMENTS=default,admin```: The ```admin``` [Micronaut environment](/technical/configuration#micronaut-environments)
   enables the Admin UI and pre-configures an ```admin``` client with all admin scopes. See the
-  [Admin API](/documentation/technical/admin_api) documentation for details.
+  [Admin API](/technical/admin_api) documentation for details.
 
 ##### Grant admin permissions
 
-- ```rules[0]```: A [scope granting rule](/documentation/functional/user_authorization#scope-granting-rules) that
+- ```rules[0]```: A [scope granting rule](/functional/user_authorization#scope-granting-rules) that
   automatically grants all admin scopes to the user who signs up with the email ```admin@example.com```.
 
 You can pass additional configurations to the server by appending the following to the command:
 ```-<configuration key>=<value>```. The list of available ```<configuration key>```  is described in details in
-the [Configuration](/documentation/technical/configuration) section of this documentation.
+the [Configuration](/technical/configuration) section of this documentation.
 
 ## Test your SympAuthy instance
 
@@ -217,11 +217,11 @@ This confirms that your SympAuthy instance is running correctly and can handle O
 2. Create an account using the email ```admin@example.com```
 3. After signing in, you will have access to the Admin UI with full admin permissions
 
-The [scope granting rule](/documentation/functional/user_authorization#scope-granting-rules) configured in the Docker
+The [scope granting rule](/functional/user_authorization#scope-granting-rules) configured in the Docker
 command automatically grants all admin scopes to the user with this email address.
 
 To learn more about the Admin API and available admin features, see
-the [Admin API](/documentation/technical/admin_api) documentation.
+the [Admin API](/technical/admin_api) documentation.
 
 ## Cleanup
 

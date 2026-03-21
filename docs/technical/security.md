@@ -90,7 +90,7 @@ The authorization code is a short-lived, single-use credential. SympAuthy enforc
 ## PKCE (Proof Key for Code Exchange)
 
 SympAuthy implements [PKCE (RFC 7636)](https://www.rfc-editor.org/rfc/rfc7636) to protect the authorization code exchange
-against interception attacks — particularly for [public clients](/documentation/functional/client#confidential-and-public-clients)
+against interception attacks — particularly for [public clients](/functional/client#confidential-and-public-clients)
 that cannot store a client secret.
 
 The mechanism works as follows:
@@ -193,9 +193,9 @@ outside this list is silently removed before processing, preventing a misconfigu
 unintended access.
 
 The `features.grant-unhandled-scopes` option is `false` by default. When disabled, any
-[grantable scope](/documentation/functional/scope#grantable-scope) that is not explicitly granted by a rule or
+[grantable scope](/functional/scope#grantable-scope) that is not explicitly granted by a rule or
 the API is rejected rather than automatically granted. This setting does not affect
-[consentable scopes](/documentation/functional/scope#consentable-scope), which are always granted through
+[consentable scopes](/functional/scope#consentable-scope), which are always granted through
 end-user consent. Enabling this setting is marked as unsafe and intended for development use only.
 
 See the [User Authorization](../functional/user_authorization) and [Client Authorization](../functional/client_authorization) documentation for details on scope granting rules.
@@ -214,7 +214,7 @@ SympAuthy supports two categories of clients:
   [PKCE](#pkce-proof-key-for-code-exchange). Public clients can only use the authorization code and refresh token
   grants — the client credentials grant requires a secret and is not available to them.
 
-See the [Client](/documentation/functional/client#confidential-and-public-clients) documentation for more details.
+See the [Client](/functional/client#confidential-and-public-clients) documentation for more details.
 
 ## Email validation
 
@@ -232,7 +232,7 @@ Validation codes include several abuse-prevention measures:
 
 ## TOTP multi-factor authentication
 
-When [MFA is enabled](/documentation/technical/configuration#mfa), SympAuthy can require users to verify their identity
+When [MFA is enabled](/technical/configuration#mfa), SympAuthy can require users to verify their identity
 with a TOTP code ([RFC 6238](https://datatracker.ietf.org/doc/html/rfc6238)) after their primary authentication.
 
 Several safeguards are in place:

@@ -24,9 +24,9 @@ Scopes can be [OpenID Connect](#openid-connect-scopes) (defined in the OpenID Co
 
 ## Consentable scope
 
-A **consentable scope** protects [claims](/documentation/functional/claims) about the end-user — their name, email
+A **consentable scope** protects [claims](/functional/claims) about the end-user — their name, email
 address, or any other personal information. A client can only access a claim if the end-user has explicitly
-[consented](/documentation/functional/consent) to the corresponding scope.
+[consented](/functional/consent) to the corresponding scope.
 
 Consentable scopes are granted **only** through end-user consent during an `authorization_code` flow. The authorization
 server never grants them on its own — no scope granting rule or API call can substitute for the user's explicit
@@ -37,7 +37,7 @@ Examples of consentable scopes:
 - `profile`, `email`, `address`, `phone` — OpenID Connect scopes that protect OpenID Connect claims.
 - Any custom scope that protects custom claims.
 
-See [User Authorization](/documentation/functional/user_authorization) for details on how consentable scopes are granted
+See [User Authorization](/functional/user_authorization) for details on how consentable scopes are granted
 during an authorization flow.
 
 ## Grantable scope
@@ -46,8 +46,8 @@ A **grantable scope** protects a resource or represents a permission that the au
 a user. Unlike consentable scopes, grantable scopes are not tied to user claims and do not require end-user consent.
 
 Grantable scopes are granted during `authorization_code` flows through
-[scope granting rules](/documentation/functional/user_authorization#scope-granting-rules) or by
-[delegating to a third-party through API](/documentation/functional/user_authorization#delegating-to-a-third-party-through-api).
+[scope granting rules](/functional/user_authorization#scope-granting-rules) or by
+[delegating to a third-party through API](/functional/user_authorization#delegating-to-a-third-party-through-api).
 
 Examples of grantable scopes:
 
@@ -56,12 +56,12 @@ Examples of grantable scopes:
 - `admin:*` — scopes that protect administrative resources of the authorization server.
 - Any custom scope that protects client resources without being tied to user claims.
 
-See [User Authorization](/documentation/functional/user_authorization) for details on scope granting rules.
+See [User Authorization](/functional/user_authorization) for details on scope granting rules.
 
 ### Admin scopes
 
 Admin scopes are grantable scopes defined by SympAuthy that protect operations of the
-[Admin API](/documentation/technical/admin_api). They follow the naming convention `admin:{domain}:{action}`,
+[Admin API](/technical/admin_api). They follow the naming convention `admin:{domain}:{action}`,
 providing fine-grained control so operators can grant only the minimum necessary privileges.
 
 | Scope                  | Description                                        |
@@ -79,12 +79,12 @@ A **client scope** represents an operation that the client application itself is
 of any user. Client scopes are used in `client_credentials` flows, where there is no end-user involved.
 
 Client scopes are granted through
-[scope granting rules](/documentation/functional/client_authorization#scope-granting-rules) or by
-[delegating to a third-party through API](/documentation/functional/client_authorization#delegating-to-a-third-party-through-api).
+[scope granting rules](/functional/client_authorization#scope-granting-rules) or by
+[delegating to a third-party through API](/functional/client_authorization#delegating-to-a-third-party-through-api).
 Their granting rules evaluate client attributes rather than user claims.
 
 Client scopes are defined by SympAuthy and protect operations of the
-[Client API](/documentation/technical/client_api). They follow the naming convention `{resource}:{action}`.
+[Client API](/technical/client_api). They follow the naming convention `{resource}:{action}`.
 
 | Scope                | Description                                          |
 |----------------------|------------------------------------------------------|
@@ -92,7 +92,7 @@ Client scopes are defined by SympAuthy and protect operations of the
 | `users:claims:read`  | Read consented and custom claims                     |
 | `users:claims:write` | Write custom claims                                  |
 
-See [Client Authorization](/documentation/functional/client_authorization) for details on client scope granting rules.
+See [Client Authorization](/functional/client_authorization) for details on client scope granting rules.
 
 ## OpenID Connect scopes
 
@@ -109,7 +109,7 @@ supported by SympAuthy is the following:
 
 You can define your own scopes to:
 
-- protect the [claims](/documentation/functional/claims) of the end-user — making the scope **consentable**.
+- protect the [claims](/functional/claims) of the end-user — making the scope **consentable**.
 - protect resources on behalf of a user — making the scope **grantable**.
 
 The scope type is set explicitly via the `type` configuration property. A scope is **grantable** by default. Set
@@ -129,4 +129,4 @@ scope:
   type: consentable  # or grantable (default)
 ```
 
-You can refer to the [configuration](/documentation/technical/configuration#scopes-id) to learn more.
+You can refer to the [configuration](/technical/configuration#scopes-id) to learn more.

@@ -20,13 +20,13 @@ To activate the admin environment, include `admin` in the `MICRONAUT_ENVIRONMENT
 MICRONAUT_ENVIRONMENTS=default,by-mail,admin
 ```
 
-The default admin client is a [public client](/documentation/functional/client#confidential-and-public-clients) that
-uses [PKCE](/documentation/technical/security#pkce-proof-key-for-code-exchange) instead of a client secret.
+The default admin client is a [public client](/functional/client#confidential-and-public-clients) that
+uses [PKCE](/technical/security#pkce-proof-key-for-code-exchange) instead of a client secret.
 Everything is ready out of the box — no secret to configure.
 
 > You can also configure admin access manually without using the `admin` environment. Add the desired admin scopes
 > to any client's `allowed-scopes` in the [configuration](configuration) and mark it as a
-> [public client](/documentation/functional/client#confidential-and-public-clients) to use PKCE. This is useful if
+> [public client](/functional/client#confidential-and-public-clients) to use PKCE. This is useful if
 > you need multiple admin clients with different permission levels.
 
 ## Admin Scopes
@@ -49,7 +49,7 @@ irreversible operation with GDPR implications and should require explicit author
 ## Authentication
 
 All Admin API endpoints require authentication using an OAuth 2.1 access token obtained via the Client Credentials
-flow with [PKCE](/documentation/technical/security#pkce-proof-key-for-code-exchange). The default admin client is a
+flow with [PKCE](/technical/security#pkce-proof-key-for-code-exchange). The default admin client is a
 public client — it authenticates using a code verifier instead of a client secret.
 
 ### Obtaining an Access Token
@@ -351,7 +351,7 @@ Requires the `admin:config:read` scope.
     - `origin`: Where the claim is defined. Possible values: `"openid"` (OpenID Connect specification) | `"custom"` (defined by the operator in configuration)
     - `enabled`: Whether collection is enabled for this claim
     - `required`: Whether the end-user must provide this claim to complete an authorization flow
-    - `identifier`: Whether this claim is configured as an [identifier claim](/documentation/technical/configuration#auth), used for password login and cross-provider account merging
+    - `identifier`: Whether this claim is configured as an [identifier claim](/technical/configuration#auth), used for password login and cross-provider account merging
     - `allowed_values`: Array of accepted values, or `null` if any value is accepted (no restriction)
     - `group`: Grouping identifier (e.g., `"profile"`, `"address"`), or `null` if the claim belongs to no group
 - `page`: Current page number
@@ -446,12 +446,12 @@ Endpoints for viewing configured scopes. Since scopes are defined in configurati
 - `scopes`: Array of scope records
     - `id`: Unique scope identifier
     - `type`: Scope type. Possible values: `"consentable"` | `"grantable"` | `"client"`.
-      See [Scope](/documentation/functional/scope) for the meaning of each type
+      See [Scope](/functional/scope) for the meaning of each type
     - `origin`: Where the scope is defined. Possible values:
       `"oauth2"` (OAuth 2 specification) | `"openid"` (OpenID Connect specification) |
       `"system"` (defined by SympAuthy) | `"custom"` (defined by the operator in configuration)
     - `enabled`: Whether the scope is enabled
-    - `claims` (consentable scopes only): Array of [claim](/documentation/functional/claims) identifiers
+    - `claims` (consentable scopes only): Array of [claim](/functional/claims) identifiers
       protected by this scope. Omitted for grantable and client scopes
 - `page`: Current page number
 - `size`: Number of results per page

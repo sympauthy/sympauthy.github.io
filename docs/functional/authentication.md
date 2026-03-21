@@ -53,7 +53,7 @@ Micronaut environment:
 | Discord  | `discord`   |
 
 Any other OAuth 2-compatible service can also be configured manually. Refer to the
-[configuration](/documentation/technical/configuration#providers-id) section for the full list of options.
+[configuration](/technical/configuration#providers-id) section for the full list of options.
 
 ##### Account merging
 
@@ -66,7 +66,7 @@ configured identifier claims — any accounts that share the same value for an i
 person.
 
 This behavior is controlled by the `auth.user-merging-enabled` configuration key. Refer to the
-[configuration](/documentation/technical/configuration#auth) section for details.
+[configuration](/technical/configuration#auth) section for details.
 
 ### Multi-factor authentication (MFA)
 
@@ -92,7 +92,7 @@ are presented with a **challenge** screen where they simply enter the current co
 
 For a step-by-step description of how MFA fits into the authentication flow, see
 [How an Interactive Flow Works](interactive_flow). Refer to the
-[configuration](/documentation/technical/configuration#mfa) section for the full list of MFA options.
+[configuration](/technical/configuration#mfa) section for the full list of MFA options.
 
 ## Service account authentication
 

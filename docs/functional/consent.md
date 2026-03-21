@@ -1,8 +1,8 @@
 # Consent
 
 A **consent** is the record that an end-user has authorized a specific
-[client](/documentation/functional/client) to access specific
-[consentable scopes](/documentation/functional/scope#consentable-scope). When a user logs in through a client and
+[client](/functional/client) to access specific
+[consentable scopes](/functional/scope#consentable-scope). When a user logs in through a client and
 consentable scopes are granted through the user's explicit approval, SympAuthy creates a consent to keep track of that
 relationship.
 
@@ -14,8 +14,8 @@ Consents serve several purposes:
 - They enable revocation of a client's access to a user's data.
 
 ::: info
-Consents only apply to [consentable scopes](/documentation/functional/scope#consentable-scope).
-[Grantable scopes](/documentation/functional/scope#grantable-scope) — which protect resources rather than user
+Consents only apply to [consentable scopes](/functional/scope#consentable-scope).
+[Grantable scopes](/functional/scope#grantable-scope) — which protect resources rather than user
 claims — are managed through scope granting rules or the API and do not involve end-user consent.
 :::
 
@@ -27,7 +27,7 @@ without a user and do not create consents.
 ## How consents are created
 
 A consent is created automatically the first time an end-user approves
-[consentable scopes](/documentation/functional/scope#consentable-scope) for a client during an authorization
+[consentable scopes](/functional/scope#consentable-scope) for a client during an authorization
 flow.
 
 If the user re-authorizes with the same client, the previous consent is revoked and a new one is created with the scopes
@@ -47,14 +47,14 @@ A consent records:
 - The **date** when consent was given.
 - The **revocation date** — when the consent was revoked, if applicable.
 - The **revocation origin** — who revoked the consent: `USER` (when the user re-authorized with new scopes) or `ADMIN`
-  (when an administrator revoked it through the [Admin API](/documentation/technical/admin_api)).
+  (when an administrator revoked it through the [Admin API](/technical/admin_api)).
 - The **revoking user** — the identifier of the user who caused the revocation.
 
 ## Revoking consent
 
 A consent can be revoked in two ways:
 
-- **By an administrator** through the [Admin API](/documentation/technical/admin_api). The consent is marked with
+- **By an administrator** through the [Admin API](/technical/admin_api). The consent is marked with
   `revoked_by = ADMIN` and the administrator's identifier.
 - **By the user re-authorizing** with the same client. The previous consent is automatically revoked (marked with
   `revoked_by = USER` and the user's identifier) and replaced by a new consent reflecting the newly granted scopes.
@@ -66,10 +66,10 @@ tokens.
 
 ## Relation to other concepts
 
-- **[Consentable scopes](/documentation/functional/scope#consentable-scope)** — a consent records which
+- **[Consentable scopes](/functional/scope#consentable-scope)** — a consent records which
   consentable scopes were granted. Only consentable scopes — those protecting user claims — are subject to consent.
-- **[Clients](/documentation/functional/client)** — a consent ties a user to a client.
-- **[Claims](/documentation/functional/claims)** — only claims covered by the consented scopes are shared with the
+- **[Clients](/functional/client)** — a consent ties a user to a client.
+- **[Claims](/functional/claims)** — only claims covered by the consented scopes are shared with the
   client.
-- **[Tokens](/documentation/functional/tokens)** — tokens issued by SympAuthy reflect the scopes recorded in the
+- **[Tokens](/functional/tokens)** — tokens issued by SympAuthy reflect the scopes recorded in the
   consent. Revoking a consent invalidates the associated refresh tokens.

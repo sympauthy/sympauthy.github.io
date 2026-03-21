@@ -13,12 +13,12 @@ export default defineConfig({
       {
         text: 'Documentation',
         items: [
-          { text: 'Overview', link: '/documentation/' },
-          { text: 'Functional', link: '/documentation/functional/' },
-          { text: 'Technical', link: '/documentation/technical/' }
+          { text: 'Overview', link: '/documentation' },
+          { text: 'Functional', link: '/functional/' },
+          { text: 'Technical', link: '/technical/' }
         ]
       },
-      { text: 'Contributing', link: '/documentation/contributing/' }
+      { text: 'Contributing', link: '/contributing/' }
     ],
 
     sidebar: {
@@ -30,63 +30,53 @@ export default defineConfig({
           ]
         }
       ],
-      '/documentation/functional/': [
+      '/functional/': [
         {
           text: 'Functional Documentation',
           items: [
-            { text: 'Overview', link: '/documentation/functional/' },
-            { text: 'How it works', link: '/documentation/functional/how_it_works' },
-            { text: 'Authentication', link: '/documentation/functional/authentication' },
-            { text: 'Tokens', link: '/documentation/functional/tokens' },
-            { text: 'Claims', link: '/documentation/functional/claims' },
-            { text: 'Scopes', link: '/documentation/functional/scope' },
-            { text: 'User Authorization', link: '/documentation/functional/user_authorization' },
-            { text: 'Client Authorization', link: '/documentation/functional/client_authorization' },
-            { text: 'Consent', link: '/documentation/functional/consent' },
-            { text: 'End-User Management', link: '/documentation/functional/end-user_management' },
-            { text: 'Client', link: '/documentation/functional/client' },
-            { text: 'Interactive Flow', link: '/documentation/functional/interactive_flow' },
+            { text: 'Overview', link: '/functional/' },
+            { text: 'How it works', link: '/functional/how_it_works' },
+            { text: 'Authentication', link: '/functional/authentication' },
+            { text: 'Tokens', link: '/functional/tokens' },
+            { text: 'Claims', link: '/functional/claims' },
+            { text: 'Scopes', link: '/functional/scope' },
+            { text: 'User Authorization', link: '/functional/user_authorization' },
+            { text: 'Client Authorization', link: '/functional/client_authorization' },
+            { text: 'Consent', link: '/functional/consent' },
+            { text: 'End-User Management', link: '/functional/end-user_management' },
+            { text: 'Client', link: '/functional/client' },
+            { text: 'Interactive Flow', link: '/functional/interactive_flow' },
           ]
         }
       ],
-      '/documentation/technical/': [
+      '/technical/': [
         {
           text: 'Technical Documentation',
           items: [
-            { text: 'Overview', link: '/documentation/technical/' },
-            { text: 'Configuration', link: '/documentation/technical/configuration' },
-            { text: 'OAuth 2.1 & OpenID Compatibility Matrix', link: '/documentation/technical/oauth2_compatibility' },
-            { text: 'Flow API', link: '/documentation/technical/flow_api' },
-            { text: 'Client API', link: '/documentation/technical/client_api' },
-            { text: 'Admin API', link: '/documentation/technical/admin_api' },
-            { text: 'Security', link: '/documentation/technical/security' },
+            { text: 'Overview', link: '/technical/' },
+            { text: 'Configuration', link: '/technical/configuration' },
+            { text: 'OAuth 2.1 & OpenID Compatibility Matrix', link: '/technical/oauth2_compatibility' },
+            { text: 'Flow API', link: '/technical/flow_api' },
+            { text: 'Client API', link: '/technical/client_api' },
+            { text: 'Admin API', link: '/technical/admin_api' },
+            { text: 'Security', link: '/technical/security' },
           ]
         }
       ],
-      '/documentation/contributing/': [
+      '/contributing/': [
         {
           text: 'Contributing',
           items: [
-            { text: 'Overview', link: '/documentation/contributing/' },
-            { text: 'Design FAQ', link: '/documentation/contributing/design_faq' },
+            { text: 'Overview', link: '/contributing/' },
+            { text: 'Design FAQ', link: '/contributing/design_faq' },
             {
               text: 'Backend',
               items: [
-                { text: 'How to design an API endpoint', link: '/documentation/contributing/backend/how-to-design-an-api-endpoint' },
-                { text: 'How to throw an exception', link: '/documentation/contributing/backend/how-to-throw-an-exception' },
-                { text: 'How to write a configuration', link: '/documentation/contributing/backend/how-to-write-a-configuration' }
+                { text: 'How to design an API endpoint', link: '/contributing/backend/how-to-design-an-api-endpoint' },
+                { text: 'How to throw an exception', link: '/contributing/backend/how-to-throw-an-exception' },
+                { text: 'How to write a configuration', link: '/contributing/backend/how-to-write-a-configuration' }
               ]
             }
-          ]
-        }
-      ],
-      '/documentation/': [
-        {
-          text: 'Documentation',
-          items: [
-            { text: 'Overview', link: '/documentation/' },
-            { text: 'Functional', link: '/documentation/functional/' },
-            { text: 'Technical', link: '/documentation/technical/' },
           ]
         }
       ]

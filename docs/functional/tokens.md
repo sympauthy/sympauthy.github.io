@@ -33,7 +33,7 @@ the `at+jwt` type header and contains the following claims:
 | `client_id` | The client that requested the token.               | MUST        |
 | `iat`       | Issued-at time.                                    | MUST        |
 | `jti`       | Unique token identifier.                           | MUST        |
-| `scope`     | Space-separated list of granted scopes. For `authorization_code` tokens: [consentable](/documentation/functional/scope#consentable-scope) and [grantable](/documentation/functional/scope#grantable-scope) scopes. For `client_credentials` tokens: [client](/documentation/functional/scope#client-scope) scopes. | SHOULD      |
+| `scope`     | Space-separated list of granted scopes. For `authorization_code` tokens: [consentable](/functional/scope#consentable-scope) and [grantable](/functional/scope#grantable-scope) scopes. For `client_credentials` tokens: [client](/functional/scope#client-scope) scopes. | SHOULD      |
 
 The client can read this information directly from the token without making an additional request to SympAuthy.
 
@@ -82,6 +82,6 @@ The user will be prompted to sign in again when:
 
 - the refresh token has expired (controlled by `token.refresh-token.lifespan`),
 - the refresh token has been revoked (for example, following an account action),
-- the [consent](/documentation/functional/consent) for the user and client pair has been revoked — either by an
+- the [consent](/functional/consent) for the user and client pair has been revoked — either by an
   administrator or because the user re-authorized with new scopes,
 - the client explicitly signs the user out.

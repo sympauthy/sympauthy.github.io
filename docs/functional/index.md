@@ -16,7 +16,7 @@ Its main design concepts are:
 
 ## Typography
 
-- ```<param>```: Refers to the value of a configuration parameter. You can find more details about it in the [configuration](/documentation/technical/configuration) section of this documentation.
+- ```<param>```: Refers to the value of a configuration parameter. You can find more details about it in the [configuration](/technical/configuration) section of this documentation.
 
 ## Table of Contents
 

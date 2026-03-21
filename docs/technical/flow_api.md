@@ -525,7 +525,7 @@ When resend was blocked (anti-spam):
 **Base Path**: `/api/v1/flow/mfa`
 
 **Purpose**: Handles multi-factor authentication during the interactive flow. These endpoints are only active when at
-least one MFA method is enabled in the [configuration](/documentation/technical/configuration#mfa).
+least one MFA method is enabled in the [configuration](/technical/configuration#mfa).
 
 #### MFA Router
 

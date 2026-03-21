@@ -1,12 +1,12 @@
 # User Authorization
 
 SympAuthy controls what a user can access and what information is shared about them through
-[consentable](/documentation/functional/scope#consentable-scope) and
-[grantable](/documentation/functional/scope#grantable-scope) scopes, granted during `authorization_code` flows.
+[consentable](/functional/scope#consentable-scope) and
+[grantable](/functional/scope#grantable-scope) scopes, granted during `authorization_code` flows.
 
 ## Consentable scopes
 
-[Consentable scopes](/documentation/functional/scope#consentable-scope) are granted through end-user consent during the
+[Consentable scopes](/functional/scope#consentable-scope) are granted through end-user consent during the
 authorization flow. When a client requests consentable scopes, the end-user is asked to approve which personal
 information they are willing to share.
 
@@ -15,7 +15,7 @@ for the user's explicit approval.
 
 ## Grantable scopes
 
-[Grantable scopes](/documentation/functional/scope#grantable-scope) are granted by the authorization server through
+[Grantable scopes](/functional/scope#grantable-scope) are granted by the authorization server through
 scope granting rules or by delegating to a third-party through API.
 
 ### Scope granting rules
@@ -23,7 +23,7 @@ scope granting rules or by delegating to a third-party through API.
 Scope granting rules are conditions evaluated during an authorization attempt to automatically grant or deny grantable
 scopes. Their expressions evaluate **user claims** to determine whether a scope should be granted.
 
-They are declared in the [Configuration](/documentation/technical/configuration) under ```rules.scopes``` of the
+They are declared in the [Configuration](/technical/configuration) under ```rules.scopes``` of the
 authorization server and look like the following:
 
 ```

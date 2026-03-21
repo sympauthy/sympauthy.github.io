@@ -58,7 +58,7 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 > interception and recommends `S256` for all deployments.
 
 > OAuth 2.1 requires PKCE for all clients using the authorization code flow. PKCE is currently enforced for
-> [public clients](/documentation/functional/client#confidential-and-public-clients) and optional for confidential
+> [public clients](/functional/client#confidential-and-public-clients) and optional for confidential
 > clients. Enforcement for confidential clients is **planned**. See the
 > [Security](security#pkce-proof-key-for-code-exchange) documentation for details on the current enforcement policy.
 

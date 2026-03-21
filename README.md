@@ -68,11 +68,12 @@ The documentation is organized as follows:
 ```
 docs/
 ├── .vitepress/          # VitePress configuration
-├── documentation/       # Main documentation
-│   ├── functionnal/    # Functional documentation
-│   └── technical/      # Technical documentation
-├── getting-started/    # Getting started guide
-└── index.md           # Homepage
+├── functional/          # Functional documentation
+├── technical/           # Technical documentation
+├── contributing/        # Contributing guides
+├── getting-started/     # Getting started guide
+├── documentation.md     # Documentation overview
+└── index.md             # Homepage
 ```
 
 ## Technology Stack
@@ -85,7 +86,7 @@ This documentation site is built with:
 
 When contributing to the documentation:
 
-1. Make sure all internal links use the correct format: `/documentation/technical/1%20-%20Configuration`
+1. Make sure all internal links use the correct format: `/technical/configuration`
 2. Test your changes locally before submitting
 3. Ensure the build completes successfully with `npm run docs:build`
 
