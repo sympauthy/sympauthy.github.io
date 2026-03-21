@@ -12,4 +12,5 @@ The following coding standards are used in the project:
 
 - [How to design an API endpoint](backend/how-to-design-an-api-endpoint.md)
 - [How to throw an exception](backend/how-to-throw-an-exception.md)
+- [How to write a business manager](backend/how-to-write-a-business-manager.md)
 - [How to write a configuration](backend/how-to-write-a-configuration)
