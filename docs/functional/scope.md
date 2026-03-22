@@ -35,7 +35,9 @@ approval. This guarantees that the end-user always controls which personal infor
 Examples of consentable scopes:
 
 - `profile`, `email`, `address`, `phone` — OpenID Connect scopes that protect OpenID Connect claims.
-- Any custom scope that protects custom claims.
+
+[Custom claims](/functional/claims#custom-claims) are not protected by consentable scopes — they are
+client-managed metadata, not personal data provided by the end-user.
 
 See [User Authorization](/functional/user_authorization) for details on how consentable scopes are granted
 during an authorization flow.

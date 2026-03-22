@@ -312,16 +312,15 @@ consent for the client to access.
 **Properties**:
 
 - `user_id`: Unique identifier of the end-user
-- `claims`: Object containing claims the user has consented to share with this client
-    - OpenID Connect claims (email, name, phone_number, etc.)
-    - Custom claims (defined by the operator in configuration)
+- `claims`: Object containing the user's claims
+    - OpenID Connect claims (email, name, phone_number, etc.) — only those covered by consented scopes
+    - Custom claims (defined by the operator in configuration) — always returned
     - Verification status claims (email_verified, phone_number_verified)
 
 **Important Notes**:
 
-- Only claims for which the user has given consent are returned
-- The returned claims are determined by the scopes consented during authorization
-- Claims not covered by consented scopes will not be included in the response
+- OpenID Connect claims are filtered by the user's consented scopes — only claims covered by consented scopes are included
+- Custom claims are always returned regardless of consent, since they are client-managed metadata, not personal data provided by the user
 
 **Use Cases**:
 

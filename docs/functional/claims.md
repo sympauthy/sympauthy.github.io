@@ -7,8 +7,9 @@ it from the claims provided by SympAuthy.
 SympAuthy acts as a central repository for these claims: a user fills in their information once, and all clients sharing
 the same authorization server can access it without asking the user again.
 
-Claims are protected by [consentable scopes](/functional/scope#consentable-scope) — a client can
-only access a claim if the end-user has explicitly consented to the corresponding scope.
+OpenID Connect claims are protected by [consentable scopes](/functional/scope#consentable-scope) — a client can
+only access them if the end-user has explicitly consented to the corresponding scope. Custom claims are not
+protected by consent — see [Custom claims](#custom-claims) below.
 
 Out of the box, SympAuthy supports all claims standardized in
 the [OpenID specification](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims). They are referred to
@@ -34,12 +35,16 @@ SympAuthy supports all OpenID Connect claims out of the box. You only need to en
 When the OpenID Connect claims do not cover a piece of information specific to your application — for example, a
 subscription plan or an internal user role — you can define your own **custom claims**.
 
-Custom claims work like OpenID Connect claims: SympAuthy collects and stores the value, and shares it with your clients.
-The
-difference is that their identifier and data type are defined by you, so only your own clients will know how to
+Unlike OpenID Connect claims, custom claims are not collected from the end-user. They are written by client applications
+through the [Client API](/technical/client_api) and represent application-managed metadata about a user — for example, a
+department, a subscription tier, or an internal role.
+
+Because custom claims are not personal data provided by the user, they are not protected by
+[consent](/functional/consent). Any client with the appropriate [client scope](/functional/scope#client-scope) can
+read and write them. Their identifier and data type are defined by you, so only your own clients will know how to
 interpret them.
 
 ## Configuration
 
-Both OpenID Connect and custom claims must be enabled in the configuration before SympAuthy starts collecting them. Refer to
+Both OpenID Connect and custom claims must be enabled in the configuration before SympAuthy uses them. Refer to
 the [configuration](/technical/configuration#claims-id) section for the full list of options.
