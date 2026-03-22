@@ -294,8 +294,8 @@ consent for the client to access.
     "phone_number": "+1234567890",
     "phone_number_verified": false,
     "birthdate": "1990-01-15",
-    "custom_department": "Engineering",
-    "custom_employee_id": "EMP-12345"
+    "department": "Engineering",
+    "employee_id": "EMP-12345"
   }
 }
 ```
@@ -314,7 +314,7 @@ consent for the client to access.
 - `user_id`: Unique identifier of the end-user
 - `claims`: Object containing claims the user has consented to share with this client
     - OpenID Connect claims (email, name, phone_number, etc.)
-    - Custom claims (prefixed with `custom_`)
+    - Custom claims (defined by the operator in configuration)
     - Verification status claims (email_verified, phone_number_verified)
 
 **Important Notes**:
@@ -350,9 +350,9 @@ consent for the client to access.
 
 ```json
 {
-  "custom_department": "Product Management",
-  "custom_employee_id": "EMP-67890",
-  "custom_role": "Senior Product Manager"
+  "department": "Product Management",
+  "employee_id": "EMP-67890",
+  "role": "Senior Product Manager"
 }
 ```
 
@@ -372,9 +372,9 @@ consent for the client to access.
     "phone_number": "+1234567890",
     "phone_number_verified": false,
     "birthdate": "1990-01-15",
-    "custom_department": "Product Management",
-    "custom_employee_id": "EMP-67890",
-    "custom_role": "Senior Product Manager"
+    "department": "Product Management",
+    "employee_id": "EMP-67890",
+    "role": "Senior Product Manager"
   }
 }
 ```
@@ -384,7 +384,7 @@ consent for the client to access.
 ```json
 {
   "error": "invalid_claim",
-  "error_description": "Only custom claims (prefixed with custom_) can be modified through this endpoint."
+  "error_description": "Only custom claims can be modified through this endpoint. The claim 'email' is an OpenID Connect claim."
 }
 ```
 
@@ -404,9 +404,9 @@ consent for the client to access.
 
 **Important Notes**:
 
-- Only claims prefixed with `custom_` can be modified through this endpoint
-- OpenID Connect claims (email, name, phone_number, etc.) cannot be modified via this endpoint
-- Attempting to modify OpenID Connect claims will result in an error
+- Only custom claims (origin: `custom`) can be modified through this endpoint
+- OpenID Connect claims (origin: `openid`) cannot be modified via this endpoint
+- Attempting to modify an OpenID Connect claim will result in an error
 - Custom claims can be set to `null` to remove them
 
 **Use Cases**:
