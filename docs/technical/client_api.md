@@ -110,6 +110,9 @@ Endpoints for listing users and viewing their authorization status. Requires the
 
 - `page` (optional): Zero-indexed page number (default: `0`)
 - `size` (optional): Number of results per page (default: `20`)
+- `provider_id` (optional): Filter users linked to a specific provider (e.g. `?provider_id=discord`)
+- `subject` (optional): Filter by provider subject ID. Must be used together with `provider_id`
+  (e.g. `?provider_id=discord&subject=123456789012345678`)
 
 **Response Format**:
 
@@ -123,6 +126,13 @@ Endpoints for listing users and viewing their authorization status. Requires the
       "identifier_claims": {
         "email": "jane@example.com"
       },
+      "providers": [
+        {
+          "provider_id": "discord",
+          "subject": "123456789012345678",
+          "linked_at": "2026-01-15T14:30:00Z"
+        }
+      ],
       "granted_scopes": [
         "openid",
         "profile",
@@ -135,6 +145,13 @@ Endpoints for listing users and viewing their authorization status. Requires the
       "identifier_claims": {
         "email": "john@example.com"
       },
+      "providers": [
+        {
+          "provider_id": "google",
+          "subject": "109876543210",
+          "linked_at": "2026-02-20T09:15:30Z"
+        }
+      ],
       "granted_scopes": [
         "openid",
         "email"
@@ -153,6 +170,10 @@ Endpoints for listing users and viewing their authorization status. Requires the
 - `users`: Array of user grant records
     - `user_id`: Unique identifier of the end-user
     - `identifier_claims`: Object containing the user's identifier claim values as key/value pairs. Only claims configured as identifiers are included.
+    - `providers`: Array of linked provider identity records
+        - `provider_id`: Identifier of the external provider (e.g. `"discord"`, `"google"`)
+        - `subject`: The user's unique identifier at the provider
+        - `linked_at`: ISO 8601 timestamp (UTC) when the provider was linked
     - `granted_scopes`: List of OAuth scopes the user has granted to this client
     - `granted_at`: ISO 8601 timestamp (UTC) when scopes were granted
 - `page`: Current page number
@@ -192,6 +213,18 @@ Endpoints for listing users and viewing their authorization status. Requires the
   "identifier_claims": {
     "email": "jane@example.com"
   },
+  "providers": [
+    {
+      "provider_id": "discord",
+      "subject": "123456789012345678",
+      "linked_at": "2026-01-15T14:30:00Z"
+    },
+    {
+      "provider_id": "google",
+      "subject": "109876543210",
+      "linked_at": "2026-02-01T10:00:00Z"
+    }
+  ],
   "granted_scopes": ["openid", "profile", "email"],
   "granted_at": "2026-01-15T14:30:00Z"
 }
@@ -210,6 +243,10 @@ Endpoints for listing users and viewing their authorization status. Requires the
 
 - `user_id`: Unique identifier of the end-user
 - `identifier_claims`: Object containing the user's identifier claim values as key/value pairs. Only claims configured as identifiers are included.
+- `providers`: Array of linked provider identity records
+    - `provider_id`: Identifier of the external provider (e.g. `"discord"`, `"google"`)
+    - `subject`: The user's unique identifier at the provider
+    - `linked_at`: ISO 8601 timestamp (UTC) when the provider was linked
 - `granted_scopes`: List of OAuth scopes the user has granted to this client
 - `granted_at`: ISO 8601 timestamp (UTC) when scopes were granted
 
