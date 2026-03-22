@@ -13,7 +13,7 @@ are granted.
 
 | Scope                | Description                                  |
 |----------------------|----------------------------------------------|
-| `users:read`         | List users with granted scopes               |
+| `users:read`         | List users with consented scopes             |
 | `users:claims:read`  | Read consented and custom claims             |
 | `users:claims:write` | Write custom claims                          |
 
@@ -96,7 +96,7 @@ The required scope for each endpoint is documented in the [Endpoints](#endpoints
 
 Endpoints for listing users and viewing their authorization status. Requires the `users:read` scope.
 
-#### List Users with Granted Scopes
+#### List Users with Consented Scopes
 
 **Path**: `/api/v1/client/users`
 
@@ -104,7 +104,7 @@ Endpoints for listing users and viewing their authorization status. Requires the
 
 **Authentication**: Bearer token with `users:read` scope
 
-**Purpose**: Retrieves a paginated list of all end-users who have granted scopes to the requesting client application.
+**Purpose**: Retrieves a paginated list of all end-users who have consented to share scopes with the requesting client application.
 
 **Query Parameters**:
 
@@ -133,12 +133,12 @@ Endpoints for listing users and viewing their authorization status. Requires the
           "linked_at": "2026-01-15T14:30:00Z"
         }
       ],
-      "granted_scopes": [
+      "consented_scopes": [
         "openid",
         "profile",
         "email"
       ],
-      "granted_at": "2026-01-15T14:30:00Z"
+      "consented_at": "2026-01-15T14:30:00Z"
     },
     {
       "user_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
@@ -152,11 +152,11 @@ Endpoints for listing users and viewing their authorization status. Requires the
           "linked_at": "2026-02-20T09:15:30Z"
         }
       ],
-      "granted_scopes": [
+      "consented_scopes": [
         "openid",
         "email"
       ],
-      "granted_at": "2026-02-20T09:15:30Z"
+      "consented_at": "2026-02-20T09:15:30Z"
     }
   ],
   "page": 0,
@@ -167,18 +167,18 @@ Endpoints for listing users and viewing their authorization status. Requires the
 
 **Properties**:
 
-- `users`: Array of user grant records
+- `users`: Array of user consent records
     - `user_id`: Unique identifier of the end-user
     - `identifier_claims`: Object containing the user's identifier claim values as key/value pairs. Only claims configured as identifiers are included.
     - `providers`: Array of linked provider identity records
         - `provider_id`: Identifier of the external provider (e.g. `"discord"`, `"google"`)
         - `subject`: The user's unique identifier at the provider
         - `linked_at`: ISO 8601 timestamp (UTC) when the provider was linked
-    - `granted_scopes`: List of OAuth scopes the user has granted to this client
-    - `granted_at`: ISO 8601 timestamp (UTC) when scopes were granted
+    - `consented_scopes`: List of OAuth scopes the user has consented to share with this client
+    - `consented_at`: ISO 8601 timestamp (UTC) when consent was given
 - `page`: Current page number
 - `size`: Number of results per page
-- `total`: Total number of users with granted scopes
+- `total`: Total number of users with consented scopes
 
 **Use Cases**:
 
@@ -225,8 +225,8 @@ Endpoints for listing users and viewing their authorization status. Requires the
       "linked_at": "2026-02-01T10:00:00Z"
     }
   ],
-  "granted_scopes": ["openid", "profile", "email"],
-  "granted_at": "2026-01-15T14:30:00Z"
+  "consented_scopes": ["openid", "profile", "email"],
+  "consented_at": "2026-01-15T14:30:00Z"
 }
 ```
 
@@ -247,13 +247,13 @@ Endpoints for listing users and viewing their authorization status. Requires the
     - `provider_id`: Identifier of the external provider (e.g. `"discord"`, `"google"`)
     - `subject`: The user's unique identifier at the provider
     - `linked_at`: ISO 8601 timestamp (UTC) when the provider was linked
-- `granted_scopes`: List of OAuth scopes the user has granted to this client
-- `granted_at`: ISO 8601 timestamp (UTC) when scopes were granted
+- `consented_scopes`: List of OAuth scopes the user has consented to share with this client
+- `consented_at`: ISO 8601 timestamp (UTC) when consent was given
 
 **Use Cases**:
 
 - Check authorization status for a specific user
-- Verify which scopes a user has granted
+- Verify which scopes a user has consented to
 - Determine when a user authorized the application
 
 ---
@@ -319,9 +319,9 @@ consent for the client to access.
 
 **Important Notes**:
 
-- Only claims for which the user has granted consent are returned
-- The returned claims are determined by the scopes granted during authorization
-- Claims not covered by granted scopes will not be included in the response
+- Only claims for which the user has given consent are returned
+- The returned claims are determined by the scopes consented during authorization
+- Claims not covered by consented scopes will not be included in the response
 
 **Use Cases**:
 

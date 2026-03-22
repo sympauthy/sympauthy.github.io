@@ -88,7 +88,7 @@ Client scopes are defined by SympAuthy and protect operations of the
 
 | Scope                | Description                                          |
 |----------------------|------------------------------------------------------|
-| `users:read`         | List users with granted scopes or claims             |
+| `users:read`         | List users with consented scopes                     |
 | `users:claims:read`  | Read consented and custom claims                     |
 | `users:claims:write` | Write custom claims                                  |
 
