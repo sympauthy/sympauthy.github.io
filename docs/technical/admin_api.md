@@ -1023,6 +1023,133 @@ that client only.
 
 ---
 
+### Provider Links
+
+Endpoints for viewing and managing the links between end-user accounts and external identity providers. Requires
+`admin:users:read` for read operations and `admin:users:write` for modifications.
+
+#### List User Provider Links
+
+**Path**: `/api/v1/admin/users/{user_id}/providers`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:users:read` scope
+
+**Purpose**: Retrieves a paginated list of all external identity providers linked to a specific user account.
+
+**Path Parameters**:
+
+- `user_id`: Unique identifier of the user
+
+**Query Parameters**:
+
+- `page` (optional): Zero-indexed page number (default: `0`)
+- `size` (optional): Number of results per page (default: `20`)
+
+**Response Format**:
+
+`200 OK`:
+
+```json
+{
+  "providers": [
+    {
+      "provider_id": "discord",
+      "subject": "123456789012345678",
+      "linked_at": "2026-01-15T14:30:00Z"
+    },
+    {
+      "provider_id": "google",
+      "subject": "109876543210",
+      "linked_at": "2026-02-01T10:00:00Z"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "total": 2
+}
+```
+
+`404 Not Found`:
+
+```json
+{
+  "error": "not_found",
+  "error_description": "No user found with id: 550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Properties**:
+
+- `providers`: Array of provider link records
+    - `provider_id`: Identifier of the external provider, as defined in configuration
+    - `subject`: The user's unique identifier at the provider
+    - `linked_at`: ISO 8601 timestamp (UTC) when the provider was linked to this account
+- `page`: Current page number
+- `size`: Number of results per page
+- `total`: Total number of linked providers
+
+**Use Cases**:
+
+- View which external providers a user has linked in an admin dashboard
+- Investigate authentication issues related to a specific provider
+- Audit provider links for security reviews
+
+---
+
+#### Unlink Provider
+
+**Path**: `/api/v1/admin/users/{user_id}/providers/{provider_id}`
+
+**Method**: DELETE
+
+**Authentication**: Bearer token with `admin:users:write` scope
+
+**Purpose**: Removes the link between a user account and an external identity provider. The user will no longer be
+able to authenticate through this provider until they re-link it via the authentication flow. Returns 404 if no
+link exists for the user and provider pair.
+
+**Path Parameters**:
+
+- `user_id`: Unique identifier of the user
+- `provider_id`: Identifier of the provider to unlink
+
+**Response Format**:
+
+`200 OK`:
+
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "provider_id": "discord",
+  "unlinked": true
+}
+```
+
+`404 Not Found`:
+
+```json
+{
+  "error": "not_found",
+  "error_description": "No provider link found for user 550e8400-e29b-41d4-a716-446655440000 and provider: discord"
+}
+```
+
+**Properties**:
+
+- `user_id`: Unique identifier of the user
+- `provider_id`: Identifier of the provider that was unlinked
+- `unlinked`: Confirmation that the provider was unlinked
+
+**Use Cases**:
+
+- Disconnect a compromised provider account from a user
+- Clean up provider links during account maintenance
+- Respond to user requests to remove a linked provider
+
+---
+
 ### Access Control
 
 Endpoints for viewing and managing end-user consents. Requires the `admin:consent:read` scope for read operations
