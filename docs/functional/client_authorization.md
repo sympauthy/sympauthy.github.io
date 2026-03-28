@@ -16,7 +16,7 @@ Scope granting rules for client scopes follow the same structure as
 [user authorization rules](/functional/user_authorization#scope-granting-rules) — with scopes, behavior,
 order, and expressions — but their expressions evaluate **client attributes** instead of user claims.
 
-They are declared in the [Configuration](/technical/configuration) under ```rules.client-scopes``` of the
+They are declared in the [Configuration](/technical/configuration) under ```rules.client``` of the
 authorization server and look like the following:
 
 ```

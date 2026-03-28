@@ -133,9 +133,9 @@ docker run -ti --rm -p 8080:8080 \
   '-auth.by-password.enabled=true' \
   '-auth.identifier-claims=email' \
   '-claims.email.enabled=true' \
-  '-rules[0].scopes=admin:config:read,admin:users:read,admin:users:write,admin:users:delete,admin:consent:read,admin:consent:write' \
-  '-rules[0].behavior=grant' \
-  '-rules[0].expressions=CLAIM("email") = "admin@example.com"' \
+  '-rules.user[0].scopes=admin:config:read,admin:users:read,admin:users:write,admin:users:delete,admin:consent:read,admin:consent:write' \
+  '-rules.user[0].behavior=grant' \
+  '-rules.user[0].expressions=CLAIM("email") = "admin@example.com"' \
   '-urls.root=http://localhost:8080'
 ```
 
@@ -186,7 +186,7 @@ the [r2dbc configuration](/technical/configuration#r2dbc).
 
 ##### Grant admin permissions
 
-- ```rules[0]```: A [scope granting rule](/functional/user_authorization#scope-granting-rules) that
+- ```rules.user[0]```: A [scope granting rule](/functional/user_authorization#scope-granting-rules) that
   automatically grants all admin scopes to the user who signs up with the email ```admin@example.com```.
 
 You can pass additional configurations to the server by appending the following to the command:

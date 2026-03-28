@@ -23,7 +23,7 @@ scope granting rules or by delegating to a third-party through API.
 Scope granting rules are conditions evaluated during an authorization attempt to automatically grant or deny grantable
 scopes. Their expressions evaluate **user claims** to determine whether a scope should be granted.
 
-They are declared in the [Configuration](/technical/configuration) under ```rules.scopes``` of the
+They are declared in the [Configuration](/technical/configuration) under ```rules.user``` of the
 authorization server and look like the following:
 
 ```
