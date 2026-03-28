@@ -27,6 +27,7 @@ Standard OAuth 2.1 and OpenID Connect endpoints for authorization and authentica
 - **Authorization Endpoint**: `/api/oauth2/authorize` - Initiates OAuth 2.1 authorization flows
 - **Token Endpoint**: `/api/oauth2/token` - Issues access tokens, refresh tokens, and ID tokens
 - **UserInfo Endpoint**: `/api/openid/userinfo` - Returns user profile claims
+- **Introspection Endpoint**: `/api/oauth2/introspect` - Validates tokens and returns metadata
 - **Discovery Endpoint**: `/.well-known/openid-configuration` - OpenID Connect metadata
 
 This API supports the Authorization Code Grant and Refresh Token flows, with Client Secret Basic and Client Secret Post

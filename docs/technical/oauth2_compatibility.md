@@ -93,12 +93,12 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 
 ### OAuth 2.1 Endpoints
 
-| Endpoint               | Status        | Path                    | Reference                                                                                                      |
-|------------------------|---------------|-------------------------|----------------------------------------------------------------------------------------------------------------|
-| Authorization Endpoint | Supported     | `/api/oauth2/authorize` | [draft-ietf-oauth-v2-1 - section 3.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-3.1) |
-| Token Endpoint         | Supported     | `/api/oauth2/token`     | [draft-ietf-oauth-v2-1 - section 3.2](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-3.2) |
-| Token Revocation       | Supported     | `/api/oauth2/revoke`    | [RFC 7009](https://datatracker.ietf.org/doc/html/rfc7009)                                                      |
-| Token Introspection    | Not Supported | -                       | [RFC 7662](https://datatracker.ietf.org/doc/html/rfc7662)                                                      |
+| Endpoint               | Status    | Path                     | Reference                                                                                                      |
+|------------------------|-----------|--------------------------|----------------------------------------------------------------------------------------------------------------|
+| Authorization Endpoint | Supported | `/api/oauth2/authorize`  | [draft-ietf-oauth-v2-1 - section 3.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-3.1) |
+| Token Endpoint         | Supported | `/api/oauth2/token`      | [draft-ietf-oauth-v2-1 - section 3.2](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-3.2) |
+| Token Revocation       | Supported | `/api/oauth2/revoke`     | [RFC 7009](https://datatracker.ietf.org/doc/html/rfc7009)                                                      |
+| Token Introspection    | Supported | `/api/oauth2/introspect` | [RFC 7662](https://datatracker.ietf.org/doc/html/rfc7662)                                                      |
 
 ### OpenID Connect Endpoints
 
@@ -124,4 +124,5 @@ For more information about OAuth specifications, visit:
 - [OAuth 2.0 Framework (RFC 6749)](https://datatracker.ietf.org/doc/html/rfc6749)
 - [JWT Profile for OAuth 2.0 Access Tokens (RFC 9068)](https://datatracker.ietf.org/doc/html/rfc9068)
 - [OAuth 2.0 Demonstrating Proof of Possession (RFC 9449)](https://datatracker.ietf.org/doc/html/rfc9449)
+- [OAuth 2.0 Token Introspection (RFC 7662)](https://datatracker.ietf.org/doc/html/rfc7662)
 - [OpenID Connect Specifications](https://openid.net/connect/)

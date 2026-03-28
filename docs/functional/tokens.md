@@ -74,6 +74,32 @@ While the access token answers "is this user allowed to do this?", the ID token 
 ID tokens have the same lifespan as access tokens. Once expired, the client should use the refresh token to obtain a
 fresh set of tokens.
 
+## Token introspection
+
+A resource server that receives an access token may need to verify that it is still valid. While JWTs can be verified
+locally using the public keys published in the OpenID Connect discovery document, some scenarios require server-side
+validation — for example, to check whether a token has been revoked.
+
+SympAuthy provides a token introspection endpoint (`/api/oauth2/introspect`) that accepts a token and returns whether
+it is active, along with metadata such as the granted scopes, the client that requested the token, and the
+authenticated user.
+
+For technical details on the endpoint, authentication requirements, and response format, see the
+[Security](../technical/security#token-introspection) documentation.
+
+## Staying signed in
+
+From the user's perspective, being "signed in" means the client holds a valid access token. As long as the client can
+silently refresh that token using the refresh token, the user never needs to authenticate again.
+
+The user will be prompted to sign in again when:
+
+- the refresh token has expired (controlled by `token.refresh-token.lifespan`),
+- the refresh token has been revoked (for example, following an account action),
+- the [consent](/functional/consent) for the user and client pair has been revoked — either by an
+  administrator or because the user re-authorized with new scopes,
+- the client explicitly signs the user out.
+
 ## Sender-constrained tokens (DPoP)
 
 By default, access tokens are **bearer tokens**: any party that holds the token can use it. If a bearer token is
@@ -106,16 +132,3 @@ proof signed with the same key that was used during the original token issuance.
 
 For technical details on the DPoP mechanism and configuration, see the
 [Security](../technical/security#dpop-demonstrating-proof-of-possession) documentation.
-
-## Staying signed in
-
-From the user's perspective, being "signed in" means the client holds a valid access token. As long as the client can
-silently refresh that token using the refresh token, the user never needs to authenticate again.
-
-The user will be prompted to sign in again when:
-
-- the refresh token has expired (controlled by `token.refresh-token.lifespan`),
-- the refresh token has been revoked (for example, following an account action),
-- the [consent](/functional/consent) for the user and client pair has been revoked — either by an
-  administrator or because the user re-authorized with new scopes,
-- the client explicitly signs the user out.

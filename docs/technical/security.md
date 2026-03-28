@@ -75,6 +75,14 @@ the [OAuth 2.0 Token Revocation specification (RFC 7009)](https://datatracker.ie
 `/api/oauth2/revoke`. Clients can proactively revoke tokens — for example, when a user signs out — so that they are
 rejected immediately rather than waiting for expiration.
 
+## Token introspection
+
+SympAuthy implements
+the [OAuth 2.0 Token Introspection specification (RFC 7662)](https://datatracker.ietf.org/doc/html/rfc7662) at
+`/api/oauth2/introspect`. Resource servers and other authorized parties can submit a token to this endpoint to determine
+whether it is still active and to retrieve metadata about it. The endpoint requires client authentication (Client Secret
+Basic or Client Secret Post).
+
 ## Authorization code security
 
 The authorization code is a short-lived, single-use credential. SympAuthy enforces the following protections:
@@ -89,7 +97,8 @@ The authorization code is a short-lived, single-use credential. SympAuthy enforc
 
 ## PKCE (Proof Key for Code Exchange)
 
-SympAuthy implements [PKCE (RFC 7636)](https://www.rfc-editor.org/rfc/rfc7636) to protect the authorization code exchange
+SympAuthy implements [PKCE (RFC 7636)](https://www.rfc-editor.org/rfc/rfc7636) to protect the authorization code
+exchange
 against interception attacks — particularly for [public clients](/functional/client#confidential-and-public-clients)
 that cannot store a client secret.
 
@@ -219,13 +228,13 @@ release.
 
 SympAuthy supports only the grant types retained by the OAuth 2.1 specification:
 
-| Grant Type                          | Status        | Reason                                                    |
-|-------------------------------------|---------------|-----------------------------------------------------------|
-| Authorization Code Grant            | Supported     | Recommended secure flow                                   |
-| Refresh Token Grant                 | Supported     | Standard mechanism for session continuity                 |
-| Client Credentials Grant            | Supported     | For service-to-service authentication                     |
-| Implicit Grant                      | Not Supported | Exposes tokens in the browser URL; removed by OAuth 2.1   |
-| Resource Owner Password Credentials | Not Supported | Requires clients to handle user credentials directly      |
+| Grant Type                          | Status        | Reason                                                  |
+|-------------------------------------|---------------|---------------------------------------------------------|
+| Authorization Code Grant            | Supported     | Recommended secure flow                                 |
+| Refresh Token Grant                 | Supported     | Standard mechanism for session continuity               |
+| Client Credentials Grant            | Supported     | For service-to-service authentication                   |
+| Implicit Grant                      | Not Supported | Exposes tokens in the browser URL; removed by OAuth 2.1 |
+| Resource Owner Password Credentials | Not Supported | Requires clients to handle user credentials directly    |
 
 The Implicit Grant and Resource Owner Password Credentials flows have been removed from OAuth 2.1. By not supporting
 them, SympAuthy prevents patterns that expose credentials or tokens to third parties.
@@ -242,7 +251,8 @@ the API is rejected rather than automatically granted. This setting does not aff
 [consentable scopes](/functional/scope#consentable-scope), which are always granted through
 end-user consent. Enabling this setting is marked as unsafe and intended for development use only.
 
-See the [User Authorization](../functional/user_authorization) and [Client Authorization](../functional/client_authorization) documentation for details on scope granting rules.
+See the [User Authorization](../functional/user_authorization)
+and [Client Authorization](../functional/client_authorization) documentation for details on scope granting rules.
 
 ## Client authentication
 
@@ -250,8 +260,8 @@ SympAuthy supports two categories of clients:
 
 - **Confidential clients** authenticate using a shared secret configured under `clients.<id>.secret`. Two transport
   methods are available:
-  - **Client Secret Basic** — credentials passed in the HTTP `Authorization` header.
-  - **Client Secret Post** — credentials passed in the POST request body.
+    - **Client Secret Basic** — credentials passed in the HTTP `Authorization` header.
+    - **Client Secret Post** — credentials passed in the POST request body.
 
 - **Public clients** (`clients.<id>.public: true`) do not have a secret. They identify themselves using only their
   `client_id`. To secure the authorization code exchange, public clients must use
