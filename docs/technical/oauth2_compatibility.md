@@ -7,8 +7,8 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 
 ## Grant Types
 
-| Grant Type                                | Status        | Reference                                                                                                             |
-|-------------------------------------------|---------------|-----------------------------------------------------------------------------------------------------------------------|
+| Grant Type                                | Status        | Reference                                                                                                            |
+|-------------------------------------------|---------------|----------------------------------------------------------------------------------------------------------------------|
 | Authorization Code Grant                  | Supported     | [draft-ietf-oauth-v2-1 - section 4.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-4.1)       |
 | Implicit Grant                            | Not Supported | Removed in [draft-ietf-oauth-v2-1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1) (was RFC 6749 - 4.2) |
 | Resource Owner Password Credentials Grant | Not Supported | Removed in [draft-ietf-oauth-v2-1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1) (was RFC 6749 - 4.3) |
@@ -28,7 +28,7 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 | Refresh Token                           | Supported     | [draft-ietf-oauth-v2-1 - section 1.5](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-1.5) |
 | ID Token (JWT)                          | Supported     | [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html)                               |
 | Refresh Token Rotation (Public Clients) | Supported     | [draft-ietf-oauth-v2-1 - section 6.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-6.1) |
-| JWT Profile for Access Tokens           | Supported     | [RFC 9068](https://datatracker.ietf.org/doc/html/rfc9068)                                                       |
+| JWT Profile for Access Tokens           | Supported     | [RFC 9068](https://datatracker.ietf.org/doc/html/rfc9068)                                                      |
 | Sender-constrained Tokens               | Not Supported | [draft-ietf-oauth-v2-1 - section 6.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-6.1) |
 | Bearer Tokens in Query Strings          | Not Supported | [draft-ietf-oauth-v2-1 - section 5.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-5.1) |
 
@@ -51,6 +51,7 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 | State Parameter                 | Required      | [draft-ietf-oauth-v2-1 - section 7.5.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-7.5.1) |
 | Nonce Parameter                 | Supported     | [OpenID Connect Core](https://openid.net/specs/openid-connect-core-1_0.html)                                       |
 | Authorization Code One-Time Use | Enforced      | [draft-ietf-oauth-v2-1 - section 4.1.2](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-4.1.2) |
+| HTTP 307 Redirect Prohibition   | Enforced      | [draft-ietf-oauth-v2-1 - section 7.5.3](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-7.5.3) |
 | Exact Redirect URI Matching     | Planned       | [draft-ietf-oauth-v2-1 - section 7.5.3](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-7.5.3) |
 
 > The `plain` challenge method will not be
@@ -86,12 +87,12 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 
 ### OAuth 2.1 Endpoints
 
-| Endpoint               | Status        | Path                    | Reference                                                                           |
-|------------------------|---------------|-------------------------|-------------------------------------------------------------------------------------|
+| Endpoint               | Status        | Path                    | Reference                                                                                                      |
+|------------------------|---------------|-------------------------|----------------------------------------------------------------------------------------------------------------|
 | Authorization Endpoint | Supported     | `/api/oauth2/authorize` | [draft-ietf-oauth-v2-1 - section 3.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-3.1) |
 | Token Endpoint         | Supported     | `/api/oauth2/token`     | [draft-ietf-oauth-v2-1 - section 3.2](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-3.2) |
-| Token Revocation       | Supported     | `/api/oauth2/revoke`    | [RFC 7009](https://datatracker.ietf.org/doc/html/rfc7009)                           |
-| Token Introspection    | Not Supported | -                       | [RFC 7662](https://datatracker.ietf.org/doc/html/rfc7662)                           |
+| Token Revocation       | Supported     | `/api/oauth2/revoke`    | [RFC 7009](https://datatracker.ietf.org/doc/html/rfc7009)                                                      |
+| Token Introspection    | Not Supported | -                       | [RFC 7662](https://datatracker.ietf.org/doc/html/rfc7662)                                                      |
 
 ### OpenID Connect Endpoints
 

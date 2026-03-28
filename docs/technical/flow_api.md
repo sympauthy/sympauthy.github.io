@@ -60,6 +60,12 @@ The `redirect_url` property will be present in responses when:
 - An unrecoverable error occurred (e.g., the session expired)
 - The flow is complete and the user should be redirected back to the client application
 
+> All server-side redirects use HTTP 303 (See Other), never 307 (Temporary Redirect).
+> [OAuth 2.1 (section 7.5.3)](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-7.5.3) prohibits 307
+> because it preserves the original HTTP method and request body — a POST carrying user credentials would be forwarded
+> as-is to the redirect target, risking credential leakage. HTTP 303 forces the browser to issue a GET, which strips the
+> request body and prevents this class of vulnerability.
+
 #### Response Patterns
 
 Endpoints return one of two response patterns:
@@ -802,7 +808,7 @@ The Flow API implements two types of error handling:
 - Example: Invalid password, validation code incorrect
 - Display error message to user and allow retry
 
-**Unrecoverable Errors** (HTTP 3xx redirect):
+**Unrecoverable Errors** (HTTP 303 redirect):
 
 - Session expired, configuration error, etc.
 - User automatically redirected to error page
