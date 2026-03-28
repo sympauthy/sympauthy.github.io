@@ -12,9 +12,11 @@ Clients interact with SympAuthy through the [OAuth 2.1](https://datatracker.ietf
 SympAuthy distinguishes between two categories of clients based on their ability to keep a secret:
 
 - **Confidential clients** can securely store a shared secret. They authenticate to SympAuthy using a `client_id` and a `client_secret`. **Ex.** a server-side web application, a backend service.
-- **Public clients** cannot safely store a secret — their code is exposed to the end-user. They authenticate using only their `client_id` and must use [PKCE](/technical/security#pkce-proof-key-for-code-exchange) to secure the authorization code exchange. **Ex.** a single-page application (SPA), a mobile application, a CLI tool.
+- **Public clients** cannot safely store a secret — their code is exposed to the end-user. They authenticate using only their `client_id`. **Ex.** a single-page application (SPA), a mobile application, a CLI tool.
 
 Public clients can only use the authorization code grant flow. The client credentials grant — which requires a shared secret — is not available to them.
+
+Both confidential and public clients must use [PKCE](/technical/security#pkce-proof-key-for-code-exchange) when using the authorization code flow, as required by OAuth 2.1.
 
 ## Registration
 

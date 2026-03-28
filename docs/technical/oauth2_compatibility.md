@@ -57,10 +57,9 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 > implemented. [RFC 7636 section 7.2](https://www.rfc-editor.org/rfc/rfc7636#section-7.2) identifies it as vulnerable to
 > interception and recommends `S256` for all deployments.
 
-> OAuth 2.1 requires PKCE for all clients using the authorization code flow. PKCE is currently enforced for
-> [public clients](/functional/client#confidential-and-public-clients) and optional for confidential
-> clients. Enforcement for confidential clients is **planned**. See the
-> [Security](security#pkce-proof-key-for-code-exchange) documentation for details on the current enforcement policy.
+> OAuth 2.1 requires PKCE for all clients using the authorization code flow. SympAuthy enforces this for both
+> public and confidential clients. See the [Security](security#pkce-proof-key-for-code-exchange) documentation
+> for details.
 
 ## OpenID Connect
 

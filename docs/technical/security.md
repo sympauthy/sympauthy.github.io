@@ -107,10 +107,9 @@ Only the `S256` challenge method is supported. The `plain` method is deliberatel
 protect against interception — [RFC 7636 section 7.2](https://www.rfc-editor.org/rfc/rfc7636#section-7.2) recommends
 `S256` for all deployments.
 
-OAuth 2.1 requires PKCE for all clients using the authorization code flow. PKCE is currently **mandatory** for public
-clients — if a public client omits the `code_challenge` parameter, the authorization request is rejected. Confidential
-clients may also use PKCE — it is optional but recommended as a defence-in-depth measure. Enforcement for confidential
-clients is **planned**.
+OAuth 2.1 requires PKCE for all clients using the authorization code flow. SympAuthy enforces this — any authorization
+request that omits the `code_challenge` parameter is rejected, regardless of whether the client is public or
+confidential.
 
 ## CORS restriction on the Flow API
 
