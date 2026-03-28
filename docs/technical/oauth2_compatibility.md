@@ -29,8 +29,13 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 | ID Token (JWT)                          | Supported     | [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html)                               |
 | Refresh Token Rotation (Public Clients) | Supported     | [draft-ietf-oauth-v2-1 - section 6.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-6.1) |
 | JWT Profile for Access Tokens           | Supported     | [RFC 9068](https://datatracker.ietf.org/doc/html/rfc9068)                                                      |
-| Sender-constrained Tokens               | Not Supported | [draft-ietf-oauth-v2-1 - section 6.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-6.1) |
+| Sender-constrained Tokens (DPoP)        | Supported     | [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449)                                                      |
+| Sender-constrained Tokens (mTLS)        | Not Supported | [RFC 8705](https://datatracker.ietf.org/doc/html/rfc8705)                                                      |
 | Bearer Tokens in Query Strings          | Not Supported | [draft-ietf-oauth-v2-1 - section 5.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-5.1) |
+
+> SympAuthy supports sender-constrained tokens via DPoP ([RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449)).
+> When a client sends a valid DPoP proof, the issued access token is bound to the client's key pair and returned with
+> `token_type: "DPoP"`. See the [Security](security#dpop-demonstrating-proof-of-possession) documentation for details.
 
 ## Client Authentication Methods
 
@@ -52,6 +57,7 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 | Nonce Parameter                 | Supported     | [OpenID Connect Core](https://openid.net/specs/openid-connect-core-1_0.html)                                       |
 | Authorization Code One-Time Use | Enforced      | [draft-ietf-oauth-v2-1 - section 4.1.2](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-4.1.2) |
 | HTTP 307 Redirect Prohibition   | Enforced      | [draft-ietf-oauth-v2-1 - section 7.5.3](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-7.5.3) |
+| DPoP Nonce & Replay Detection   | Planned       | [RFC 9449 - section 8](https://datatracker.ietf.org/doc/html/rfc9449#section-8)                                    |
 | Exact Redirect URI Matching     | Planned       | [draft-ietf-oauth-v2-1 - section 7.5.3](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-7.5.3) |
 
 > The `plain` challenge method will not be
@@ -117,4 +123,5 @@ For more information about OAuth specifications, visit:
 - [OAuth 2.1 (draft-ietf-oauth-v2-1)](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1)
 - [OAuth 2.0 Framework (RFC 6749)](https://datatracker.ietf.org/doc/html/rfc6749)
 - [JWT Profile for OAuth 2.0 Access Tokens (RFC 9068)](https://datatracker.ietf.org/doc/html/rfc9068)
+- [OAuth 2.0 Demonstrating Proof of Possession (RFC 9449)](https://datatracker.ietf.org/doc/html/rfc9449)
 - [OpenID Connect Specifications](https://openid.net/connect/)

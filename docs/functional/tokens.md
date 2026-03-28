@@ -24,16 +24,17 @@ An access token is encoded as a JSON Web Token (JWT) following
 the [JWT Profile for OAuth 2.0 Access Tokens (RFC 9068)](https://datatracker.ietf.org/doc/html/rfc9068). The JWT uses
 the `at+jwt` type header and contains the following claims:
 
-| Claim       | Description                                        | RFC 9068    |
-|-------------|----------------------------------------------------|-------------|
-| `iss`       | Issuer — the URL of this authorization server.     | MUST        |
-| `exp`       | Expiration time.                                   | MUST        |
-| `aud`       | Audience the token is intended for.                | MUST        |
-| `sub`       | Subject — the authenticated user's identifier.     | MUST        |
-| `client_id` | The client that requested the token.               | MUST        |
-| `iat`       | Issued-at time.                                    | MUST        |
-| `jti`       | Unique token identifier.                           | MUST        |
-| `scope`     | Space-separated list of granted scopes. For `authorization_code` tokens: [consentable](/functional/scope#consentable-scope) and [grantable](/functional/scope#grantable-scope) scopes. For `client_credentials` tokens: [client](/functional/scope#client-scope) scopes. | SHOULD      |
+| Claim       | Description                                                                                                                                                                                                                                                              | RFC 9068 |
+|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
+| `iss`       | Issuer — the URL of this authorization server.                                                                                                                                                                                                                           | MUST     |
+| `exp`       | Expiration time.                                                                                                                                                                                                                                                         | MUST     |
+| `aud`       | Audience the token is intended for.                                                                                                                                                                                                                                      | MUST     |
+| `sub`       | Subject — the authenticated user's identifier.                                                                                                                                                                                                                           | MUST     |
+| `client_id` | The client that requested the token.                                                                                                                                                                                                                                     | MUST     |
+| `iat`       | Issued-at time.                                                                                                                                                                                                                                                          | MUST     |
+| `jti`       | Unique token identifier.                                                                                                                                                                                                                                                 | MUST     |
+| `scope`     | Space-separated list of granted scopes. For `authorization_code` tokens: [consentable](/functional/scope#consentable-scope) and [grantable](/functional/scope#grantable-scope) scopes. For `client_credentials` tokens: [client](/functional/scope#client-scope) scopes. | SHOULD   |
+| `cnf`       | Confirmation claim. Present when the token is [DPoP-bound](#sender-constrained-tokens-dpop); contains the `jkt` (JWK SHA-256 Thumbprint) of the client's public key.                                                                                                     | OPTIONAL |
 
 The client can read this information directly from the token without making an additional request to SympAuthy.
 
@@ -72,6 +73,39 @@ While the access token answers "is this user allowed to do this?", the ID token 
 
 ID tokens have the same lifespan as access tokens. Once expired, the client should use the refresh token to obtain a
 fresh set of tokens.
+
+## Sender-constrained tokens (DPoP)
+
+By default, access tokens are **bearer tokens**: any party that holds the token can use it. If a bearer token is
+intercepted, the attacker can use it as if they were the legitimate client.
+
+SympAuthy supports **DPoP** ([Demonstrating Proof of Possession](https://datatracker.ietf.org/doc/html/rfc9449)) as a
+way to bind tokens to the client that requested them. When a client presents a DPoP proof during token issuance, the
+resulting access token is tied to the client's key pair and cannot be used by another party.
+
+### How it works for the client
+
+When using DPoP, the client must:
+
+1. Generate an asymmetric key pair (e.g., RSA or ECDSA).
+2. Include a signed DPoP proof JWT in the `DPoP` header of every token request.
+3. Present the access token with `token_type: "DPoP"` to resource servers, along with a new DPoP proof for each
+   request.
+
+### Token response differences
+
+When a DPoP proof is accepted, the token response differs from a standard bearer token response:
+
+- `token_type` is `"DPoP"` instead of `"Bearer"`.
+- The access token JWT contains a `cnf` claim with a `jkt` field — the SHA-256 thumbprint of the client's public key.
+
+### Refresh tokens
+
+Refresh tokens are also bound to the DPoP key. When refreshing a DPoP-bound token, the client must send a new DPoP
+proof signed with the same key that was used during the original token issuance.
+
+For technical details on the DPoP mechanism and configuration, see the
+[Security](../technical/security#dpop-demonstrating-proof-of-possession) documentation.
 
 ## Staying signed in
 

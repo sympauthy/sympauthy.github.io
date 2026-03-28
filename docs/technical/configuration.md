@@ -185,11 +185,12 @@ This section holds configuration that will change the general behavior of the se
 
 ### ```auth.token```
 
-| Key                      | Type     | Description                                                                                                                                                               | Required<br>Default |
-|--------------------------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```access-expiration```  | duration | Amount of time the end-user can be considered authenticated after the access token has been issued.                                                                       | YES<br>```1h```     |
-| ```refresh-enabled```    | boolean  | If set to ```true```, this app will issue refresh tokens that can be used to obtain a new access token without the end-user having to go through the authentication flow. | YES<br>```true```   |
-| ```refresh-expiration``` | duration | Amount of time the refresh token can be used to obtain an access token after it has been issued. The refresh token will never expire if this key is not present.          | NO                  |
+| Key                      | Type     | Description                                                                                                                                                                                                                                                  | Required<br>Default |
+|--------------------------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
+| ```access-expiration```  | duration | Amount of time the end-user can be considered authenticated after the access token has been issued.                                                                                                                                                          | YES<br>```1h```     |
+| ```dpop-required```      | boolean  | When `true`, all token requests must include a [DPoP](/technical/security#dpop-demonstrating-proof-of-possession) proof. When `false`, DPoP is opt-in: clients may send a proof to receive a sender-constrained token, or omit it to receive a bearer token. | NO<br>```false```   |
+| ```refresh-enabled```    | boolean  | If set to ```true```, this app will issue refresh tokens that can be used to obtain a new access token without the end-user having to go through the authentication flow.                                                                                    | YES<br>```true```   |
+| ```refresh-expiration``` | duration | Amount of time the refresh token can be used to obtain an access token after it has been issued. The refresh token will never expire if this key is not present.                                                                                             | NO                  |
 
 ## ```claims.<id>```
 

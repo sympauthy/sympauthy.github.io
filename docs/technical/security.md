@@ -1,8 +1,8 @@
 # Security
 
 SympAuthy is designed with security as a first-class concern. This article describes the technical security measures
-built into SympAuthy, covering password storage, token signing, OAuth 2.1 flow protections, CORS restriction, and
-default safe configurations.
+built into SympAuthy, covering password storage, token signing, OAuth 2.1 flow protections, sender-constrained tokens,
+CORS restriction, and default safe configurations.
 
 ## Secure defaults
 
@@ -110,6 +110,51 @@ protect against interception — [RFC 7636 section 7.2](https://www.rfc-editor.o
 OAuth 2.1 requires PKCE for all clients using the authorization code flow. SympAuthy enforces this — any authorization
 request that omits the `code_challenge` parameter is rejected, regardless of whether the client is public or
 confidential.
+
+## DPoP (Demonstrating Proof of Possession)
+
+SympAuthy implements [DPoP (RFC 9449)](https://datatracker.ietf.org/doc/html/rfc9449) to bind access tokens to the
+client that requested them. Unlike bearer tokens — which can be used by anyone who possesses them — a DPoP-bound token
+is only usable by a client that can prove ownership of the private key used during issuance. This mitigates token theft
+and replay attacks.
+
+The mechanism works as follows:
+
+1. The client generates an asymmetric key pair and creates a **DPoP proof** — a signed JWT with type `dpop+jwt`.
+2. The proof contains the HTTP method (`htm`) and URL (`htu`) of the request, a unique identifier (`jti`), an issued-at
+   timestamp (`iat`), and the client's public key in the `jwk` header.
+3. The client sends the proof in the `DPoP` HTTP header when calling the token endpoint (`/api/oauth2/token`).
+4. SympAuthy validates the proof: it verifies the signature against the embedded public key, checks that `htm` and `htu`
+   match the current request, and confirms that `iat` is within 60 seconds.
+5. If valid, the issued access token includes a `cnf.jkt` claim containing the SHA-256 thumbprint of the client's public
+   key ([RFC 7638](https://datatracker.ietf.org/doc/html/rfc7638)). The token response returns `token_type: "DPoP"`
+   instead of `"Bearer"`.
+6. Refresh tokens are also DPoP-bound. When refreshing a DPoP-bound token, the client must present a new DPoP proof
+   signed with the same key.
+
+The following asymmetric algorithms are supported for DPoP proof signatures:
+
+| Family | Algorithms          |
+|--------|---------------------|
+| RSA    | RS256, RS384, RS512 |
+| EC     | ES256, ES384, ES512 |
+| RSA-PS | PS256, PS384, PS512 |
+
+DPoP is configured under `auth.token`:
+
+| Key             | Type    | Description                                                                              | Default |
+|-----------------|---------|------------------------------------------------------------------------------------------|---------|
+| `dpop-required` | boolean | When `true`, all token requests must include a DPoP proof. When `false`, DPoP is opt-in. | `false` |
+
+> DPoP is opt-in by default. Enabling `dpop-required` forces all clients to present a DPoP proof, which is recommended
+> when all clients support it. Even when not required, any client that sends a valid DPoP proof receives a
+> sender-constrained token.
+
+The supported DPoP signing algorithms are advertised in the OpenID Connect discovery document
+(`/.well-known/openid-configuration`) under the `dpop_signing_alg_values_supported` field.
+
+SympAuthy does not currently implement DPoP server-provided nonces or `jti` replay detection. These are tracked for a
+future release.
 
 ## CORS restriction on the Flow API
 
