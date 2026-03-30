@@ -52,8 +52,13 @@ Micronaut environment:
 | Google   | `google`    |
 | Discord  | `discord`   |
 
-Any other OAuth 2-compatible service can also be configured manually. Refer to the
-[configuration](/technical/configuration#providers-id) section for the full list of options.
+Any other OAuth 2-compatible service can also be configured manually. OpenID Connect (OIDC) providers — such as
+Google, Microsoft, Auth0, or Keycloak — can be configured with just an issuer URL and client credentials thanks to
+[OIDC Discovery](/technical/configuration#oidc-keys). Other OAuth2 providers require explicit endpoint URLs and claim
+mappings via the [OAuth2 configuration](/technical/configuration#oauth2-keys).
+
+For the full list of options, refer to the [provider configuration](/technical/configuration#providers-id) section.
+For providers with built-in presets, see the [well-known providers](/technical/well-known_providers) page.
 
 ##### Account merging
 

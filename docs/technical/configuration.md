@@ -306,10 +306,32 @@ authenticate itself.
 | ```id```        | string | Identifier of the provider. **ex.** ```google```                                                                              | **YES**                                     |
 | ```name```      | string | Name of the provider that will be displayed to users by UI. **ex.** ```Google```                                              | **YES**                                     |
 | ```oauth2```    | object | Info to initiate an OAuth2 authorization code grant flow with the provider. See [OAuth2 keys](#oauth2-keys) for more details. | NO                                          |
+| ```oidc```      | object | Info to initiate an OpenID Connect flow with the provider. See [OIDC keys](#oidc-keys) for more details.                      | NO                                          |
 | ```ui```        | object |                                                                                                                               | NO                                          |
-| ```user-info``` | object | Endpoint called to obtain end-user info from the provider. See [user info keys](#user-info-keys) for more details.            | - OAuth2: ***YES***<br>- OpenID connect: NO |
+| ```user-info``` | object | Endpoint called to obtain end-user info from the provider. See [user info keys](#user-info-keys) for more details.            | - OAuth2: ***YES***<br>- OpenID Connect: NO |
 
-### ```providers.<id>.oauth2```
+> Each provider must have exactly one of `oauth2` or `oidc` configured — not both.
+> OIDC providers use [OpenID Connect Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html) to
+> automatically resolve endpoints from the `issuer` URL. This means you do not need to specify endpoint URLs or claim
+> mappings manually.
+
+### ```providers.<id>.oidc```  {#oidc-keys}
+
+| Key                  | Type     | Description                                                                                                                                           | Required<br>Default              |
+|----------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------|
+| ```issuer```         | url      | The OpenID Connect issuer URL. SympAuthy will fetch the discovery document at `{issuer}/.well-known/openid-configuration` to resolve all endpoints.   | **YES**                          |
+| ```client-id```      | string   | An identifier provided by the provider to identify authentication initiated by this authorization server.                                             | **YES**                          |
+| ```client-secret```  | string   | A secret provided by the provider. It must only be shared between the provider and this authorization server.                                         | **YES**                          |
+| ```scopes```         | string[] | Scopes requested to the provider. The `openid` scope is always included automatically.                                                               | NO<br>```[openid]```             |
+| ```userinfo-enabled```| boolean | Whether to also call the provider's UserInfo endpoint to fetch additional claims. When `false`, claims are extracted from the ID token only.          | NO<br>```false```                |
+
+> The discovery document is fetched at startup. If the issuer URL is invalid or unreachable, SympAuthy will fail fast
+> with a clear error message.
+
+> When `userinfo-enabled` is `false` (the default), SympAuthy extracts user claims directly from the ID token returned
+> by the provider. This is sufficient for most providers (Google, Microsoft, Auth0, etc.) and avoids an extra HTTP call.
+
+### ```providers.<id>.oauth2```  {#oauth2-keys}
 
 | Key               | Type   | Description                                                                                                   | Required<br>Default |
 |-------------------|--------|---------------------------------------------------------------------------------------------------------------|---------------------|
