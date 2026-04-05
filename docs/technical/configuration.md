@@ -175,7 +175,14 @@ This section holds configuration that will change the general behavior of the se
 | ```audience```             | string          | [Audience](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3) of the JWT tokens issued for end-user authentication (ex. OAuth2 access and refresh tokens). Required by [RFC 9068](https://datatracker.ietf.org/doc/html/rfc9068) in access tokens.                                                                                   | NO<br>```<urls.root>```  |
 | ```identifier-claims```    | array of string | List of [claim](/technical/configuration#claims-id) identifiers that uniquely identify a person. These claims are used as the login identifier for password authentication and, when [`user-merging-enabled`](#auth) is `true`, as the key for merging accounts across authentication methods.                                                 | NO<br>```[]```           |
 | ```user-merging-enabled``` | boolean         | When `true`, accounts that share the same value for any configured `identifier-claims` are automatically merged across authentication methods (password, third-party providers). When `false`, each authentication method creates a separate account.                                                                                          | NO<br>```false```        |
+| ```authorization-code```   | object          | Configuration for the authorization code grant flow. See [auth.authorization-code](#auth.authorization-code) for more details.                                                                                                                                                                                                                 | NO                       |
 | ```token```                | object          | Configuration related to authentication tokens issued by this app. See [auth.token](#auth.token) for more details.                                                                                                                                                                                                                             | NO                       |
+
+### ```auth.authorization-code```
+
+| Key              | Type     | Description                                                                                                                                                                              | Required<br>Default |
+|------------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
+| ```expiration``` | duration | Maximum duration an authorization attempt is valid before it expires. The end-user must complete the entire authorization flow (sign-in, claims collection, MFA, etc.) within this time. | YES<br>```30m```    |
 
 ### ```auth.by-password```
 

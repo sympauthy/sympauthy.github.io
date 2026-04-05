@@ -290,7 +290,12 @@ Validates user credentials and establishes an authenticated session.
 
 #### GET Request
 
-Retrieves claims that need to be collected from the user.
+Returns all collectable claims with their metadata, any already-collected values, and suggested values from external
+providers. Only claims within the user's consented scopes are returned; identifier claims (used for sign-in/sign-up) are
+excluded.
+
+This single endpoint provides everything needed to build the claims collection form — there is no need to cross-reference
+the configuration endpoint for claim metadata.
 
 **Response Format**:
 
@@ -300,13 +305,21 @@ When claims need to be collected:
 {
   "claims": [
     {
-      "claim": "phone",
+      "id": "phone",
+      "required": true,
+      "name": "Phone Number",
+      "type": "phone_number",
+      "group": "identity",
       "collected": false,
       "value": null,
       "suggested_value": "+1234567890"
     },
     {
-      "claim": "birthdate",
+      "id": "birthdate",
+      "required": false,
+      "name": "Date of Birth",
+      "type": "date",
+      "group": null,
       "collected": true,
       "value": "1990-01-15",
       "suggested_value": null
@@ -325,14 +338,18 @@ When no claims need collection (auto-skip):
 
 **Claim Properties**:
 
-- `claim`: Claim identifier
-- `collected`: Whether the claim was already collected from a first-party source
-- `value`: Current collected value (if any)
-- `suggested_value`: Value obtained from a third-party provider (if any)
+- `id`: Claim identifier
+- `required`: Whether this claim must be provided
+- `name`: Localized display name (depends on `Accept-Language` header)
+- `type`: Data type (e.g. `string`, `date`, `phone_number`, `timezone`)
+- `group`: Group this claim belongs to (e.g. `identity`, `address`), or `null` if ungrouped
+- `collected`: Whether the user has already been presented with this claim during a previous flow step
+- `value`: Current value provided by the user (`null` if not yet collected or user declined)
+- `suggested_value`: Value from a third-party provider, suggested as a default
 
 **Behavior**:
 
-- If `redirect_url` is present: No claims to collect, proceed to next step automatically
+- If `redirect_url` is present: No collectable claims, proceed to next step automatically
 - If `claims` array is present: User must provide or confirm the listed claims
 
 #### POST Request
@@ -363,16 +380,17 @@ it.
 **Workflow**:
 
 1. **GET**: Check if claims need collection
-    - If no claims needed: Returns `redirect_url` to skip this step
-    - If claims needed: Returns list with current/suggested values
+    - If no collectable claims: Returns `redirect_url` to skip this step
+    - If claims needed: Returns all collectable claims with metadata, collected values, and suggested values
 2. **POST**: Save claim values
-    - Filters to only user-inputted claims
+    - The server filters updates to only collectable claims (user-inputted, non-identifier, within consented scopes)
     - Null/empty values indicate claim not provided
     - Returns redirect to next step
 
 **Notes**:
 
-- Identifier claims are filtered out (already collected during registration)
+- Identifier claims are excluded (already collected during sign-in/sign-up)
+- Only claims within the user's consented scopes are returned
 - Pre-filled values from providers can be edited by the user
 
 ---
@@ -742,8 +760,9 @@ subsequent sign-ins.
    POST /api/v1/flow/claims
    Authorization: State {state}
    ```
-    - GET to check if claims are needed (may auto-redirect if not)
-    - Display form with required claims
+    - GET returns all collectable claims with full metadata (`required`, `name`, `type`, `group`), collected values,
+      and suggested values — build the entire form from this single response
+    - May auto-redirect if no claims need collection
     - Pre-fill with `value` or `suggested_value` from GET response
     - POST collected values
 
