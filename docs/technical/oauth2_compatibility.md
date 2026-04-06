@@ -58,7 +58,7 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 | Authorization Code One-Time Use | Enforced      | [draft-ietf-oauth-v2-1 - section 4.1.2](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-4.1.2) |
 | HTTP 307 Redirect Prohibition   | Enforced      | [draft-ietf-oauth-v2-1 - section 7.5.3](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-7.5.3) |
 | DPoP Nonce & Replay Detection   | Planned       | [RFC 9449 - section 8](https://datatracker.ietf.org/doc/html/rfc9449#section-8)                                    |
-| Exact Redirect URI Matching     | Planned       | [draft-ietf-oauth-v2-1 - section 7.5.3](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-7.5.3) |
+| Exact Redirect URI Matching     | Enforced      | [draft-ietf-oauth-v2-1 - section 7.5.3](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-7.5.3) |
 
 > The `plain` challenge method will not be
 > implemented. [RFC 7636 section 7.2](https://www.rfc-editor.org/rfc/rfc7636#section-7.2) identifies it as vulnerable to

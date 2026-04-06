@@ -248,12 +248,50 @@ authorization server.
 | ```secret```                | string          | Secret shared between the client and the authorization server. Required for confidential clients (`public: false`). Must be omitted for public clients.                                                                                                            | Conditional         |
 | ```allowed-scopes```        | array of string | List of scopes the client is allowed to request. Any scope outside this list will be filtered out by this authorization server and will not be granted. <br>If not set or empty, **all scopes** are **allowed**.                                                   | NO                  |
 | ```default-scopes```        | array of string | List of scopes that will be requested if the ```scope``` parameter is left when calling the authorize endpoint.                                                                                                                                                    | NO                  |
-| ```allowed-redirect-uris``` | array of URL    | A list of URLs where the client is allowed to ask the redirection of the end-user at the end of the OAuth2 authorize grant flow. See [this section](#clients.<id>.allowed-redirect-uris) for more details.                                                         | NO                  |
+| ```uris```                  | map of string   | Named URIs for this client, usable as `${client.uris.<key>}` templates in `allowed-redirect-uris`. Useful for defining base URLs once and referencing them in multiple redirect URIs.                                                                              | NO                  |
+| ```allowed-redirect-uris``` | array of string | A list of URIs where the client is allowed to ask the redirection of the end-user at the end of the OAuth2 authorize grant flow. See [this section](#clients-id-allowed-redirect-uris) for more details.                                                            | NO                  |
 
 ### ```clients.<id>.allowed-redirect-uris```
 
-If the list is empty, the client will be authorized to use any redirect uri. It is **RECOMMENDED** to configure a list
-for production environment to avoid known attacks.
+If the list is empty, the client will be authorized to use any redirect URI. It is **RECOMMENDED** to configure a list
+for production environments to avoid [open redirect attacks](/technical/security#redirect-uri-validation).
+
+#### Exact string matching
+
+As required by [OAuth 2.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-7.5.3), redirect URIs
+are compared using **exact string matching** — no prefix matching, pattern matching, or normalization is applied.
+
+For native applications using loopback redirects, the port component is ignored when the host is `127.0.0.1` or
+`[::1]` and the scheme is `http` or `https`, as recommended by
+[RFC 8252](https://datatracker.ietf.org/doc/html/rfc8252). This exception does **not** apply to `localhost` or to
+custom-scheme URIs.
+
+#### Template support
+
+Redirect URIs support `${...}` placeholders that are resolved at startup:
+
+| Template                   | Description                                                    |
+|----------------------------|----------------------------------------------------------------|
+| `${urls.root}`             | The root URL of the authorization server.                      |
+| `${client.uris.<key>}`    | A named URI defined in the client's `uris` map (see above).   |
+
+Example configuration:
+
+```yaml
+clients:
+  admin:
+    uris:
+      app: https://admin.example.com
+    allowed-redirect-uris:
+      - "${urls.root}/admin/callback"
+      - "${client.uris.app}/callback"
+
+  mobile:
+    uris:
+      app: myapp://
+    allowed-redirect-uris:
+      - "${client.uris.app}callback"
+```
 
 ## ```features```
 

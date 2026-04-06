@@ -220,9 +220,15 @@ permitted redirect URIs. Any request using a URI outside that list is rejected.
 > Always configure `allowed-redirect-uris` for production deployments. If the list is left empty, any redirect URI is
 > accepted, which opens the authorization server to open redirect attacks.
 
-OAuth 2.1 requires exact redirect URI matching — the redirect URI in the authorization request must be an exact
-string match against a registered URI, with no prefix or pattern matching. Exact matching is **planned** for a future
-release.
+As required by OAuth 2.1
+([section 7.5.3](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-7.5.3)), SympAuthy enforces
+exact string matching when comparing the redirect URI in the authorization request against registered URIs. No prefix
+matching, pattern matching, or normalization is applied.
+
+For native applications using loopback redirects, [RFC 8252](https://datatracker.ietf.org/doc/html/rfc8252)
+recommends ignoring the port component. SympAuthy follows this recommendation for redirect URIs whose host is
+`127.0.0.1` or `[::1]` over `http` or `https`. This exception does **not** apply to `localhost` or to custom-scheme
+URIs, which always require an exact match.
 
 ## Secure grant types
 
