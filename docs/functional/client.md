@@ -25,5 +25,6 @@ Each client must be registered in SympAuthy before it can authenticate users. Re
 - **client id**: A unique identifier for the client.
 - **public** *(optional)*: Set to `true` to declare the client as a public client. Defaults to `false`.
 - **client secret**: A secret shared only between SympAuthy and the client, used to verify the authenticity of authentication requests. Required for confidential clients; omitted for public clients.
+- **allowed redirect URIs**: The list of URIs the client is allowed to redirect end-users to after authentication. At least one URI must be configured.
 
 Refer to the [configuration](/technical/configuration#clients-id) section for the full list of options and an example.

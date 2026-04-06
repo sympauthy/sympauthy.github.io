@@ -214,11 +214,9 @@ See the [Flow API](flow_api#state-management) page for a description of how to p
 After authentication, SympAuthy redirects the user back to the client application. Without restriction, an attacker
 could manipulate this redirect to send users to a malicious URL.
 
-The `clients.<id>.allowed-redirect-uris` configuration key lets you restrict each client to an explicit list of
-permitted redirect URIs. Any request using a URI outside that list is rejected.
-
-> Always configure `allowed-redirect-uris` for production deployments. If the list is left empty, any redirect URI is
-> accepted, which opens the authorization server to open redirect attacks.
+Every client must declare at least one permitted redirect URI via the `clients.<id>.allowed-redirect-uris`
+configuration key. The server rejects any client configuration without it at startup. Any authorization request using
+a URI outside that list is rejected at runtime.
 
 As required by OAuth 2.1
 ([section 7.5.3](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-7.5.3)), SympAuthy enforces

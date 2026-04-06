@@ -249,12 +249,12 @@ authorization server.
 | ```allowed-scopes```        | array of string | List of scopes the client is allowed to request. Any scope outside this list will be filtered out by this authorization server and will not be granted. <br>If not set or empty, **all scopes** are **allowed**.                                                   | NO                  |
 | ```default-scopes```        | array of string | List of scopes that will be requested if the ```scope``` parameter is left when calling the authorize endpoint.                                                                                                                                                    | NO                  |
 | ```uris```                  | map of string   | Named URIs for this client, usable as `${client.uris.<key>}` templates in `allowed-redirect-uris`. Useful for defining base URLs once and referencing them in multiple redirect URIs.                                                                              | NO                  |
-| ```allowed-redirect-uris``` | array of string | A list of URIs where the client is allowed to ask the redirection of the end-user at the end of the OAuth2 authorize grant flow. See [this section](#clients-id-allowed-redirect-uris) for more details.                                                            | NO                  |
+| ```allowed-redirect-uris``` | array of string | A list of URIs where the client is allowed to ask the redirection of the end-user at the end of the OAuth2 authorize grant flow. See [this section](#clients-id-allowed-redirect-uris) for more details.                                                            | **YES**             |
 
 ### ```clients.<id>.allowed-redirect-uris```
 
-If the list is empty, the client will be authorized to use any redirect URI. It is **RECOMMENDED** to configure a list
-for production environments to avoid [open redirect attacks](/technical/security#redirect-uri-validation).
+Every client must declare at least one redirect URI. The server rejects any client configuration without
+`allowed-redirect-uris` at startup.
 
 #### Exact string matching
 
