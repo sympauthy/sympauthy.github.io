@@ -294,7 +294,8 @@ Returns all collectable claims with their metadata, any already-collected values
 providers. Only claims within the user's consented scopes are returned; identifier claims (used for sign-in/sign-up) are
 excluded.
 
-This single endpoint provides everything needed to build the claims collection form — there is no need to cross-reference
+This single endpoint provides everything needed to build the claims collection form — there is no need to
+cross-reference
 the configuration endpoint for claim metadata.
 
 **Response Format**:
@@ -564,13 +565,12 @@ should call this endpoint and follow the returned redirect.
 
 **Routing Logic**:
 
-| `mfa.required` | Methods enrolled | Behavior                                                 |
-|-----------------|-----------------|----------------------------------------------------------|
-| `false`         | None            | Auto-skip — redirects to the next flow step              |
-| `true`          | None            | Auto-redirect to TOTP enrollment                         |
-| `true`          | Exactly one     | Auto-redirect to challenge for that method               |
-| `false`         | One or more     | Show method selection with a skip option                  |
-| `true`          | Multiple        | Show method selection without skip                        |
+| `mfa.required` | Methods enrolled  | Behavior                                              |
+|----------------|-------------------|-------------------------------------------------------|
+| `false`        | None              | Method selection with enrollment offers + skip option |
+| `true`         | None              | Auto-redirect to TOTP enrollment                      |
+| any            | Exactly one       | Auto-redirect to challenge for that method            |
+| any            | Multiple (future) | Method selection without skip                         |
 
 **Response Format**:
 
@@ -586,7 +586,9 @@ When method selection is needed:
 
 ```json
 {
-  "methods": ["totp"],
+  "methods": [
+    "totp"
+  ],
   "skip_redirect_url": "/api/v1/flow/mfa/skip?state=..."
 }
 ```
@@ -594,8 +596,9 @@ When method selection is needed:
 **Properties**:
 
 - `redirect_url`: URL to redirect to (enrollment, challenge, or next step)
-- `methods`: Array of enrolled MFA method identifiers (only when user must choose)
-- `skip_redirect_url`: URL to skip MFA (only present when `mfa.required` is `false`)
+- `methods`: Array of available MFA method identifiers (only when user must choose or may enrol)
+- `skip_redirect_url`: URL to skip MFA (only present when `mfa.required` is `false` **and** the user has not enrolled in
+  any MFA method)
 
 #### TOTP Enrollment
 
@@ -697,7 +700,8 @@ subsequent sign-ins.
 **Authentication**: Requires `?state=` query parameter
 
 **Purpose**: Marks MFA as passed without completing a challenge. This endpoint is only available when `mfa.required` is
-`false`. Calling it when `mfa.required` is `true` returns an error.
+`false` **and** the user has not enrolled in any MFA method. Calling it when `mfa.required` is `true`, or when the user
+has already enrolled in at least one MFA method, returns an error.
 
 **Response Format**:
 

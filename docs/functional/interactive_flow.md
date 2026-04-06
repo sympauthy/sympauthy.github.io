@@ -69,13 +69,14 @@ there. Once they return, the flow resumes automatically from where it left off.
 After authentication, the server may require an additional verification step if multi-factor authentication (MFA) is
 enabled. The server decides what happens next based on the MFA configuration and the user's enrollment state:
 
-- If MFA is disabled, or if MFA is optional and the user has not enrolled any method, this step is **skipped
-  automatically**.
-- If the user has not yet enrolled an MFA method and enrolment is required, they are shown an **enrollment screen**. For
-  TOTP, this means scanning a QR code with an authenticator app and confirming the setup by entering a first valid code.
-- If the user has already enrolled a method, they are shown a **challenge screen** where they enter the code from their
-  authenticator app.
-- If multiple methods are enrolled, or if the user may skip MFA, a **method selection screen** is shown first.
+- If MFA is disabled, this step is **skipped automatically**.
+- If the user has already enrolled in exactly one MFA method, they are **redirected directly to the challenge screen**
+  where they enter the code from their authenticator app — regardless of whether MFA is required or optional.
+- If MFA is required and the user has not yet enrolled, they are shown an **enrollment screen**. For TOTP, this means
+  scanning a QR code with an authenticator app and confirming the setup by entering a first valid code.
+- If MFA is optional and the user has not enrolled, they are shown a **method selection screen** with enrollment offers
+  and the option to skip.
+- If multiple methods are enrolled (future), a **method selection screen** is shown without skip.
 
 As with every other step, the UI does not decide which screen to show — it follows the pointer returned by the server.
 
