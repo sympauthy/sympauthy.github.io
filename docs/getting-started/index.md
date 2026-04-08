@@ -89,12 +89,12 @@ docker run -d \
   -e POSTGRES_USER=sympauthy_pg_user \
   -e POSTGRES_PASSWORD=sympauthy_pg_password \
   -e POSTGRES_DB=getting_started_with_sympauthy \
-  postgres:17
+  postgres:18
 ```
 
 This command:
 
-- Starts a PostgreSQL 17 container in the background (`-d`)
+- Starts a PostgreSQL 18 container in the background (`-d`)
 - Attaches the container to the `sympauthy-network` network, making it reachable by other containers on that network
   using the hostname `sympauthy-postgres`
 - Creates a user `sympauthy_pg_user` with password `sympauthy_pg_password`
@@ -143,11 +143,15 @@ After the server has started, you should see the following lines in the log indi
 configured:
 
 ```
-XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - SympAuthy is ready and has found the following elements in its configuration:
-XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X claim(s).
-XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X scope(s).
-XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X client(s).
-XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X rule(s).
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - SympAuthy vX.Y.Z is ready and has found the following elements in its configuration:
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - Issuer: http://localhost:8080 / Audience: http://localhost:8080
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - Authentication by password: enabled.
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - Authentication by provider: disabled.
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - MFA disabled.
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X claim (X standard, X custom).
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X scopes (X consentables, X grantable, X admins, X clients).
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X client.
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X rule (X user, X client).
 ```
 
 The server should be available on port ```8080```. You can verify the server is up and running by accessing to the API
@@ -195,23 +199,8 @@ the [Configuration](/technical/configuration) section of this documentation.
 
 ## Test your SympAuthy instance
 
-To simulate an application requiring authentication of one of its end-users, you can use an online service
-like [OAuth Debugger](https://oauthdebugger.com/).
-
-1. Go to [https://oauthdebugger.com/](https://oauthdebugger.com/)
-2. Fill in the following fields:
-    - **Authorize URI**: `http://localhost:8080/api/oauth2/authorize`
-    - **Client ID**: `admin`
-    - **Scope**: Leave empty or use `openid profile email`
-    - **Response Type**: `code`
-    - **Response Mode**: `form_post`
-3. Click **Send Request**
-4. You will be redirected to the SympAuthy authentication page where you can create an account or sign in
-5. After successful authentication, you will be redirected back to OAuth Debugger with an authorization code
-
-This confirms that your SympAuthy instance is running correctly and can handle OAuth 2.1 authentication flows.
-
-## Test the Admin UI
+The simplest way to verify your instance is working is to use the Admin UI, which is pre-configured
+by the `admin` [Micronaut environment](/technical/configuration#micronaut-environments).
 
 1. Go to `http://localhost:8080/admin`
 2. Create an account using the email ```admin@example.com```
@@ -219,6 +208,8 @@ This confirms that your SympAuthy instance is running correctly and can handle O
 
 The [scope granting rule](/functional/user_authorization#scope-granting-rules) configured in the Docker
 command automatically grants all admin scopes to the user with this email address.
+
+This confirms that your SympAuthy instance is running correctly and can handle OAuth 2.1 authentication flows.
 
 To learn more about the Admin API and available admin features, see
 the [Admin API](/technical/admin_api) documentation.
