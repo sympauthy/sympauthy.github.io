@@ -126,9 +126,10 @@ javamail:
 
 | Key                         | Type         | Description                                                                                                                                                                                                | Required<br>Default |
 |-----------------------------|--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```<id>```                  | string       | Uniq identifier of the client.                                                                                                                                                                             | **YES**             |
-| ```secret```                | string       | A secret shared between the client and the authorization server.                                                                                                                                           | **YES**             |
-| ```allowed-redirect-uris``` | array of URL | A list of URLs where the client is allowed to ask the redirection of the end-user at the end of the OAuth2 authorize grant flow. See [this section](#clients.<id>.allowed-redirect-uris) for more details. | NO                  |
+| ```<id>```                  | string           | Uniq identifier of the client.                                                                                                                                                                             | **YES**             |
+| ```secret```                | string           | A secret shared between the client and the authorization server.                                                                                                                                           | **YES**             |
+| ```allowed-grant-types```   | array of string  | List of OAuth2 grant types this client is allowed to use. Supported values: `authorization_code`, `refresh_token`, `client_credentials`.                                                                   | **YES**             |
+| ```allowed-redirect-uris``` | array of string  | A list of URIs where the client is allowed to ask the redirection of the end-user at the end of the OAuth2 authorize grant flow. Required when `authorization_code` is in `allowed-grant-types`.            | Conditional         |
 
 ## ```advanced```
 
@@ -246,15 +247,35 @@ authorization server.
 | ```<authorizationFlow>```   | string          | The identifier of the authorization flow to use for this client. See [authorization flows](#authorization-flows) for more details.                                                                                                                                 | **YES**             |
 | ```public```                | boolean         | When `true`, the client is a [public client](/functional/client#confidential-and-public-clients) that does not require a secret. Public clients must use [PKCE](/technical/security#pkce-proof-key-for-code-exchange) and cannot use the client credentials grant. | NO<br>```false```   |
 | ```secret```                | string          | Secret shared between the client and the authorization server. Required for confidential clients (`public: false`). Must be omitted for public clients.                                                                                                            | Conditional         |
+| ```allowed-grant-types```   | array of string | List of OAuth2 grant types this client is allowed to use. Supported values: `authorization_code`, `refresh_token`, `client_credentials`. See [this section](#clients-id-allowed-grant-types) for more details.                                                     | **YES**             |
 | ```allowed-scopes```        | array of string | List of scopes the client is allowed to request. Any scope outside this list will be filtered out by this authorization server and will not be granted. <br>If not set or empty, **all scopes** are **allowed**.                                                   | NO                  |
 | ```default-scopes```        | array of string | List of scopes that will be requested if the ```scope``` parameter is left when calling the authorize endpoint.                                                                                                                                                    | NO                  |
 | ```uris```                  | map of string   | Named URIs for this client, usable as `${client.uris.<key>}` templates in `allowed-redirect-uris`. Useful for defining base URLs once and referencing them in multiple redirect URIs.                                                                              | NO                  |
-| ```allowed-redirect-uris``` | array of string | A list of URIs where the client is allowed to ask the redirection of the end-user at the end of the OAuth2 authorize grant flow. See [this section](#clients-id-allowed-redirect-uris) for more details.                                                            | **YES**             |
+| ```allowed-redirect-uris``` | array of string | A list of URIs where the client is allowed to ask the redirection of the end-user at the end of the OAuth2 authorize grant flow. See [this section](#clients-id-allowed-redirect-uris) for more details.                                                            | Conditional         |
+
+### ```clients.<id>.allowed-grant-types```
+
+Every client must declare at least one grant type. The server rejects any client configuration without
+`allowed-grant-types` at startup.
+
+Supported values:
+
+| Value                  | Description                                                                                                                                                |
+|------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `authorization_code`   | Enables the [authorization code flow](/technical/oauth2_compatibility). The client can redirect end-users to the authorize endpoint.                        |
+| `refresh_token`        | Allows the client to exchange a refresh token for new tokens. Requires `authorization_code` to also be present.                                            |
+| `client_credentials`   | Allows the client to authenticate directly using its own credentials, without an end-user. Only available to confidential clients (`public: false`).       |
+
+**Constraints:**
+- `refresh_token` cannot be used without `authorization_code`. The server rejects this combination at startup.
+- When `authorization_code` is **not** in the allowed grant types, the authorize endpoint rejects the client and `allowed-redirect-uris` must not be configured.
+- When `refresh_token` is **not** in the allowed grant types, no refresh token is issued in the authorization code flow response.
 
 ### ```clients.<id>.allowed-redirect-uris```
 
-Every client must declare at least one redirect URI. The server rejects any client configuration without
-`allowed-redirect-uris` at startup.
+Clients that support the `authorization_code` grant type must declare at least one redirect URI. The server rejects
+the configuration at startup if `allowed-redirect-uris` is missing when `authorization_code` is allowed, or if
+`allowed-redirect-uris` is present when `authorization_code` is not allowed.
 
 #### Exact string matching
 
