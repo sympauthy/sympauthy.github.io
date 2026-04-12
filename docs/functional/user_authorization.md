@@ -16,7 +16,7 @@ for the user's explicit approval.
 ## Grantable scopes
 
 [Grantable scopes](/functional/scope#grantable-scope) are granted by the authorization server through
-scope granting rules or by delegating to a third-party through API.
+scope granting rules or by delegating to a third-party through webhook.
 
 ### Scope granting rules
 
@@ -55,10 +55,28 @@ The ```order``` helps you to control how the rules are applied when they have co
 
 > There are no scope granting rules defined in the out-of-the-box configuration.
 
-### Delegating to a third-party through API
+### Delegating to a third-party through webhook
 
-Scopes granted directly by the API overwrite any scope granting rules.
+When the built-in scope granting rules are not sufficient, you can delegate grantable scope decisions to an external
+HTTP server — typically the client application's own backend. When an authorization webhook is configured for a client,
+SympAuthy calls the external server during the authorization attempt. The external server responds with per-scope
+grant/deny decisions, which SympAuthy uses to issue the token.
 
-## Debugging
+When an authorization webhook is configured for a client:
 
-FIXME Provide an API to debug scope.
+1. The user completes authentication and consent normally.
+2. SympAuthy determines the set of grantable scopes to evaluate: the intersection of the grantable scopes requested in
+   the authorization request and the client's configured `allowed-scopes` list.
+3. SympAuthy makes a synchronous HTTP POST to the configured webhook URL, forwarding that filtered scope list along with
+   context about the user.
+4. The external server evaluates its own business logic and responds with a grant or deny decision for each scope.
+5. SympAuthy issues the token using those decisions.
+
+The webhook **replaces** the scope granting rules for that client. If a webhook is configured, rules are not evaluated.
+
+Only grantable scopes are sent to the webhook. [Consentable scopes](/functional/scope#consentable-scope) are handled
+entirely by the consent flow and are never affected by the webhook.
+
+See the [Authorization Webhook](/technical/authorization_webhook) documentation for the full protocol specification
+(request/response format, signature verification, failure behaviour) and
+[Configuration](/technical/configuration#clients-id-authorization-webhook) for how to configure it.

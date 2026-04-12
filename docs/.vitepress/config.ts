@@ -59,6 +59,7 @@ export default defineConfig({
             { text: 'Flow API', link: '/technical/flow_api' },
             { text: 'Client API', link: '/technical/client_api' },
             { text: 'Admin API', link: '/technical/admin_api' },
+            { text: 'Authorization Webhook', link: '/technical/authorization_webhook' },
             { text: 'Well-known Providers', link: '/technical/well-known_providers' },
             { text: 'Security', link: '/technical/security' },
           ]

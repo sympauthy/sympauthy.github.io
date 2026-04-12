@@ -10,8 +10,8 @@ SympAuthy has three scope types, each with a distinct purpose, granting path, an
 | Type                                    | Protects          | Granted by                            | Grant type           |
 |-----------------------------------------|-------------------|---------------------------------------|----------------------|
 | [Consentable](#consentable-scope)       | User claims       | End-user consent                      | `authorization_code` |
-| [Grantable](#grantable-scope)           | Resources         | Scope granting rules / third-party API | `authorization_code` |
-| [Client](#client-scope)                 | Client operations | Scope granting rules / third-party API | `client_credentials` |
+| [Grantable](#grantable-scope)           | Resources         | Scope granting rules / third-party webhook | `authorization_code` |
+| [Client](#client-scope)                 | Client operations | Scope granting rules / third-party webhook | `client_credentials` |
 
 These three types are **mutually exclusive** — a scope is always exactly one type. This separation exists by design:
 
@@ -49,7 +49,7 @@ a user. Unlike consentable scopes, grantable scopes are not tied to user claims 
 
 Grantable scopes are granted during `authorization_code` flows through
 [scope granting rules](/functional/user_authorization#scope-granting-rules) or by
-[delegating to a third-party through API](/functional/user_authorization#delegating-to-a-third-party-through-api).
+[delegating to a third-party through webhook](/functional/user_authorization#delegating-to-a-third-party-through-webhook).
 
 Examples of grantable scopes:
 
@@ -82,7 +82,7 @@ of any user. Client scopes are used in `client_credentials` flows, where there i
 
 Client scopes are granted through
 [scope granting rules](/functional/client_authorization#scope-granting-rules) or by
-[delegating to a third-party through API](/functional/client_authorization#delegating-to-a-third-party-through-api).
+[delegating to a third-party through webhook](/functional/client_authorization#delegating-to-a-third-party-through-webhook).
 Their granting rules evaluate client attributes rather than user claims.
 
 Client scopes are defined by SympAuthy and protect operations of the

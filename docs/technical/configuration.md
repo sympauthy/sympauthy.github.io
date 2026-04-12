@@ -124,12 +124,12 @@ javamail:
 
 ### ```javamail.authentication```
 
-| Key                         | Type         | Description                                                                                                                                                                                                | Required<br>Default |
-|-----------------------------|--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```<id>```                  | string           | Uniq identifier of the client.                                                                                                                                                                             | **YES**             |
-| ```secret```                | string           | A secret shared between the client and the authorization server.                                                                                                                                           | **YES**             |
-| ```allowed-grant-types```   | array of string  | List of OAuth2 grant types this client is allowed to use. Supported values: `authorization_code`, `refresh_token`, `client_credentials`.                                                                   | **YES**             |
-| ```allowed-redirect-uris``` | array of string  | A list of URIs where the client is allowed to ask the redirection of the end-user at the end of the OAuth2 authorize grant flow. Required when `authorization_code` is in `allowed-grant-types`.            | Conditional         |
+| Key                         | Type            | Description                                                                                                                                                                                      | Required<br>Default |
+|-----------------------------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
+| ```<id>```                  | string          | Uniq identifier of the client.                                                                                                                                                                   | **YES**             |
+| ```secret```                | string          | A secret shared between the client and the authorization server.                                                                                                                                 | **YES**             |
+| ```allowed-grant-types```   | array of string | List of OAuth2 grant types this client is allowed to use. Supported values: `authorization_code`, `refresh_token`, `client_credentials`.                                                         | **YES**             |
+| ```allowed-redirect-uris``` | array of string | A list of URIs where the client is allowed to ask the redirection of the end-user at the end of the OAuth2 authorize grant flow. Required when `authorization_code` is in `allowed-grant-types`. | Conditional         |
 
 ## ```advanced```
 
@@ -241,17 +241,18 @@ The identifier must not contain a dot character.
 This section holds the configuration of all clients that will be authorized to authenticate their users with this
 authorization server.
 
-| Key                         | Type            | Description                                                                                                                                                                                                                                                        | Required<br>Default |
-|-----------------------------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```<id>```                  | string          | Uniq identifier of the client.                                                                                                                                                                                                                                     | **YES**             |
-| ```<authorizationFlow>```   | string          | The identifier of the authorization flow to use for this client. See [authorization flows](#authorization-flows) for more details.                                                                                                                                 | **YES**             |
-| ```public```                | boolean         | When `true`, the client is a [public client](/functional/client#confidential-and-public-clients) that does not require a secret. Public clients must use [PKCE](/technical/security#pkce-proof-key-for-code-exchange) and cannot use the client credentials grant. | NO<br>```false```   |
-| ```secret```                | string          | Secret shared between the client and the authorization server. Required for confidential clients (`public: false`). Must be omitted for public clients.                                                                                                            | Conditional         |
-| ```allowed-grant-types```   | array of string | List of OAuth2 grant types this client is allowed to use. Supported values: `authorization_code`, `refresh_token`, `client_credentials`. See [this section](#clients-id-allowed-grant-types) for more details.                                                     | **YES**             |
-| ```allowed-scopes```        | array of string | List of scopes the client is allowed to request. Any scope outside this list will be filtered out by this authorization server and will not be granted. <br>If not set or empty, **all scopes** are **allowed**.                                                   | NO                  |
-| ```default-scopes```        | array of string | List of scopes that will be requested if the ```scope``` parameter is left when calling the authorize endpoint.                                                                                                                                                    | NO                  |
-| ```uris```                  | map of string   | Named URIs for this client, usable as `${client.uris.<key>}` templates in `allowed-redirect-uris`. Useful for defining base URLs once and referencing them in multiple redirect URIs.                                                                              | NO                  |
-| ```allowed-redirect-uris``` | array of string | A list of URIs where the client is allowed to ask the redirection of the end-user at the end of the OAuth2 authorize grant flow. See [this section](#clients-id-allowed-redirect-uris) for more details.                                                            | Conditional         |
+| Key                                    | Type            | Description                                                                                                                                                                                                                                                         | Required<br>Default  |
+|----------------------------------------|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------|
+| ```<id>```                             | string          | Uniq identifier of the client.                                                                                                                                                                                                                                      | **YES**              |
+| ```<authorizationFlow>```              | string          | The identifier of the authorization flow to use for this client. See [authorization flows](#authorization-flows) for more details.                                                                                                                                  | **YES**              |
+| ```public```                           | boolean         | When `true`, the client is a [public client](/functional/client#confidential-and-public-clients) that does not require a secret. Public clients must use [PKCE](/technical/security#pkce-proof-key-for-code-exchange) and cannot use the client credentials grant.  | NO<br>```false```    |
+| ```secret```                           | string          | Secret shared between the client and the authorization server. Required for confidential clients (`public: false`). Must be omitted for public clients.                                                                                                             | Conditional          |
+| ```allowed-grant-types```              | array of string | List of OAuth2 grant types this client is allowed to use. Supported values: `authorization_code`, `refresh_token`, `client_credentials`. See [this section](#clients-id-allowed-grant-types) for more details.                                                      | **YES**              |
+| ```allowed-scopes```                   | array of string | List of scopes the client is allowed to request. Any scope outside this list will be filtered out by this authorization server and will not be granted. <br>If not set or empty, **all scopes** are **allowed**.                                                    | NO                   |
+| ```default-scopes```                   | array of string | List of scopes that will be requested if the ```scope``` parameter is left when calling the authorize endpoint.                                                                                                                                                     | NO                   |
+| ```uris```                             | map of string   | Named URIs for this client, usable as `${client.uris.<key>}` templates in `allowed-redirect-uris`. Useful for defining base URLs once and referencing them in multiple redirect URIs.                                                                               | NO                   |
+| ```allowed-redirect-uris```            | array of string | A list of URIs where the client is allowed to ask the redirection of the end-user at the end of the OAuth2 authorize grant flow. See [this section](#clients-id-allowed-redirect-uris) for more details.                                                            | Conditional          |
+| ```authorization-webhook```            | object          | Delegates grantable scope decisions to an external HTTP server. See [this section](#clients-id-authorization-webhook) for details.                                                                                                                                   | NO                   |
 
 ### ```clients.<id>.allowed-grant-types```
 
@@ -260,16 +261,19 @@ Every client must declare at least one grant type. The server rejects any client
 
 Supported values:
 
-| Value                  | Description                                                                                                                                                |
-|------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `authorization_code`   | Enables the [authorization code flow](/technical/oauth2_compatibility). The client can redirect end-users to the authorize endpoint.                        |
-| `refresh_token`        | Allows the client to exchange a refresh token for new tokens. Requires `authorization_code` to also be present.                                            |
-| `client_credentials`   | Allows the client to authenticate directly using its own credentials, without an end-user. Only available to confidential clients (`public: false`).       |
+| Value                | Description                                                                                                                                          |
+|----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `authorization_code` | Enables the [authorization code flow](/technical/oauth2_compatibility). The client can redirect end-users to the authorize endpoint.                 |
+| `refresh_token`      | Allows the client to exchange a refresh token for new tokens. Requires `authorization_code` to also be present.                                      |
+| `client_credentials` | Allows the client to authenticate directly using its own credentials, without an end-user. Only available to confidential clients (`public: false`). |
 
 **Constraints:**
+
 - `refresh_token` cannot be used without `authorization_code`. The server rejects this combination at startup.
-- When `authorization_code` is **not** in the allowed grant types, the authorize endpoint rejects the client and `allowed-redirect-uris` must not be configured.
-- When `refresh_token` is **not** in the allowed grant types, no refresh token is issued in the authorization code flow response.
+- When `authorization_code` is **not** in the allowed grant types, the authorize endpoint rejects the client and
+  `allowed-redirect-uris` must not be configured.
+- When `refresh_token` is **not** in the allowed grant types, no refresh token is issued in the authorization code flow
+  response.
 
 ### ```clients.<id>.allowed-redirect-uris```
 
@@ -291,10 +295,10 @@ custom-scheme URIs.
 
 Redirect URIs support `${...}` placeholders that are resolved at startup:
 
-| Template                   | Description                                                    |
-|----------------------------|----------------------------------------------------------------|
-| `${urls.root}`             | The root URL of the authorization server.                      |
-| `${client.uris.<key>}`    | A named URI defined in the client's `uris` map (see above).   |
+| Template               | Description                                                 |
+|------------------------|-------------------------------------------------------------|
+| `${urls.root}`         | The root URL of the authorization server.                   |
+| `${client.uris.<key>}` | A named URI defined in the client's `uris` map (see above). |
 
 Example configuration:
 
@@ -312,6 +316,31 @@ clients:
       app: myapp://
     allowed-redirect-uris:
       - "${client.uris.app}callback"
+```
+
+### ```clients.<id>.authorization-webhook```
+
+When configured, SympAuthy delegates grantable scope decisions for this client to an external HTTP server instead of
+evaluating scope granting rules.
+See [User Authorization](/functional/user_authorization#delegating-to-a-third-party-through-webhook)
+for how the webhook fits into the authorization flow and [Authorization Webhook](/technical/authorization_webhook) for
+the full protocol specification (request format, response format, signature verification).
+
+| Key          | Type   | Description                                                                                                                                                                                                             | Required<br>Default  |
+|--------------|--------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------|
+| `url`        | string | The URL SympAuthy will POST to during authorization.                                                                                                                                                                    | **YES**              |
+| `secret`     | string | Shared secret used to sign the request body with HMAC-SHA256. The signature is sent in the `X-SympAuthy-Signature` header. Use a random string of at least 32 characters.                                               | **YES**              |
+| `on-failure` | string | Behaviour when the external server is unreachable or returns an error. `deny_all` (default): all grantable scopes are denied. `fallback_to_rules`: scope granting rules are evaluated as if no webhook were configured. | NO<br>```deny_all``` |
+
+Example:
+
+```yaml
+clients:
+  my-app:
+    authorization-webhook:
+      url: https://my-app.example.com/sympauthy/authorize
+      secret: "a3f1b9c7e2d84f6a9b0c1d2e3f4a5b6c"
+      on-failure: deny_all
 ```
 
 ## ```features```
@@ -383,13 +412,13 @@ authenticate itself.
 
 ### ```providers.<id>.oidc```  {#oidc-keys}
 
-| Key                  | Type     | Description                                                                                                                                           | Required<br>Default              |
-|----------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------|
-| ```issuer```         | url      | The OpenID Connect issuer URL. SympAuthy will fetch the discovery document at `{issuer}/.well-known/openid-configuration` to resolve all endpoints.   | **YES**                          |
-| ```client-id```      | string   | An identifier provided by the provider to identify authentication initiated by this authorization server.                                             | **YES**                          |
-| ```client-secret```  | string   | A secret provided by the provider. It must only be shared between the provider and this authorization server.                                         | **YES**                          |
-| ```scopes```         | string[] | Scopes requested to the provider. The `openid` scope is always included automatically.                                                               | NO<br>```[openid]```             |
-| ```userinfo-enabled```| boolean | Whether to also call the provider's UserInfo endpoint to fetch additional claims. When `false`, claims are extracted from the ID token only.          | NO<br>```false```                |
+| Key                    | Type     | Description                                                                                                                                         | Required<br>Default  |
+|------------------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------|----------------------|
+| ```issuer```           | url      | The OpenID Connect issuer URL. SympAuthy will fetch the discovery document at `{issuer}/.well-known/openid-configuration` to resolve all endpoints. | **YES**              |
+| ```client-id```        | string   | An identifier provided by the provider to identify authentication initiated by this authorization server.                                           | **YES**              |
+| ```client-secret```    | string   | A secret provided by the provider. It must only be shared between the provider and this authorization server.                                       | **YES**              |
+| ```scopes```           | string[] | Scopes requested to the provider. The `openid` scope is always included automatically.                                                              | NO<br>```[openid]``` |
+| ```userinfo-enabled``` | boolean  | Whether to also call the provider's UserInfo endpoint to fetch additional claims. When `false`, claims are extracted from the ID token only.        | NO<br>```false```    |
 
 > The discovery document is fetched at startup. If the issuer URL is invalid or unreachable, SympAuthy will fail fast
 > with a clear error message.
