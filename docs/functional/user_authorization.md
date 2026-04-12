@@ -74,6 +74,9 @@ When an authorization webhook is configured for a client:
 
 The webhook **replaces** the scope granting rules for that client. If a webhook is configured, rules are not evaluated.
 
+The webhook is not limited to the scopes requested by the client. It may grant additional grantable scopes, as long as
+they are within the client's `allowed-scopes` configuration.
+
 Only grantable scopes are sent to the webhook. [Consentable scopes](/functional/scope#consentable-scope) are handled
 entirely by the consent flow and are never affected by the webhook.
 

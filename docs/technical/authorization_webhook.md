@@ -6,6 +6,12 @@ client application's own backend. When an authorization webhook is configured fo
 server during the authorization attempt. The external server responds with per-scope grant/deny decisions, which
 SympAuthy uses to issue the token.
 
+The webhook receives the grantable scopes requested by the client, but is not limited to them. It may grant additional
+grantable scopes that the client did not request, as long as they are within the client's `allowed-scopes`
+configuration. Any scope outside `allowed-scopes` is ignored. This is consistent with
+[RFC 6749 Section 3.3](https://datatracker.ietf.org/doc/html/rfc6749#section-3.3), which allows the authorization
+server to issue a scope different from the one requested by the client.
+
 See [User Authorization](/functional/user_authorization#delegating-to-a-third-party-through-webhook) for how the
 webhook fits into the authorization flow and [Configuration](/technical/configuration#clients-id-authorization-webhook)
 for how to configure it.
