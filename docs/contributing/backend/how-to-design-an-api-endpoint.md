@@ -2,8 +2,8 @@
 
 This guide defines the API design conventions used across all SympAuthy APIs (Admin, Client, Flow). Contributors
 adding new endpoints should follow these standards to maintain consistency. The
-[Admin API](../../technical/admin_api), [Client API](../../technical/client_api), and
-[Flow API](../../technical/flow_api) are examples of these conventions in action.
+[Admin API](../../technical/api/admin), [Client API](../../technical/api/client), and
+[Flow API](../../technical/api/flow) are examples of these conventions in action.
 
 ::: tip
 The Flow API is a specialized workflow API that uses step-based URLs and state-driven navigation rather than
@@ -255,13 +255,13 @@ The Flow API uses a dedicated state-based authentication mechanism:
 | `POST /api/v1/flow/**` | `Authorization: State <jwt>` header |
 
 See [Security](../../technical/security) for the full description of authentication mechanisms and the
-[Flow API](../../technical/flow_api#state-management) for details on state management.
+[Flow API](../../technical/api/flow#state-management) for details on state management.
 
 ## Endpoint documentation template
 
 When adding a new endpoint, document it in the relevant API doc file
-([Admin API](../../technical/admin_api), [Client API](../../technical/client_api), or
-[Flow API](../../technical/flow_api)) using this template:
+([Admin API](../../technical/api/admin), [Client API](../../technical/api/client), or
+[Flow API](../../technical/api/flow)) using this template:
 
 ```markdown
 #### <Endpoint Name>

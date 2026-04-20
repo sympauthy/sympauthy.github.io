@@ -47,14 +47,14 @@ A consent records:
 - The **date** when consent was given.
 - The **revocation date** — when the consent was revoked, if applicable.
 - The **revocation origin** — who revoked the consent: `USER` (when the user re-authorized with new scopes) or `ADMIN`
-  (when an administrator revoked it through the [Admin API](/technical/admin_api)).
+  (when an administrator revoked it through the [Admin API](/technical/api/admin)).
 - The **revoking user** — the identifier of the user who caused the revocation.
 
 ## Revoking consent
 
 A consent can be revoked in two ways:
 
-- **By an administrator** through the [Admin API](/technical/admin_api). The consent is marked with
+- **By an administrator** through the [Admin API](/technical/api/admin). The consent is marked with
   `revoked_by = ADMIN` and the administrator's identifier.
 - **By the user re-authorizing** with the same client. The previous consent is automatically revoked (marked with
   `revoked_by = USER` and the user's identifier) and replaced by a new consent reflecting the newly granted scopes.

@@ -36,7 +36,7 @@ When the OpenID Connect claims do not cover a piece of information specific to y
 subscription plan or an internal user role — you can define your own **custom claims**.
 
 Unlike OpenID Connect claims, custom claims are not collected from the end-user. They are written by client applications
-through the [Client API](/technical/client_api) and represent application-managed metadata about a user — for example, a
+through the [Client API](/technical/api/client) and represent application-managed metadata about a user — for example, a
 department, a subscription tier, or an internal role.
 
 Because custom claims are not personal data provided by the user, they are not protected by

@@ -71,9 +71,16 @@ export default defineConfig({
               ]
             },
             { text: 'OAuth 2.1 & OpenID Compatibility Matrix', link: '/technical/oauth2_compatibility' },
-            { text: 'Flow API', link: '/technical/flow_api' },
-            { text: 'Client API', link: '/technical/client_api' },
-            { text: 'Admin API', link: '/technical/admin_api' },
+            {
+              text: 'API',
+              collapsed: false,
+              items: [
+                { text: 'Overview', link: '/technical/api/' },
+                { text: 'Flow API', link: '/technical/api/flow' },
+                { text: 'Client API', link: '/technical/api/client' },
+                { text: 'Admin API', link: '/technical/api/admin' },
+              ]
+            },
             { text: 'Authorization Webhook', link: '/technical/authorization_webhook' },
             { text: 'Well-known Providers', link: '/technical/well-known_providers' },
             { text: 'Security', link: '/technical/security' },

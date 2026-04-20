@@ -207,7 +207,7 @@ cross-origin request without triggering a CORS preflight. Combined with the
 strict [CORS policy](#cors-restriction-on-the-flow-api) that only allows origins derived from registered flow URIs, a
 forged cross-origin POST cannot carry a valid state header and is rejected before it reaches the application.
 
-See the [Flow API](flow_api#state-management) page for a description of how to pass the state in practice.
+See the [Flow API](api/flow#state-management) page for a description of how to pass the state in practice.
 
 ## Redirect URI validation
 

@@ -63,7 +63,7 @@ See [User Authorization](/functional/user_authorization) for details on scope gr
 ### Admin scopes
 
 Admin scopes are grantable scopes defined by SympAuthy that protect operations of the
-[Admin API](/technical/admin_api). They follow the naming convention `admin:{domain}:{action}`,
+[Admin API](/technical/api/admin). They follow the naming convention `admin:{domain}:{action}`,
 providing fine-grained control so operators can grant only the minimum necessary privileges.
 
 | Scope                  | Description                                        |
@@ -86,7 +86,7 @@ Client scopes are granted through
 Their granting rules evaluate client attributes rather than user claims.
 
 Client scopes are defined by SympAuthy and protect operations of the
-[Client API](/technical/client_api). They follow the naming convention `{resource}:{action}`.
+[Client API](/technical/api/client). They follow the naming convention `{resource}:{action}`.
 
 | Scope                | Description                                          |
 |----------------------|------------------------------------------------------|

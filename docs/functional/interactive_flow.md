@@ -1,7 +1,7 @@
 # How an Interactive Flow Works
 
 An interactive flow is the sequence of steps a user goes through when signing in or creating an account via a custom
-authentication UI built on the [Flow API](/technical/flow_api). This page explains the concepts behind that sequence and how the
+authentication UI built on the [Flow API](/technical/api/flow). This page explains the concepts behind that sequence and how the
 different parts fit together.
 
 ## What is an interactive flow?
@@ -16,7 +16,7 @@ If the built-in interface does not fit the needs of your application — for exa
 sign-in page — you can replace it with your own custom UI. This is done by configuring the `urls.flow` key in the
 [configuration](/technical/configuration/authorization#urls-flow) to point to your own page instead of the built-in one.
 
-A custom UI communicates with the [Flow API](/technical/flow_api) to guide the user through
+A custom UI communicates with the [Flow API](/technical/api/flow) to guide the user through
 authentication step by step. The Flow API drives the experience: after each action the user takes, the server tells the
 UI which screen to show next. The UI never decides on its own what comes after — it always follows the server's
 instructions.

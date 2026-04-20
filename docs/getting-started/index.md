@@ -186,7 +186,7 @@ the [database configuration](/technical/configuration/database).
 
 - ```MICRONAUT_ENVIRONMENTS=default,admin```: The ```admin``` [Micronaut environment](/technical/configuration/environments)
   enables the Admin UI and pre-configures an ```admin``` client with all admin scopes. See the
-  [Admin API](/technical/admin_api) documentation for details.
+  [Admin API](/technical/api/admin) documentation for details.
 
 ##### Grant admin permissions
 
@@ -212,7 +212,7 @@ command automatically grants all admin scopes to the user with this email addres
 This confirms that your SympAuthy instance is running correctly and can handle OAuth 2.1 authentication flows.
 
 To learn more about the Admin API and available admin features, see
-the [Admin API](/technical/admin_api) documentation.
+the [Admin API](/technical/api/admin) documentation.
 
 ## Cleanup
 
