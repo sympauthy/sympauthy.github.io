@@ -23,7 +23,7 @@ scope granting rules or by delegating to a third-party through webhook.
 Scope granting rules are conditions evaluated during an authorization attempt to automatically grant or deny grantable
 scopes. Their expressions evaluate **user claims** to determine whether a scope should be granted.
 
-They are declared in the [Configuration](/technical/configuration) under ```rules.user``` of the
+They are declared in the [Configuration](/technical/configuration/authorization#rules) under ```rules.user``` of the
 authorization server and look like the following:
 
 ```
@@ -82,4 +82,4 @@ entirely by the consent flow and are never affected by the webhook.
 
 See the [Authorization Webhook](/technical/authorization_webhook) documentation for the full protocol specification
 (request/response format, signature verification, failure behaviour) and
-[Configuration](/technical/configuration#clients-id-authorization-webhook) for how to configure it.
+[Configuration](/technical/configuration/client#clients-id-authorization-webhook) for how to configure it.

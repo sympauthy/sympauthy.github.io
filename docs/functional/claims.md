@@ -47,4 +47,4 @@ interpret them.
 ## Configuration
 
 Both OpenID Connect and custom claims must be enabled in the configuration before SympAuthy uses them. Refer to
-the [configuration](/technical/configuration#claims-id) section for the full list of options.
+the [configuration](/technical/configuration/claim) section for the full list of options.

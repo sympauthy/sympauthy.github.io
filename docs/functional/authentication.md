@@ -54,10 +54,10 @@ Micronaut environment:
 
 Any other OAuth 2-compatible service can also be configured manually. OpenID Connect (OIDC) providers — such as
 Google, Microsoft, Auth0, or Keycloak — can be configured with just an issuer URL and client credentials thanks to
-[OIDC Discovery](/technical/configuration#oidc-keys). Other OAuth2 providers require explicit endpoint URLs and claim
-mappings via the [OAuth2 configuration](/technical/configuration#oauth2-keys).
+[OIDC Discovery](/technical/configuration/provider#oidc-keys). Other OAuth2 providers require explicit endpoint URLs and claim
+mappings via the [OAuth2 configuration](/technical/configuration/provider#oauth2-keys).
 
-For the full list of options, refer to the [provider configuration](/technical/configuration#providers-id) section.
+For the full list of options, refer to the [provider configuration](/technical/configuration/provider) section.
 For providers with built-in presets, see the [well-known providers](/technical/well-known_providers) page.
 
 ##### Account merging
@@ -71,7 +71,7 @@ configured identifier claims — any accounts that share the same value for an i
 person.
 
 This behavior is controlled by the `auth.user-merging-enabled` configuration key. Refer to the
-[configuration](/technical/configuration#auth) section for details.
+[configuration](/technical/configuration/authorization#auth) section for details.
 
 ### Multi-factor authentication (MFA)
 
@@ -97,7 +97,7 @@ are presented with a **challenge** screen where they simply enter the current co
 
 For a step-by-step description of how MFA fits into the authentication flow, see
 [How an Interactive Flow Works](interactive_flow). Refer to the
-[configuration](/technical/configuration#mfa) section for the full list of MFA options.
+[configuration](/technical/configuration/authorization#mfa) section for the full list of MFA options.
 
 ## Service account authentication
 

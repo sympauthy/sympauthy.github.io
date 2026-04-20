@@ -8,7 +8,7 @@ the authentication process and follows consistent patterns for state management,
 #### CORS
 
 The Flow API enforces a strict CORS policy. Cross-origin requests are only allowed from origins (`scheme://host:port`)
-that match a URI registered in a configured [flow](configuration#flows-id). Any other origin receives no CORS headers
+that match a URI registered in a configured [flow](configuration/authorization#flows-id). Any other origin receives no CORS headers
 and the browser blocks the request.
 
 This means that if you serve your custom flow from a different server than SympAuthy, you must declare its URL in the
@@ -550,7 +550,7 @@ When resend was blocked (anti-spam):
 **Base Path**: `/api/v1/flow/mfa`
 
 **Purpose**: Handles multi-factor authentication during the interactive flow. These endpoints are only active when at
-least one MFA method is enabled in the [configuration](/technical/configuration#mfa).
+least one MFA method is enabled in the [configuration](/technical/configuration/authorization#mfa).
 
 #### MFA Router
 

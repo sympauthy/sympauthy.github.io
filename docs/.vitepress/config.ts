@@ -54,7 +54,22 @@ export default defineConfig({
           text: 'Technical Documentation',
           items: [
             { text: 'Overview', link: '/technical/' },
-            { text: 'Configuration', link: '/technical/configuration' },
+            {
+              text: 'Configuration',
+              collapsed: false,
+              items: [
+                { text: 'Overview', link: '/technical/configuration/' },
+                { text: 'Environments', link: '/technical/configuration/environments' },
+                { text: 'Database', link: '/technical/configuration/database' },
+                { text: 'Mail', link: '/technical/configuration/mail' },
+                { text: 'Client', link: '/technical/configuration/client' },
+                { text: 'Authorization', link: '/technical/configuration/authorization' },
+                { text: 'Provider', link: '/technical/configuration/provider' },
+                { text: 'Claim', link: '/technical/configuration/claim' },
+                { text: 'Scope', link: '/technical/configuration/scope' },
+                { text: 'Advanced', link: '/technical/configuration/advanced' },
+              ]
+            },
             { text: 'OAuth 2.1 & OpenID Compatibility Matrix', link: '/technical/oauth2_compatibility' },
             { text: 'Flow API', link: '/technical/flow_api' },
             { text: 'Client API', link: '/technical/client_api' },

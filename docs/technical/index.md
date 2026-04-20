@@ -13,7 +13,7 @@ configuration defaults.
 Sympauthy is configured through a configuration file that defines how the authorization server behaves. The
 configuration controls authentication methods, OAuth providers, claim collection, validation requirements, and various
 security settings. It allows you to customize the authentication experience without modifying code. See
-the [Configuration](configuration) documentation for detailed information on all available configuration options
+the [Configuration](configuration/) documentation for detailed information on all available configuration options
 and [Well-known providers](well-known_providers) for pre-configured OAuth provider templates.
 
 ## APIs

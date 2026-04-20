@@ -13,7 +13,7 @@ configuration. Any scope outside `allowed-scopes` is ignored. This is consistent
 server to issue a scope different from the one requested by the client.
 
 See [User Authorization](/functional/user_authorization#delegating-to-a-third-party-through-webhook) for how the
-webhook fits into the authorization flow and [Configuration](/technical/configuration#clients-id-authorization-webhook)
+webhook fits into the authorization flow and [Configuration](/technical/configuration/client#clients-id-authorization-webhook)
 for how to configure it.
 
 ## Request

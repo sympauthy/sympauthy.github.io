@@ -22,6 +22,7 @@ This is a pure documentation site — no application code, no tests. All content
 - `docs/` — All documentation pages as `.md` files, organized into:
   - `functional/` — What SympAuthy does (authentication, tokens, scopes, claims, consent, etc.)
   - `technical/` — How to configure and integrate (APIs, configuration, security, OAuth2 compatibility)
+    - `technical/configuration/` — Configuration documentation, split by concern (database, mail, client, authorization, etc.). Each page covers one topic; the `index.md` is the overview with links to sub-pages.
   - `contributing/` — How to contribute to the SympAuthy codebase (backend patterns)
   - `getting-started/` — Onboarding guide
 

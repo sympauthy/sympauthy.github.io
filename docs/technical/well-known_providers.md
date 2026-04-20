@@ -9,7 +9,7 @@ You can enable them by adding the [Micronaut environments](https://docs.micronau
 **Environment:** `google`
 **Protocol:** OpenID Connect (OIDC)
 
-Google is configured via [OpenID Connect Discovery](/technical/configuration#oidc-keys). Enabling the `google`
+Google is configured via [OpenID Connect Discovery](/technical/configuration/provider#oidc-keys). Enabling the `google`
 environment provides a default configuration that uses Google's OIDC issuer — you only need to supply your client
 credentials.
 
@@ -32,7 +32,7 @@ To obtain a client ID and secret, create an OAuth 2.0 credential in the
 **Environment:** `discord`
 **Protocol:** OAuth2
 
-Discord does not support OpenID Connect, so it is configured via [OAuth2](/technical/configuration#oauth2-keys) with
+Discord does not support OpenID Connect, so it is configured via [OAuth2](/technical/configuration/provider#oauth2-keys) with
 explicit endpoint URLs and claim mappings. Enabling the `discord` environment provides a default configuration — you
 only need to supply your client credentials.
 
@@ -49,4 +49,4 @@ To obtain a client ID and secret, create an application in the
 
 ## Custom providers
 
-Any OAuth 2-compatible service can be configured manually using the [`providers.<id>.oauth2`](/technical/configuration#oauth2-keys) keys. Any OpenID Connect-compatible service can be configured using the [`providers.<id>.oidc`](/technical/configuration#oidc-keys) keys — only the issuer URL and client credentials are required.
+Any OAuth 2-compatible service can be configured manually using the [`providers.<id>.oauth2`](/technical/configuration/provider#oauth2-keys) keys. Any OpenID Connect-compatible service can be configured using the [`providers.<id>.oidc`](/technical/configuration/provider#oidc-keys) keys — only the issuer URL and client credentials are required.

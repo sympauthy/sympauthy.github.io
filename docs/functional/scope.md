@@ -131,4 +131,4 @@ scope:
   type: consentable  # or grantable (default)
 ```
 
-You can refer to the [configuration](/technical/configuration#scopes-id) to learn more.
+You can refer to the [configuration](/technical/configuration/scope) to learn more.

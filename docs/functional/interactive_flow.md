@@ -14,7 +14,7 @@ page out of the box, so no additional setup is required to get a working authent
 
 If the built-in interface does not fit the needs of your application — for example, because you want a fully branded
 sign-in page — you can replace it with your own custom UI. This is done by configuring the `urls.flow` key in the
-[configuration](/technical/configuration#urls) to point to your own page instead of the built-in one.
+[configuration](/technical/configuration/authorization#urls-flow) to point to your own page instead of the built-in one.
 
 A custom UI communicates with the [Flow API](/technical/flow_api) to guide the user through
 authentication step by step. The Flow API drives the experience: after each action the user takes, the server tells the

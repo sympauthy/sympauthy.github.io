@@ -6,11 +6,11 @@ CORS restriction, and default safe configurations.
 
 ## Secure defaults
 
-The `default` [Micronaut environment](configuration#micronaut-environments) enables only features considered safe.
+The `default` [Micronaut environment](configuration/environments) enables only features considered safe.
 Potentially risky options — such as automatically granting unhandled scopes — are explicitly disabled unless an operator
 turns them on.
 
-Configuration keys that have security implications are documented with warnings in the [Configuration](configuration)
+Configuration keys that have security implications are documented with warnings in the [Configuration](configuration/)
 reference.
 
 ## Password hashing
@@ -172,7 +172,7 @@ port) unless the server explicitly permits it via CORS headers.
 
 SympAuthy disables the global Micronaut CORS filter and replaces it with a narrower, flow-aware policy scoped to the
 Flow API (`/api/v1/flow/**`). Only requests whose `Origin` header matches an origin derived from a registered
-[flow](configuration#flows-id) are granted CORS access. All other origins receive no CORS headers and their requests are
+[flow](configuration/authorization#flows-id) are granted CORS access. All other origins receive no CORS headers and their requests are
 blocked by the browser.
 
 The allowed origins are computed at startup by extracting the `scheme://host:port` from every URI declared in each
@@ -290,7 +290,7 @@ Validation codes include several abuse-prevention measures:
 
 ## TOTP multi-factor authentication
 
-When [MFA is enabled](/technical/configuration#mfa), SympAuthy can require users to verify their identity
+When [MFA is enabled](/technical/configuration/authorization#mfa), SympAuthy can require users to verify their identity
 with a TOTP code ([RFC 6238](https://datatracker.ietf.org/doc/html/rfc6238)) after their primary authentication.
 
 Several safeguards are in place:
