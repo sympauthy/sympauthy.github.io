@@ -244,6 +244,7 @@ authorization server.
 | Key                                    | Type            | Description                                                                                                                                                                                                                                                         | Required<br>Default  |
 |----------------------------------------|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------|
 | ```<id>```                             | string          | Uniq identifier of the client.                                                                                                                                                                                                                                      | **YES**              |
+| ```template```                         | string          | Name of a custom [client template](#templates-clients-id) to apply. The referenced template provides default values for fields not explicitly set on this client. The `default` template cannot be referenced here — it is auto-applied when no `template` is set.  | NO                   |
 | ```<authorizationFlow>```              | string          | The identifier of the authorization flow to use for this client. See [authorization flows](#authorization-flows) for more details.                                                                                                                                  | **YES**              |
 | ```public```                           | boolean         | When `true`, the client is a [public client](/functional/client#confidential-and-public-clients) that does not require a secret. Public clients must use [PKCE](/technical/security#pkce-proof-key-for-code-exchange) and cannot use the client credentials grant.  | NO<br>```false```    |
 | ```secret```                           | string          | Secret shared between the client and the authorization server. Required for confidential clients (`public: false`). Must be omitted for public clients.                                                                                                             | Conditional          |
@@ -446,10 +447,122 @@ authenticate itself.
 
 ## ```scopes.<id>```
 
-| Key           | Type    | Description                                                                                                                                                                                                  | Required<br>Default   |
-|---------------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|
-| ```enabled``` | boolean | Enable the scope.                                                                                                                                                                                            | NO<br>```false```     |
-| ```type```    | string  | The scope type. Either [`consentable`](/functional/scope#consentable-scope) or [`grantable`](/functional/scope#grantable-scope). Custom [`client`](/functional/scope#client-scope) scopes are not supported. | NO<br>```grantable``` |
+| Key            | Type    | Description                                                                                                                                                                                                                                                                                          | Required<br>Default   |
+|----------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|
+| ```template``` | string  | Name of a custom [scope template](#templates-scopes-id) to apply. The referenced template provides default values for fields not explicitly set on this scope. Default template names (`default_openid`, `default_admin`, `default_client`, `default_custom`) cannot be referenced here — they are auto-applied based on scope category. | NO                    |
+| ```enabled```  | boolean | Enable the scope.                                                                                                                                                                                                                                                                                    | NO<br>```false```     |
+| ```type```     | string  | The scope type. Either [`consentable`](/functional/scope#consentable-scope) or [`grantable`](/functional/scope#grantable-scope). Custom [`client`](/functional/scope#client-scope) scopes are not supported.                                                                                         | NO<br>```grantable``` |
+
+## ```templates```
+
+This section holds template configurations that provide default values for [clients](#clients-id) and [scopes](#scopes-id). Templates allow you to define shared configuration once and have it inherited by multiple clients or scopes.
+
+### ```templates.clients.<id>```
+
+Client templates provide default field values that are inherited by clients. A template named `default` is auto-applied to every client that does not declare a `template` field. Custom templates (any name other than `default`) must be explicitly referenced by a client via its `template` field.
+
+When a client references a custom template, the `default` template is **not** applied — only the referenced template's values are used as defaults.
+
+Fields set directly on a client always override the corresponding template value.
+
+| Key                         | Type            | Description                                                           | Required<br>Default |
+|-----------------------------|-----------------|-----------------------------------------------------------------------|---------------------|
+| ```<id>```                  | string          | Unique identifier of the template. Use `default` for the auto-applied template. | **YES**             |
+| ```public```                | boolean         | Default value for the client's `public` field.                        | NO                  |
+| ```authorization-flow```    | string          | Default authorization flow identifier.                                | NO                  |
+| ```uris```                  | map of string   | Default named URIs, usable as `${client.uris.<key>}` in redirect URIs. | NO                  |
+| ```allowed-grant-types```   | array of string | Default list of allowed grant types.                                  | NO                  |
+| ```allowed-redirect-uris``` | array of string | Default list of allowed redirect URIs.                                | NO                  |
+| ```allowed-scopes```        | array of string | Default list of allowed scopes.                                       | NO                  |
+| ```default-scopes```        | array of string | Default list of scopes requested when `scope` parameter is omitted.   | NO                  |
+| ```authorization-webhook``` | object          | Default authorization webhook configuration.                          | NO                  |
+
+**Constraints:**
+
+- The `default` template is auto-applied when no `template` key is set on a client. It **cannot** be referenced explicitly via the `template` directive.
+- When a client references a custom template, only that template is applied — `default` is skipped.
+
+**Example:**
+
+```yaml
+templates:
+  clients:
+    default:
+      allowed-grant-types:
+        - authorization_code
+        - refresh_token
+      default-scopes:
+        - openid
+        - profile
+
+    spa:
+      public: true
+      allowed-grant-types:
+        - authorization_code
+        - refresh_token
+
+clients:
+  admin:
+    # No template key — inherits from templates.clients.default
+    secret: "admin-secret"
+    allowed-redirect-uris:
+      - "https://admin.example.com/callback"
+
+  frontend:
+    template: spa
+    # Inherits from templates.clients.spa (default template is NOT applied)
+    allowed-redirect-uris:
+      - "https://app.example.com/callback"
+```
+
+### ```templates.scopes.<id>```
+
+Scope templates provide default field values that are inherited by scopes. The following default templates are auto-applied based on scope category:
+
+| Template name    | Auto-applied to            |
+|------------------|----------------------------|
+| `default_openid` | OpenID Connect scopes      |
+| `default_custom` | Custom scopes              |
+| `default_admin`  | Admin scopes               |
+| `default_client` | Client scopes              |
+
+Custom templates (any name not in the list above) must be explicitly referenced by a scope via its `template` field.
+
+When a scope references a custom template, the matching default template is **not** applied — only the referenced template's values are used as defaults.
+
+Fields set directly on a scope always override the corresponding template value.
+
+| Key           | Type    | Description                                    | Required<br>Default |
+|---------------|---------|------------------------------------------------|---------------------|
+| ```<id>```    | string  | Unique identifier of the template.             | **YES**             |
+| ```enabled``` | boolean | Default value for the scope's `enabled` field. | NO                  |
+| ```type```    | string  | Default scope type (`consentable`, `grantable`, or `client`). | NO                  |
+
+**Constraints:**
+
+- Default template names (`default_openid`, `default_admin`, `default_client`, `default_custom`) **cannot** be referenced explicitly via the `template` directive — they are auto-applied.
+
+**Example:**
+
+```yaml
+templates:
+  scopes:
+    default_custom:
+      enabled: true
+      type: grantable
+
+    my-admin-scopes:
+      enabled: true
+      type: grantable
+
+scopes:
+  my-custom-scope:
+    # Auto-inherits from templates.scopes.default_custom
+
+  special-admin-scope:
+    template: my-admin-scopes
+    # Inherits from templates.scopes.my-admin-scopes (default_custom is NOT applied)
+```
 
 ## ```urls```
 
