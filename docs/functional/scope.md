@@ -36,8 +36,10 @@ Examples of consentable scopes:
 
 - `profile`, `email`, `address`, `phone` — OpenID Connect scopes that protect OpenID Connect claims.
 
-[Custom claims](/functional/claims#custom-claims) are not protected by consentable scopes — they are
-client-managed metadata, not personal data provided by the end-user.
+By default, [custom claims](/functional/claims#custom-claims) are not protected by consentable scopes — they
+use unconditional [client scope](/functional/scope#client-scope) access. However, a custom claim can be
+configured to require consent by setting a `consent-scope` in its
+[ACL](/technical/configuration/claim#claims-id-acl).
 
 See [User Authorization](/functional/user_authorization) for details on how consentable scopes are granted
 during an authorization flow.
@@ -91,8 +93,8 @@ Client scopes are defined by SympAuthy and protect operations of the
 | Scope                | Description                                          |
 |----------------------|------------------------------------------------------|
 | `users:read`         | List users with consented scopes                     |
-| `users:claims:read`  | Read consented and custom claims                     |
-| `users:claims:write` | Write custom claims                                  |
+| `users:claims:read`  | Read claims the client is authorized to access       |
+| `users:claims:write` | Write claims the client is authorized to modify      |
 
 See [Client Authorization](/functional/client_authorization) for details on client scope granting rules.
 

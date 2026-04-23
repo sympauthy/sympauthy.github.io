@@ -30,4 +30,5 @@ This is a pure documentation site — no application code, no tests. All content
 
 - Internal links use root-relative paths without `.md` extension: `/technical/configuration`
 - YAML examples should only illustrate the feature they document — do not inject unrelated config keys into existing examples
+- Configuration reference tables (`docs/technical/configuration/`) must list keys in alphabetical order
 - Verify the build succeeds (`npm run docs:build`) after making changes

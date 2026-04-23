@@ -14,8 +14,8 @@ are granted.
 | Scope                | Description                                  |
 |----------------------|----------------------------------------------|
 | `users:read`         | List users with consented scopes             |
-| `users:claims:read`  | Read consented and custom claims             |
-| `users:claims:write` | Write custom claims                          |
+| `users:claims:read`  | Read claims the client is authorized to access  |
+| `users:claims:write` | Write claims the client is authorized to modify |
 
 ## Authentication
 
@@ -271,8 +271,8 @@ Endpoints for reading and updating user claims. Requires `users:claims:read` for
 
 **Authentication**: Bearer token with `users:claims:read` scope
 
-**Purpose**: Retrieves claims associated with a specific end-user. Only returns claims that the end-user has given
-consent for the client to access.
+**Purpose**: Retrieves claims associated with a specific end-user. Returns claims that the client is authorized to
+read based on each claim's [ACL](/technical/configuration/claim#claims-id-acl).
 
 **Path Parameters**:
 
@@ -312,15 +312,17 @@ consent for the client to access.
 **Properties**:
 
 - `user_id`: Unique identifier of the end-user
-- `claims`: Object containing the user's claims
-    - OpenID Connect claims (email, name, phone_number, etc.) — only those covered by consented scopes
-    - Custom claims (defined by the operator in configuration) — always returned
-    - Verification status claims (email_verified, phone_number_verified)
+- `claims`: Object containing the user's claims. Which claims are included depends on each claim's
+  [ACL](/technical/configuration/claim#claims-id-acl):
+    - Claims with consent-based access are included when the end-user has consented to the relevant scope
+    - Claims with unconditional access are included when the client holds the required client scope
+    - Verification status claims (email_verified, phone_number_verified) follow the same ACL rules
 
 **Important Notes**:
 
-- OpenID Connect claims are filtered by the user's consented scopes — only claims covered by consented scopes are included
-- Custom claims are always returned regardless of consent, since they are client-managed metadata, not personal data provided by the user
+- By default, OpenID Connect claims require end-user consent to the relevant scope, and custom claims are returned
+  unconditionally to clients holding `users:claims:read`. This behavior can be customized through
+  [ACL configuration](/technical/configuration/claim#claims-id-acl).
 
 **Use Cases**:
 
@@ -331,7 +333,7 @@ consent for the client to access.
 
 ---
 
-#### Update User Custom Claims
+#### Update User Claims
 
 **Path**: `/api/v1/client/users/{user_id}/claims`
 
@@ -339,7 +341,8 @@ consent for the client to access.
 
 **Authentication**: Bearer token with `users:claims:write` scope
 
-**Purpose**: Updates custom claims for a specific end-user. Only custom claims can be modified through this endpoint.
+**Purpose**: Updates claims for a specific end-user. Only claims that the client is authorized to write based on the
+claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified through this endpoint.
 
 **Path Parameters**:
 
@@ -383,7 +386,7 @@ consent for the client to access.
 ```json
 {
   "error": "invalid_claim",
-  "error_description": "Only custom claims can be modified through this endpoint. The claim 'email' is an OpenID Connect claim."
+  "error_description": "The claim 'email' cannot be modified by the client. Either the claim does not exist or the client does not hold the required scopes."
 }
 ```
 
@@ -403,10 +406,11 @@ consent for the client to access.
 
 **Important Notes**:
 
-- Only custom claims (origin: `custom`) can be modified through this endpoint
-- OpenID Connect claims (origin: `openid`) cannot be modified via this endpoint
-- Attempting to modify an OpenID Connect claim will result in an error
-- Custom claims can be set to `null` to remove them
+- Only claims whose [ACL](/technical/configuration/claim#claims-id-acl) grants write access to the client can be
+  modified. By default, OpenID Connect claims are not writable by clients, and custom claims are writable by clients
+  holding `users:claims:write`.
+- Attempting to modify a claim the client is not authorized to write will result in an error.
+- Claims can be set to `null` to remove them.
 
 **Use Cases**:
 

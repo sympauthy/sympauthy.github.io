@@ -69,7 +69,7 @@ tokens.
 - **[Consentable scopes](/functional/scope#consentable-scope)** — a consent records which
   consentable scopes were granted. Only consentable scopes — those protecting user claims — are subject to consent.
 - **[Clients](/functional/client)** — a consent ties a user to a client.
-- **[Claims](/functional/claims)** — only claims covered by the consented scopes are shared with the
-  client.
+- **[Claims](/functional/claims)** — claims with [consent-based access](/functional/claims#access-control) are
+  only shared with the client when covered by the consented scopes.
 - **[Tokens](/functional/tokens)** — tokens issued by SympAuthy reflect the scopes recorded in the
   consent. Revoking a consent invalidates the associated refresh tokens.
