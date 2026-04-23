@@ -12,7 +12,7 @@ Documentation site for SympAuthy, an open-source authentication & authorization 
 - `npm run docs:build` — Build for production (output: `docs/.vitepress/dist`)
 - `npm run docs:preview` — Preview production build locally
 
-Requires Node.js 20 (see `.nvmrc`). Use `nvm install && nvm use` if using nvm.
+Requires Node.js 24 LTS (see `.nvmrc`). Use `nvm install && nvm use` if using nvm.
 
 ## Architecture
 

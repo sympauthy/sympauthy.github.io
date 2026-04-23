@@ -8,14 +8,14 @@ the authentication process and follows consistent patterns for state management,
 #### CORS
 
 The Flow API enforces a strict CORS policy. Cross-origin requests are only allowed from origins (`scheme://host:port`)
-that match a URI registered in a configured [flow](configuration/authorization#flows-id). Any other origin receives no CORS headers
+that match a URI registered in a configured [flow](/technical/configuration/authorization#flows-id). Any other origin receives no CORS headers
 and the browser blocks the request.
 
 This means that if you serve your custom flow from a different server than SympAuthy, you must declare its URL in the
 `flows.<id>` configuration. OPTIONS preflight requests from an allowed origin are handled automatically before
 authentication, so no additional setup is needed on your side.
 
-See the [Security](security#cors-restriction-on-the-flow-api) page for a full description of this policy.
+See the [Security](/technical/security#cors-restriction-on-the-flow-api) page for a full description of this policy.
 
 #### State Management
 
@@ -41,10 +41,10 @@ Authorization: State <jwt>
 
 Sending the state in a custom `Authorization` header rather than the URL provides CSRF protection: this header cannot be
 included in a cross-origin request without triggering a CORS preflight. Combined with the
-strict [CORS policy](security#cors-restriction-on-the-flow-api) that allows only registered flow origins, a forged
+strict [CORS policy](/technical/security#cors-restriction-on-the-flow-api) that allows only registered flow origins, a forged
 cross-origin POST is rejected before it can execute.
 
-See the [Security](security#csrf-protection-on-flow-post-endpoints) page for a full description of this mechanism.
+See the [Security](/technical/security#csrf-protection-on-flow-post-endpoints) page for a full description of this mechanism.
 
 #### Redirect Pattern
 

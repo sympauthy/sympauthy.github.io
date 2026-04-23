@@ -6,7 +6,7 @@ This repository contains the documentation for SympAuthy, an open-source authent
 
 Before running the documentation locally, ensure you have the following installed:
 
-- **Node.js**: Version 20 (as specified in `.nvmrc`)
+- **Node.js**: Version 24 LTS (as specified in `.nvmrc`)
 - **npm**: Comes with Node.js
 
 ### Installing Node.js
