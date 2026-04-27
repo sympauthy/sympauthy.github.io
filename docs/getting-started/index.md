@@ -144,7 +144,7 @@ configured:
 
 ```
 XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - SympAuthy vX.Y.Z is ready and has found the following elements in its configuration:
-XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - Issuer: http://localhost:8080 / Audience: http://localhost:8080
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - Issuer: http://localhost:8080
 XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - Authentication by password: enabled.
 XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - Authentication by provider: disabled.
 XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - MFA disabled.

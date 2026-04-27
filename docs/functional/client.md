@@ -2,6 +2,10 @@
 
 A **client** is a software that delegates the authentication and authorization of its users to SympAuthy.
 
+Every client belongs to an **[audience](/functional/audience)**. The audience determines the consent grouping
+boundary — clients in the same audience share end-user [consents](/functional/consent) — and the
+[`aud` claim](/functional/tokens#structure-of-an-access-token) in access tokens.
+
 Clients interact with SympAuthy through the [OAuth 2.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1) protocol. SympAuthy supports two kinds of clients:
 
 - **End-user clients**: Applications that authenticate human users through the [authorization code grant flow](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-4.1). **Ex.** a web application, a mobile application.
@@ -23,6 +27,7 @@ Both confidential and public clients must use [PKCE](/technical/security#pkce-pr
 Each client must be registered in SympAuthy before it can authenticate users. Registration is done through configuration and consists of:
 
 - **client id**: A unique identifier for the client.
+- **audience**: The [audience](/functional/audience) this client belongs to. Set explicitly or inherited from a client template.
 - **public** *(optional)*: Set to `true` to declare the client as a public client. Defaults to `false`.
 - **client secret**: A secret shared only between SympAuthy and the client, used to verify the authenticity of authentication requests. Required for confidential clients; omitted for public clients.
 - **allowed redirect URIs**: The list of URIs the client is allowed to redirect end-users to after authentication. At least one URI must be configured.

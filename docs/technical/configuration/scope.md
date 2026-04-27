@@ -4,8 +4,9 @@
 
 | Key            | Type    | Description                                                                                                                                                                                                                                                                                          | Required<br>Default   |
 |----------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|
-| ```template``` | string  | Name of a custom [scope template](#templates-scopes-id) to apply. The referenced template provides default values for fields not explicitly set on this scope. Default template names (`default_openid`, `default_admin`, `default_client`, `default_custom`) cannot be referenced here — they are auto-applied based on scope category. | NO                    |
+| ```audience``` | string  | The [audience](/functional/audience) this scope is scoped to. When set, the scope only applies within that audience — clients in other audiences cannot request it. When `null`, the scope is shared across all audiences. Built-in scopes are always unscoped.                                       | NO<br>```null```      |
 | ```enabled```  | boolean | Enable the scope.                                                                                                                                                                                                                                                                                    | NO<br>```false```     |
+| ```template``` | string  | Name of a custom [scope template](#templates-scopes-id) to apply. The referenced template provides default values for fields not explicitly set on this scope. Default template names (`default_openid`, `default_admin`, `default_client`, `default_custom`) cannot be referenced here — they are auto-applied based on scope category. | NO                    |
 | ```type```     | string  | The scope type. Either [`consentable`](/functional/scope#consentable-scope) or [`grantable`](/functional/scope#grantable-scope). Custom [`client`](/functional/scope#client-scope) scopes are not supported.                                                                                         | NO<br>```grantable``` |
 
 ## ```templates.scopes.<id>```
@@ -25,11 +26,12 @@ When a scope references a custom template, the matching default template is **no
 
 Fields set directly on a scope always override the corresponding template value.
 
-| Key           | Type    | Description                                    | Required<br>Default |
-|---------------|---------|------------------------------------------------|---------------------|
-| ```<id>```    | string  | Unique identifier of the template.             | **YES**             |
-| ```enabled``` | boolean | Default value for the scope's `enabled` field. | NO                  |
-| ```type```    | string  | Default scope type (`consentable`, `grantable`, or `client`). | NO                  |
+| Key            | Type    | Description                                                              | Required<br>Default |
+|----------------|---------|--------------------------------------------------------------------------|---------------------|
+| ```<id>```     | string  | Unique identifier of the template.                                       | **YES**             |
+| ```audience``` | string  | Default [audience](/functional/audience) for scopes using this template. | NO                  |
+| ```enabled```  | boolean | Default value for the scope's `enabled` field.                           | NO                  |
+| ```type```     | string  | Default scope type (`consentable`, `grantable`, or `client`).            | NO                  |
 
 **Constraints:**
 

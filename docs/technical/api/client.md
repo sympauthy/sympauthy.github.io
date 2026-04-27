@@ -104,7 +104,7 @@ Endpoints for listing users and viewing their authorization status. Requires the
 
 **Authentication**: Bearer token with `users:read` scope
 
-**Purpose**: Retrieves a paginated list of all end-users who have consented to share scopes with the requesting client application.
+**Purpose**: Retrieves a paginated list of all end-users who have consented to share scopes with the [audience](/functional/audience) the requesting client belongs to.
 
 **Query Parameters**:
 
@@ -174,7 +174,7 @@ Endpoints for listing users and viewing their authorization status. Requires the
         - `provider_id`: Identifier of the external provider (e.g. `"discord"`, `"google"`)
         - `subject`: The user's unique identifier at the provider
         - `linked_at`: ISO 8601 timestamp (UTC) when the provider was linked
-    - `consented_scopes`: List of OAuth scopes the user has consented to share with this client
+    - `consented_scopes`: List of OAuth scopes the user has consented to share with this audience
     - `consented_at`: ISO 8601 timestamp (UTC) when consent was given
 - `page`: Current page number
 - `size`: Number of results per page
@@ -182,7 +182,7 @@ Endpoints for listing users and viewing their authorization status. Requires the
 
 **Use Cases**:
 
-- Audit which users have authorized the client application
+- Audit which users have authorized the audience
 - Display active user connections in client admin panels
 - Synchronize user access across distributed systems
 - Monitor application usage and user adoption
@@ -247,14 +247,14 @@ Endpoints for listing users and viewing their authorization status. Requires the
     - `provider_id`: Identifier of the external provider (e.g. `"discord"`, `"google"`)
     - `subject`: The user's unique identifier at the provider
     - `linked_at`: ISO 8601 timestamp (UTC) when the provider was linked
-- `consented_scopes`: List of OAuth scopes the user has consented to share with this client
+- `consented_scopes`: List of OAuth scopes the user has consented to share with this audience
 - `consented_at`: ISO 8601 timestamp (UTC) when consent was given
 
 **Use Cases**:
 
 - Check authorization status for a specific user
 - Verify which scopes a user has consented to
-- Determine when a user authorized the application
+- Determine when a user authorized the audience
 
 ---
 
@@ -320,6 +320,8 @@ read based on each claim's [ACL](/technical/configuration/claim#claims-id-acl).
 
 **Important Notes**:
 
+- Claims scoped to a different [audience](/functional/audience) than the requesting client are filtered out. Only
+  claims that are unscoped or scoped to the client's audience are returned.
 - By default, OpenID Connect claims require end-user consent to the relevant scope, and custom claims are returned
   unconditionally to clients holding `users:claims:read`. This behavior can be customized through
   [ACL configuration](/technical/configuration/claim#claims-id-acl).

@@ -36,7 +36,10 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/functional/' },
             { text: 'How it works', link: '/functional/how_it_works' },
+            { text: 'Audience', link: '/functional/audience' },
+            { text: 'Client', link: '/functional/client' },
             { text: 'Authentication', link: '/functional/authentication' },
+            { text: 'Interactive Flow', link: '/functional/interactive_flow' },
             { text: 'Tokens', link: '/functional/tokens' },
             { text: 'Claims', link: '/functional/claims' },
             { text: 'Scopes', link: '/functional/scope' },
@@ -44,8 +47,6 @@ export default defineConfig({
             { text: 'Client Authorization', link: '/functional/client_authorization' },
             { text: 'Consent', link: '/functional/consent' },
             { text: 'End-User Management', link: '/functional/end-user_management' },
-            { text: 'Client', link: '/functional/client' },
-            { text: 'Interactive Flow', link: '/functional/interactive_flow' },
           ]
         }
       ],
@@ -63,6 +64,7 @@ export default defineConfig({
                 { text: 'Database', link: '/technical/configuration/database' },
                 { text: 'Mail', link: '/technical/configuration/mail' },
                 { text: 'Client', link: '/technical/configuration/client' },
+                { text: 'Audience', link: '/technical/configuration/audience' },
                 { text: 'Authorization', link: '/technical/configuration/authorization' },
                 { text: 'Provider', link: '/technical/configuration/provider' },
                 { text: 'Claim', link: '/technical/configuration/claim' },

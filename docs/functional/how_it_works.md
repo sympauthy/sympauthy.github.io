@@ -64,6 +64,24 @@ registering again. SympAuthy recognises them and issues the appropriate tokens f
   Mobile app ─┘
 ```
 
+### Audiences
+
+When several clients belong to the same logical application — for example, a web frontend, a mobile app, and a backend
+service for the same product — they can be grouped into an **[audience](audience)**. Every client belongs to exactly
+one audience.
+
+Audiences matter because they define the boundary for [consent](consent). When a user authorizes one client in an
+audience, that consent applies to all clients in the same audience — the user is never asked to approve the same
+permissions twice. Audiences also determine the `aud` claim in the [access tokens](tokens#access-token) that
+SympAuthy issues.
+
+```
+  audience: "my-app"
+  ├── Web app
+  ├── Mobile app
+  └── Backend service
+```
+
 ## What SympAuthy stores about users
 
 SympAuthy collects and stores pieces of information about each user, called **[claims](claims)**. A claim can be
@@ -86,7 +104,8 @@ resource.
 ## Keeping track of who uses what
 
 When scopes are granted to a client on behalf of a user, SympAuthy records that relationship as a
-**[consent](consent)**. A consent captures which scopes a given user has authorized for a given client.
+**[consent](consent)**. A consent captures which scopes a given user has authorized for a given
+**[audience](audience)**. All clients in the same audience share this consent.
 
 This allows a client to know which users it serves, and gives administrators and users visibility into which
 applications have access to their data.
@@ -97,9 +116,10 @@ applications have access to their data.
 |----------------------|-------------------------------------------------------------------------------------------------------|
 | Authorization server | SympAuthy itself — the service that authenticates users and issues tokens                             |
 | Client               | An application that uses SympAuthy for its login                                                      |
+| Audience             | A grouping of clients representing a logical application. Clients in the same audience share consents |
 | End-user             | A person signing into a client application                                                            |
 | Provider             | A trusted third-party service (e.g. Google) that can authenticate a user on SympAuthy's behalf        |
 | Claim                | A piece of information about the user (name, email, role…)                                            |
 | Scope                | A named permission — consentable (protecting user claims), grantable (protecting resources), or client (protecting client operations) |
-| Consent              | The record that a user has authorized a client to access specific scopes                              |
+| Consent              | The record that a user has authorized an audience to access specific scopes                           |
 | Token                | A credential the client receives after authentication, containing the user's identity and permissions |

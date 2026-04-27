@@ -32,6 +32,9 @@ SympAuthy supports all OpenID Connect claims out of the box. You only need to en
 By default, OpenID Connect claims require the end-user's [consent](/functional/consent) — a client can only read them
 if the user has approved the corresponding [scope](/functional/scope#consentable-scope).
 
+OpenID Connect claims are always shared across all [audiences](/functional/audience) — they cannot be scoped to a
+specific audience.
+
 ## Custom claims
 
 When the OpenID Connect claims do not cover a piece of information specific to your application — for example, a
@@ -40,6 +43,10 @@ subscription plan or an internal user role — you can define your own **custom 
 By default, custom claims are not collected from the end-user. They are written by client applications through
 the [Client API](/technical/api/client) and represent application-managed metadata about a user — for example, a
 department, a subscription tier, or an internal role.
+
+Custom claims can optionally be scoped to an **[audience](/functional/audience)** by setting the `audience` field in
+the claim configuration. When set, the claim is only visible to clients within that audience. When `audience` is not
+set (the default), the claim is shared across all audiences.
 
 By default, any client with the right [client scope](/functional/scope#client-scope) can read and write custom claims
 without user involvement. This default can be overridden — if a custom claim should be consent-gated (for example,

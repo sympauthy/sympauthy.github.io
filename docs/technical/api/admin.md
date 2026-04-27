@@ -1163,7 +1163,7 @@ and `admin:consent:write` for modifications.
 
 **Authentication**: Bearer token with `admin:consent:read` scope
 
-**Purpose**: Retrieves all active consents granted by a specific user to client applications.
+**Purpose**: Retrieves all active consents granted by a specific user, grouped by [audience](/functional/audience).
 
 **Path Parameters**:
 
@@ -1180,6 +1180,7 @@ and `admin:consent:write` for modifications.
 {
   "consents": [
     {
+      "audience_id": "my-app",
       "client_id": "my-web-app",
       "scopes": [
         "profile",
@@ -1188,7 +1189,8 @@ and `admin:consent:write` for modifications.
       "consented_at": "2026-01-15T14:30:00Z"
     },
     {
-      "client_id": "mobile-app",
+      "audience_id": "backoffice",
+      "client_id": "backoffice-app",
       "scopes": [
         "email"
       ],
@@ -1204,8 +1206,9 @@ and `admin:consent:write` for modifications.
 **Properties**:
 
 - `consents`: Array of active consent records
-    - `client_id`: Identifier of the client application that received consent
-    - `scopes`: List of scopes the user has consented usage to this client
+    - `audience_id`: Identifier of the [audience](/functional/audience) that received consent
+    - `client_id`: Identifier of the client that originally prompted consent (kept for audit)
+    - `scopes`: List of scopes the user has consented to for this audience
     - `consented_at`: ISO 8601 timestamp (UTC) when consent was granted
 - `page`: Current page number
 - `size`: Current page size
@@ -1213,7 +1216,7 @@ and `admin:consent:write` for modifications.
 
 **Use Cases**:
 
-- Audit which applications a user has authorized
+- Audit which audiences a user has authorized
 - Review consent history for compliance reporting
 - Investigate user data access for privacy requests
 
@@ -1221,27 +1224,27 @@ and `admin:consent:write` for modifications.
 
 #### Revoke User Consent
 
-**Path**: `/api/v1/admin/users/{user_id}/consents/{client_id}`
+**Path**: `/api/v1/admin/users/{user_id}/consents/{audience_id}`
 
 **Method**: DELETE
 
 **Authentication**: Bearer token with `admin:consent:write` scope
 
-**Purpose**: Revokes the active consent granted by a user to a specific client application. The client will no longer be
-able to access the user's data until the user re-authorizes. Returns 404 if no active consent exists for the
-user and client pair.
+**Purpose**: Revokes the active consent granted by a user to a specific [audience](/functional/audience). All clients
+in the audience will no longer be able to access the user's data until the user re-authorizes. Returns 404 if no
+active consent exists for the user and audience pair.
 
 **Path Parameters**:
 
 - `user_id`: Unique identifier of the user
-- `client_id`: Identifier of the client application whose consent should be revoked
+- `audience_id`: Identifier of the audience whose consent should be revoked
 
 **Response Format**:
 
 ```json
 {
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "client_id": "my-web-app",
+  "audience_id": "my-app",
   "revoked": true
 }
 ```
@@ -1251,16 +1254,16 @@ user and client pair.
 When a consent is revoked through this endpoint:
 
 1. The consent is marked as revoked (`revoked_by = ADMIN`) with the administrator's identifier.
-2. All refresh tokens for the user and client pair are immediately invalidated.
+2. All refresh tokens for the user across all clients in the audience are immediately invalidated.
 3. As a safety net, subsequent token refresh attempts also verify that a valid consent exists — so even if a refresh
    token was missed, it cannot be used.
 
-The client's existing access tokens remain valid until they expire naturally (typically minutes), but no new tokens can
-be obtained.
+Existing access tokens for clients in the audience remain valid until they expire naturally (typically minutes), but no
+new tokens can be obtained.
 
 **Use Cases**:
 
-- Revoke access for a decommissioned client application
+- Revoke access for a decommissioned audience
 - Respond to user requests to disconnect an application
 - Enforce access policies during security incidents
 

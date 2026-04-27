@@ -22,6 +22,6 @@ SympAuthy is designed around a single user pool shared across all clients. Per-c
 confusing user experience (the same user being challenged on one client but not another) and a potential security
 bypass (a client opting out of a globally enforced MFA policy). Because MFA enrollment is a user-level concern — a user
 has one TOTP device regardless of which client they authenticate through — a global policy is the right fit for
-SympAuthy's single-audience design.
+SympAuthy's shared user pool. Audiences group clients for consent purposes but do not create separate user populations.
 
-Per-client MFA policy could be reconsidered in the future if multi-tenant support is ever introduced.
+Per-audience MFA policy could be reconsidered in the future.

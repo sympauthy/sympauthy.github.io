@@ -66,6 +66,7 @@ urls:
 - [Database](/technical/configuration/database) — Database connection (PostgreSQL, H2).
 - [Mail](/technical/configuration/mail) — Email / SMTP configuration.
 - [Client](/technical/configuration/client) — OAuth client definitions.
+- [Audience](/technical/configuration/audience) — Audience grouping and token audience configuration.
 - [Authorization](/technical/configuration/authorization) — Authentication, authorization flows, MFA, and rules.
 - [Provider](/technical/configuration/provider) — Third-party authentication provider configuration (OIDC, OAuth2).
 - [Claim](/technical/configuration/claim) — Claim collection configuration.

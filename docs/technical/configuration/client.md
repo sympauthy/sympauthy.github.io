@@ -14,10 +14,11 @@ authorization server.
 | ```secret```                           | string          | Secret shared between the client and the authorization server. Required for confidential clients (`public: false`). Must be omitted for public clients.                                                                                                             | Conditional          |
 | ```allowed-grant-types```              | array of string | List of OAuth2 grant types this client is allowed to use. Supported values: `authorization_code`, `refresh_token`, `client_credentials`. See [this section](#clients-id-allowed-grant-types) for more details.                                                      | **YES**              |
 | ```allowed-scopes```                   | array of string | List of scopes the client is allowed to request. Any scope outside this list will be filtered out by this authorization server and will not be granted. <br>If not set or empty, **all scopes** are **allowed**.                                                    | NO                   |
+| ```audience```                         | string          | The [audience](/functional/audience) this client belongs to. Determines the consent grouping boundary and the `aud` claim in access tokens. Can be inherited from a [client template](#templates-clients-id).                                                       | **YES**              |
+| ```authorization-webhook```            | object          | Delegates grantable scope decisions to an external HTTP server. See [this section](#clients-id-authorization-webhook) for details.                                                                                                                                   | NO                   |
 | ```default-scopes```                   | array of string | List of scopes that will be requested if the ```scope``` parameter is left when calling the authorize endpoint.                                                                                                                                                     | NO                   |
 | ```uris```                             | map of string   | Named URIs for this client, usable as `${client.uris.<key>}` templates in `allowed-redirect-uris`. Useful for defining base URLs once and referencing them in multiple redirect URIs.                                                                               | NO                   |
 | ```allowed-redirect-uris```            | array of string | A list of URIs where the client is allowed to ask the redirection of the end-user at the end of the OAuth2 authorize grant flow. See [this section](#clients-id-allowed-redirect-uris) for more details.                                                            | Conditional          |
-| ```authorization-webhook```            | object          | Delegates grantable scope decisions to an external HTTP server. See [this section](#clients-id-authorization-webhook) for details.                                                                                                                                   | NO                   |
 
 ### ```clients.<id>.allowed-grant-types```
 
@@ -119,8 +120,9 @@ Fields set directly on a client always override the corresponding template value
 | Key                         | Type            | Description                                                           | Required<br>Default |
 |-----------------------------|-----------------|-----------------------------------------------------------------------|---------------------|
 | ```<id>```                  | string          | Unique identifier of the template. Use `default` for the auto-applied template. | **YES**             |
-| ```public```                | boolean         | Default value for the client's `public` field.                        | NO                  |
+| ```audience```              | string          | Default [audience](/functional/audience) for clients using this template.        | NO                  |
 | ```authorization-flow```    | string          | Default authorization flow identifier.                                | NO                  |
+| ```public```                | boolean         | Default value for the client's `public` field.                        | NO                  |
 | ```uris```                  | map of string   | Default named URIs, usable as `${client.uris.<key>}` in redirect URIs. | NO                  |
 | ```allowed-grant-types```   | array of string | Default list of allowed grant types.                                  | NO                  |
 | ```allowed-redirect-uris``` | array of string | Default list of allowed redirect URIs.                                | NO                  |
@@ -139,6 +141,7 @@ Fields set directly on a client always override the corresponding template value
 templates:
   clients:
     default:
+      audience: my-app
       allowed-grant-types:
         - authorization_code
         - refresh_token
@@ -147,6 +150,7 @@ templates:
         - profile
 
     spa:
+      audience: my-app
       public: true
       allowed-grant-types:
         - authorization_code

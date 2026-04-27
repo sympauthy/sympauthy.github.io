@@ -28,7 +28,7 @@ the `at+jwt` type header and contains the following claims:
 |-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
 | `iss`       | Issuer — the URL of this authorization server.                                                                                                                                                                                                                           | MUST     |
 | `exp`       | Expiration time.                                                                                                                                                                                                                                                         | MUST     |
-| `aud`       | Audience the token is intended for.                                                                                                                                                                                                                                      | MUST     |
+| `aud`       | Audience the token is intended for. The value comes from the `token-audience` of the [audience](/functional/audience) the client belongs to.                                                                                                                              | MUST     |
 | `sub`       | Subject — the authenticated user's identifier.                                                                                                                                                                                                                           | MUST     |
 | `client_id` | The client that requested the token.                                                                                                                                                                                                                                     | MUST     |
 | `iat`       | Issued-at time.                                                                                                                                                                                                                                                          | MUST     |
@@ -96,8 +96,8 @@ The user will be prompted to sign in again when:
 
 - the refresh token has expired (controlled by `token.refresh-token.lifespan`),
 - the refresh token has been revoked (for example, following an account action),
-- the [consent](/functional/consent) for the user and client pair has been revoked — either by an
-  administrator or because the user re-authorized with new scopes,
+- the [consent](/functional/consent) for the user and [audience](/functional/audience) has been revoked by an
+  administrator,
 - the client explicitly signs the user out.
 
 ## Sender-constrained tokens (DPoP)

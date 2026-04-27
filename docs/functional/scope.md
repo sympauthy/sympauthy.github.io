@@ -120,6 +120,11 @@ The scope type is set explicitly via the `type` configuration property. A scope 
 `type: consentable` to create a scope that protects user claims and requires end-user consent. Custom client scopes are
 not supported — client scopes are defined exclusively by SympAuthy.
 
+Custom scopes can optionally be scoped to an **[audience](/functional/audience)** by setting the `audience` field
+in the scope configuration. When set, the scope only applies within that audience — clients in other audiences
+cannot request it. When `audience` is not set (the default), the scope is shared across all audiences. Built-in
+scopes (OpenID Connect, admin, and client scopes) are always unscoped.
+
 They can be declared either by configuration or by API.
 
 ### By configuration
@@ -131,6 +136,7 @@ scope:
 - <scope>:
   enabled: true
   type: consentable  # or grantable (default)
+  audience: my-app   # optional — null means shared across all audiences
 ```
 
 You can refer to the [configuration](/technical/configuration/scope) to learn more.
