@@ -2,15 +2,19 @@
 
 Configuration management in SympAuthy uses a custom system built on top of Micronaut's `@ConfigurationProperties` to
 provide early validation, explicit error messages, and type-safe configuration models. This guide explains how to create
-new configuration components following SympAuthy's three-layer architecture: properties, factories, and models.
+new configuration components following SympAuthy's layered architecture.
 
 ## Architecture Overview
 
-SympAuthy's configuration system consists of three layers:
+SympAuthy's configuration system consists of five layers:
 
-1. **Properties Layer** (`com.sympauthy.config.properties`) - Raw string-based configuration properties from Micronaut
-2. **Factory Layer** (`com.sympauthy.config.factory`) - Parsing, validation, and transformation logic
-3. **Model Layer** (`com.sympauthy.config.model`) - Type-safe, validated configuration models
+1. **Properties Layer** (`com.sympauthy.config.properties`) — Raw string-based configuration properties from Micronaut
+2. **Parser Layer** (`com.sympauthy.config.parsing`) — Type conversion and template resolution only
+3. **Validator Layer** (`com.sympauthy.config.validation`) — Intra-domain and cross-domain validation
+4. **Factory Layer** (`com.sympauthy.config.factory`) — Thin orchestration that connects the layers
+5. **Model Layer** (`com.sympauthy.config.model`) — Type-safe, validated configuration models
+
+All layers use `ConfigParsingContext` for error accumulation, replacing manual try-catch boilerplate.
 
 This architecture ensures that:
 
@@ -18,11 +22,46 @@ This architecture ensures that:
 - All errors are reported together (not just the first one)
 - Invalid configurations prevent the server from starting
 - Consumers get type-safe, non-nullable configuration objects
+- Parsing and validation concerns are cleanly separated
+
+## ConfigParsingContext
+
+`ConfigParsingContext` is a shared error accumulator that replaces the old manual
+`mutableListOf<ConfigurationException>()` + try-catch pattern.
+
+```kotlin
+val ctx = ConfigParsingContext()
+
+// In parsers: wraps each call, catching ConfigurationException automatically.
+val issuer = ctx.parse { parser.getStringOrThrow(properties, "auth.issuer", Props::issuer) }
+
+// In validators: add errors explicitly.
+if (audienceId !in audiencesById) {
+    ctx.addError(configExceptionOf("key", "config.audience.not_found", ...))
+}
+
+// In factories: check for errors before assembling.
+return if (ctx.hasErrors) DisabledXxxConfig(ctx.errors) else EnabledXxxConfig(...)
+```
+
+**API:**
+
+| Method | Purpose |
+|---|---|
+| `ctx.parse { }` | Execute a block, catch `ConfigurationException` automatically, return `T?` |
+| `ctx.addError(e)` | Accumulate a validation error explicitly |
+| `ctx.child()` | Create an independent child context for a sub-section |
+| `ctx.merge(other)` | Merge errors from a child context back into this one |
+| `ctx.hasErrors` | Whether any errors have been accumulated |
+| `ctx.errors` | Immutable list of all accumulated errors |
+
+Use `ctx.child()` and `ctx.merge()` when a sub-section (e.g., hash config within advanced config) needs its own
+isolated error tracking.
 
 ## Step 1: Create the Properties Class
 
 The properties class defines the structure of your configuration as it appears in the `application.yml` file. All
-properties must be nullable strings (or collections of strings) to enable explicit validation in the factory layer.
+properties must be nullable strings (or collections of strings) to enable explicit validation in the parser layer.
 
 ### Simple Configuration (Interface)
 
@@ -254,81 +293,106 @@ class MyService(
 }
 ```
 
-## Step 3: Create the Factory
+## Step 3: Create the Parser
 
-The factory is responsible for parsing, validating, and building the configuration model. It uses the `ConfigParser`
-singleton to convert string properties into typed values.
+The parser is a `@Singleton` bean responsible only for type conversion (converting raw strings into typed values) and
+template resolution. It takes a `ConfigParsingContext` and properties as input, and returns a parsed intermediate
+data class with nullable fields.
 
 ```kotlin
-package com.sympauthy.config.factory
+package com.sympauthy.config.parsing
 
 import com.sympauthy.config.ConfigParser
-import com.sympauthy.config.exception.ConfigurationException
-import com.sympauthy.config.model.*
-import com.sympauthy.config.properties.AuthConfigurationProperties
-import com.sympauthy.config.properties.AuthConfigurationProperties.Companion.AUTH_KEY
-import io.micronaut.context.annotation.Factory
-import jakarta.inject.Inject
+import com.sympauthy.config.ConfigParsingContext
+import com.sympauthy.config.properties.EmailConfigurationProperties
+import com.sympauthy.config.properties.EmailConfigurationProperties.Companion.EMAIL_KEY
 import jakarta.inject.Singleton
 
-@Factory
-class AuthConfigFactory(
-    @Inject private val parser: ConfigParser
+data class ParsedEmailConfig(
+    val enabled: Boolean?,
+    val smtpHost: String?,
+    val smtpPort: Int?,
+    val username: String?,
+    val password: String?,
+    val fromAddress: String?,
+    val timeout: Duration?
+)
+
+@Singleton
+class EmailConfigParser(
+    private val parser: ConfigParser
 ) {
-
-    @Singleton
-    fun provideAuthConfig(
-        properties: AuthConfigurationProperties
-    ): AuthConfig {
-        val errors = mutableListOf<ConfigurationException>()
-
-        // Parse required string
-        val issuer = try {
-            parser.getStringOrThrow(
-                properties,
-                "$AUTH_KEY.issuer",
-                AuthConfigurationProperties::issuer
-            )
-        } catch (e: ConfigurationException) {
-            errors.add(e)
-            null
+    fun parse(
+        ctx: ConfigParsingContext,
+        properties: EmailConfigurationProperties
+    ): ParsedEmailConfig {
+        val enabled = ctx.parse {
+            parser.getBoolean(properties, "$EMAIL_KEY.enabled", EmailConfigurationProperties::enabled)
+        } ?: false
+        val smtpHost = ctx.parse {
+            parser.getStringOrThrow(properties, "$EMAIL_KEY.smtp-host", EmailConfigurationProperties::smtpHost)
         }
-
-        // Parse optional string
-        val audience = try {
-            parser.getString(
-                properties,
-                "$AUTH_KEY.audience",
-                AuthConfigurationProperties::audience
-            )
-        } catch (e: ConfigurationException) {
-            errors.add(e)
-            null
+        val smtpPort = ctx.parse {
+            parser.getIntOrThrow(properties, "$EMAIL_KEY.smtp-port", EmailConfigurationProperties::smtpPort)
         }
-
-        // Return appropriate variant
-        return if (errors.isEmpty()) {
-            EnabledAuthConfig(
-                issuer = issuer!!,
-                audience = audience
-            )
-        } else {
-            DisabledAuthConfig(errors)
+        val username = ctx.parse {
+            parser.getStringOrThrow(properties, "$EMAIL_KEY.username", EmailConfigurationProperties::username)
         }
+        val password = ctx.parse {
+            parser.getStringOrThrow(properties, "$EMAIL_KEY.password", EmailConfigurationProperties::password)
+        }
+        val fromAddress = ctx.parse {
+            parser.getStringOrThrow(properties, "$EMAIL_KEY.from-address", EmailConfigurationProperties::fromAddress)
+        }
+        val timeout = ctx.parse {
+            parser.getDurationOrThrow(properties, "$EMAIL_KEY.timeout", EmailConfigurationProperties::timeout)
+        }
+        return ParsedEmailConfig(
+            enabled = enabled,
+            smtpHost = smtpHost,
+            smtpPort = smtpPort,
+            username = username,
+            password = password,
+            fromAddress = fromAddress,
+            timeout = timeout
+        )
     }
 }
 ```
 
 **Key conventions:**
 
-- Annotate class with `@Factory`
+- Annotate the class with `@Singleton`
 - Inject `ConfigParser`
-- Method annotated with `@Singleton` returns the sealed config type
-- Create a mutable error list
-- Parse each property in a try-catch block
-- Add errors to the list instead of failing immediately
-- Use `!!` operator only when errors list is confirmed empty
-- Return `Enabled*Config` if no errors, otherwise `Disabled*Config`
+- Define a `ParsedXxxConfig` data class with **nullable fields** (null = parse error)
+- Use `ctx.parse { }` to wrap every `ConfigParser` call — errors are accumulated automatically
+- **Never validate** values (no range checks, no cross-domain references)
+- **Never reference** other config domains
+- Template resolution (looking up a named template and merging values) belongs in the parser
+
+### Parsing Collections
+
+When parsing lists of items, use `mapIndexedNotNull` with `ctx.parse { }`:
+
+```kotlin
+fun parseAllowedRedirectUris(
+    ctx: ConfigParsingContext,
+    uris: List<String>?,
+    configKeyPrefix: String
+): List<URI>? {
+    val childCtx = ctx.child()
+    val result = uris?.mapIndexedNotNull { index, uri ->
+        childCtx.parse {
+            parser.getAbsoluteUriOrThrow(uri, "$configKeyPrefix.allowed-redirect-uris[$index]") { it }
+        }
+    }
+    ctx.merge(childCtx)
+    return if (childCtx.hasErrors) null else result
+}
+```
+
+Use `ctx.child()` to isolate collection errors, then `ctx.merge()` to bubble them up. Include the array index in the
+error key: `allowed-redirect-uris[$index]`.
 
 ### ConfigParser Methods
 
@@ -359,76 +423,201 @@ The `ConfigParser` singleton provides type-safe parsing methods:
 - Enum constant: `MY_ENUM_VALUE`
 - Config value: `my-enum-value` (lowercase with hyphens)
 
-## Validating Collections
+## Step 4: Create the Validator
 
-When parsing lists or arrays, validate each item and collect all errors:
+The validator is a `@Singleton` bean responsible for all validation logic. It receives the parsed intermediate
+data class and validates both intra-domain constraints and cross-domain references. It returns the final business
+models.
 
 ```kotlin
-private fun getAllowedRedirectUris(
-    properties: ClientConfigurationProperties,
-    allowedRedirectUris: List<String>?,
-    errors: MutableList<ConfigurationException>
-): List<URI>? {
-    val listErrors = mutableListOf<ConfigurationException>()
+package com.sympauthy.config.validation
 
-    val uris = allowedRedirectUris?.mapIndexedNotNull { index, uri ->
-        try {
-            parser.getAbsoluteUriOrThrow(
-                uri,
-                "$CLIENTS_KEY.${properties.id}.allowed-redirect-uris[$index]"
-            ) { it }
-        } catch (e: ConfigurationException) {
-            listErrors.add(e)
-            null
+import com.sympauthy.config.ConfigParsingContext
+import com.sympauthy.config.exception.configExceptionOf
+import com.sympauthy.config.parsing.ParsedEmailConfig
+import jakarta.inject.Singleton
+
+@Singleton
+class EmailConfigValidator {
+    fun validate(
+        ctx: ConfigParsingContext,
+        parsed: ParsedEmailConfig
+    ) {
+        // Example: validate smtp port is in valid range
+        val port = parsed.smtpPort
+        if (port != null && (port < 1 || port > 65535)) {
+            ctx.addError(
+                configExceptionOf(
+                    "email.smtp-port",
+                    "config.email.smtp_port.out_of_range",
+                    "port" to port.toString()
+                )
+            )
         }
-    }
-
-    return if (listErrors.isEmpty()) {
-        uris
-    } else {
-        errors.addAll(listErrors)
-        null
     }
 }
 ```
 
 **Key conventions:**
 
-- Use `mapIndexedNotNull` to process items
-- Include array index in error key: `allowed-redirect-uris[$index]`
-- Create a separate error list for the collection
-- Return null if any errors occurred
+- Annotate the class with `@Singleton`
+- Use `ctx.addError()` to accumulate validation errors
+- **Intra-domain validation:** value ranges, consistency checks, power-of-2 checks, algorithm compatibility, etc.
+- **Cross-domain validation:** audience exists, scope exists, identifier claim is enabled, etc.
+- For cross-domain references, accept resolved maps as parameters (e.g., `audiencesById: Map<String, Audience>`)
 
-## Handling Optional Features
+### Cross-Domain Validation
 
-For features that can be disabled, check an `enabled` flag first:
+When a config references another config domain (e.g., a client referencing an audience), the validator receives
+the resolved map and checks the reference:
 
 ```kotlin
 @Singleton
-fun provideEmailConfig(
-    properties: EmailConfigurationProperties
-): EmailConfig {
-    val errors = mutableListOf<ConfigurationException>()
-
-    // Check if feature is enabled
-    val enabled = try {
-        parser.getBoolean(
-            properties,
-            "$EMAIL_KEY.enabled",
-            EmailConfigurationProperties::enabled
-        ) ?: false
-    } catch (e: ConfigurationException) {
-        errors.add(e)
-        false
+class ClientsConfigValidator {
+    fun validate(
+        ctx: ConfigParsingContext,
+        parsed: List<ParsedClient>,
+        audiencesById: Map<String, Audience>
+    ): List<Client> {
+        return parsed.mapNotNull { client ->
+            // Validate audience cross-reference using shared helper
+            val audienceId = validateAudienceId(
+                ctx, client.audienceId, audiencesById,
+                "clients.${client.id}.audience",
+                "config.client.audience.not_found"
+            )
+            // ... build final model
+        }
     }
-
-    if (!enabled) {
-        return DisabledEmailConfig(emptyList())
-    }
-
-    // Continue with required field validation...
 }
 ```
+
+### Shared Validation Helpers
+
+For validation logic reused across multiple validators (e.g., audience reference checks), use top-level functions
+in `com.sympauthy.config.validation`:
+
+```kotlin
+package com.sympauthy.config.validation
+
+fun validateAudienceId(
+    ctx: ConfigParsingContext,
+    audienceId: String?,
+    audiencesById: Map<String, Audience>,
+    configKey: String,
+    notFoundMessageId: String
+): String? {
+    if (audienceId == null) return null
+    if (audienceId !in audiencesById) {
+        ctx.addError(
+            configExceptionOf(configKey, notFoundMessageId,
+                "audience" to audienceId,
+                "availableAudiences" to audiencesById.keys.joinToString(", ")
+            )
+        )
+        return null
+    }
+    return audienceId
+}
+```
+
+## Step 5: Create the Factory
+
+The factory is a thin orchestration layer. It creates a `ConfigParsingContext`, calls the parser, calls the
+validator, and assembles the appropriate config variant.
+
+```kotlin
+package com.sympauthy.config.factory
+
+import com.sympauthy.config.ConfigParsingContext
+import com.sympauthy.config.model.*
+import com.sympauthy.config.parsing.EmailConfigParser
+import com.sympauthy.config.properties.EmailConfigurationProperties
+import com.sympauthy.config.validation.EmailConfigValidator
+import io.micronaut.context.annotation.Factory
+import jakarta.inject.Inject
+import jakarta.inject.Singleton
+
+@Factory
+class EmailConfigFactory(
+    @Inject private val emailParser: EmailConfigParser,
+    @Inject private val emailValidator: EmailConfigValidator
+) {
+
+    @Singleton
+    fun provideEmailConfig(
+        properties: EmailConfigurationProperties
+    ): EmailConfig {
+        val ctx = ConfigParsingContext()
+        val parsed = emailParser.parse(ctx, properties)
+
+        if (parsed.enabled != true) {
+            return DisabledEmailConfig(emptyList())
+        }
+
+        emailValidator.validate(ctx, parsed)
+
+        return if (ctx.hasErrors) {
+            DisabledEmailConfig(ctx.errors)
+        } else {
+            EnabledEmailConfig(
+                smtpHost = parsed.smtpHost!!,
+                smtpPort = parsed.smtpPort!!,
+                username = parsed.username!!,
+                password = parsed.password!!,
+                fromAddress = parsed.fromAddress!!,
+                timeout = parsed.timeout!!
+            )
+        }
+    }
+}
+```
+
+**Key conventions:**
+
+- Annotate class with `@Factory`
+- Inject the parser and validator (not `ConfigParser` directly)
+- Method annotated with `@Singleton` returns the sealed config type
+- Create a `ConfigParsingContext`
+- Call `parser.parse(ctx, properties)`
+- Call `validator.validate(ctx, parsed)`
+- Use `!!` operator only when `ctx.hasErrors` is confirmed false
+- Return `Enabled*Config` if no errors, otherwise `Disabled*Config`
+
+### Factories with Cross-Domain Dependencies
+
+When a config depends on other config domains, inject them and pass the resolved data to the validator:
+
+```kotlin
+@Factory
+class ScopeConfigFactory(
+    @Inject private val scopeParser: ScopeConfigParser,
+    @Inject private val scopeValidator: ScopeConfigValidator,
+    @Inject private val scopeTemplatesConfig: ScopeTemplatesConfig,
+    @Inject private val audiencesConfig: AudiencesConfig
+) {
+
+    @Singleton
+    fun provideScopesConfig(
+        propertiesList: List<ScopeConfigurationProperties>
+    ): ScopesConfig {
+        val enabledTemplatesConfig = scopeTemplatesConfig.orNull()
+            ?: return DisabledScopesConfig(emptyList())
+        val enabledAudiencesConfig = audiencesConfig as? EnabledAudiencesConfig
+            ?: return DisabledScopesConfig(emptyList())
+
+        val ctx = ConfigParsingContext()
+        val parsed = scopeParser.parse(ctx, propertiesList, enabledTemplatesConfig.templates)
+        val scopes = scopeValidator.validate(
+            ctx, parsed, enabledAudiencesConfig.audiences.associateBy { it.id }
+        )
+        return if (ctx.hasErrors) DisabledScopesConfig(ctx.errors)
+        else EnabledScopesConfig(scopes)
+    }
+}
+```
+
+If a dependency is disabled, the factory can return a disabled config immediately without parsing.
 
 ## Throwing Configuration Exceptions
 
@@ -450,6 +639,8 @@ throw configExceptionOf(
 - Include the full configuration key path
 - Use a localized message ID (defined in `error_messages.properties`)
 - Pass contextual values as key-value pairs for message interpolation
+
+In validators, prefer `ctx.addError(configExceptionOf(...))` over `throw` to continue accumulating errors.
 
 ## Complete Example
 
@@ -511,129 +702,141 @@ fun EmailConfig.orThrow(): EnabledEmailConfig {
 }
 ```
 
-### 3. Factory (`EmailConfigFactory.kt`)
+### 3. Parser (`EmailConfigParser.kt`)
+
+```kotlin
+package com.sympauthy.config.parsing
+
+import com.sympauthy.config.ConfigParser
+import com.sympauthy.config.ConfigParsingContext
+import com.sympauthy.config.properties.EmailConfigurationProperties
+import com.sympauthy.config.properties.EmailConfigurationProperties.Companion.EMAIL_KEY
+import jakarta.inject.Singleton
+import java.time.Duration
+
+data class ParsedEmailConfig(
+    val enabled: Boolean?,
+    val smtpHost: String?,
+    val smtpPort: Int?,
+    val username: String?,
+    val password: String?,
+    val fromAddress: String?,
+    val timeout: Duration?
+)
+
+@Singleton
+class EmailConfigParser(
+    private val parser: ConfigParser
+) {
+    fun parse(
+        ctx: ConfigParsingContext,
+        properties: EmailConfigurationProperties
+    ): ParsedEmailConfig {
+        val enabled = ctx.parse {
+            parser.getBoolean(properties, "$EMAIL_KEY.enabled", EmailConfigurationProperties::enabled)
+        } ?: false
+        val smtpHost = ctx.parse {
+            parser.getStringOrThrow(properties, "$EMAIL_KEY.smtp-host", EmailConfigurationProperties::smtpHost)
+        }
+        val smtpPort = ctx.parse {
+            parser.getIntOrThrow(properties, "$EMAIL_KEY.smtp-port", EmailConfigurationProperties::smtpPort)
+        }
+        val username = ctx.parse {
+            parser.getStringOrThrow(properties, "$EMAIL_KEY.username", EmailConfigurationProperties::username)
+        }
+        val password = ctx.parse {
+            parser.getStringOrThrow(properties, "$EMAIL_KEY.password", EmailConfigurationProperties::password)
+        }
+        val fromAddress = ctx.parse {
+            parser.getStringOrThrow(properties, "$EMAIL_KEY.from-address", EmailConfigurationProperties::fromAddress)
+        }
+        val timeout = ctx.parse {
+            parser.getDurationOrThrow(properties, "$EMAIL_KEY.timeout", EmailConfigurationProperties::timeout)
+        }
+        return ParsedEmailConfig(
+            enabled = enabled,
+            smtpHost = smtpHost,
+            smtpPort = smtpPort,
+            username = username,
+            password = password,
+            fromAddress = fromAddress,
+            timeout = timeout
+        )
+    }
+}
+```
+
+### 4. Validator (`EmailConfigValidator.kt`)
+
+```kotlin
+package com.sympauthy.config.validation
+
+import com.sympauthy.config.ConfigParsingContext
+import com.sympauthy.config.parsing.ParsedEmailConfig
+import jakarta.inject.Singleton
+
+@Singleton
+class EmailConfigValidator {
+    fun validate(
+        ctx: ConfigParsingContext,
+        parsed: ParsedEmailConfig
+    ) {
+        // Add validation rules here as needed.
+        // Example: ctx.addError(configExceptionOf(...))
+    }
+}
+```
+
+### 5. Factory (`EmailConfigFactory.kt`)
 
 ```kotlin
 package com.sympauthy.config.factory
 
-import com.sympauthy.config.ConfigParser
-import com.sympauthy.config.exception.ConfigurationException
+import com.sympauthy.config.ConfigParsingContext
 import com.sympauthy.config.model.*
+import com.sympauthy.config.parsing.EmailConfigParser
 import com.sympauthy.config.properties.EmailConfigurationProperties
-import com.sympauthy.config.properties.EmailConfigurationProperties.Companion.EMAIL_KEY
+import com.sympauthy.config.validation.EmailConfigValidator
 import io.micronaut.context.annotation.Factory
 import jakarta.inject.Inject
 import jakarta.inject.Singleton
 
 @Factory
 class EmailConfigFactory(
-    @Inject private val parser: ConfigParser
+    @Inject private val emailParser: EmailConfigParser,
+    @Inject private val emailValidator: EmailConfigValidator
 ) {
 
     @Singleton
     fun provideEmailConfig(
         properties: EmailConfigurationProperties
     ): EmailConfig {
-        val errors = mutableListOf<ConfigurationException>()
+        val ctx = ConfigParsingContext()
+        val parsed = emailParser.parse(ctx, properties)
 
-        val enabled = try {
-            parser.getBoolean(
-                properties,
-                "$EMAIL_KEY.enabled",
-                EmailConfigurationProperties::enabled
-            ) ?: false
-        } catch (e: ConfigurationException) {
-            errors.add(e)
-            false
-        }
-
-        if (!enabled) {
+        if (parsed.enabled != true) {
             return DisabledEmailConfig(emptyList())
         }
 
-        val smtpHost = try {
-            parser.getStringOrThrow(
-                properties,
-                "$EMAIL_KEY.smtp-host",
-                EmailConfigurationProperties::smtpHost
-            )
-        } catch (e: ConfigurationException) {
-            errors.add(e)
-            null
-        }
+        emailValidator.validate(ctx, parsed)
 
-        val smtpPort = try {
-            parser.getIntOrThrow(
-                properties,
-                "$EMAIL_KEY.smtp-port",
-                EmailConfigurationProperties::smtpPort
-            )
-        } catch (e: ConfigurationException) {
-            errors.add(e)
-            null
-        }
-
-        val username = try {
-            parser.getStringOrThrow(
-                properties,
-                "$EMAIL_KEY.username",
-                EmailConfigurationProperties::username
-            )
-        } catch (e: ConfigurationException) {
-            errors.add(e)
-            null
-        }
-
-        val password = try {
-            parser.getStringOrThrow(
-                properties,
-                "$EMAIL_KEY.password",
-                EmailConfigurationProperties::password
-            )
-        } catch (e: ConfigurationException) {
-            errors.add(e)
-            null
-        }
-
-        val fromAddress = try {
-            parser.getStringOrThrow(
-                properties,
-                "$EMAIL_KEY.from-address",
-                EmailConfigurationProperties::fromAddress
-            )
-        } catch (e: ConfigurationException) {
-            errors.add(e)
-            null
-        }
-
-        val timeout = try {
-            parser.getDurationOrThrow(
-                properties,
-                "$EMAIL_KEY.timeout",
-                EmailConfigurationProperties::timeout
-            )
-        } catch (e: ConfigurationException) {
-            errors.add(e)
-            null
-        }
-
-        return if (errors.isEmpty()) {
-            EnabledEmailConfig(
-                smtpHost = smtpHost!!,
-                smtpPort = smtpPort!!,
-                username = username!!,
-                password = password!!,
-                fromAddress = fromAddress!!,
-                timeout = timeout!!
-            )
+        return if (ctx.hasErrors) {
+            DisabledEmailConfig(ctx.errors)
         } else {
-            DisabledEmailConfig(errors)
+            EnabledEmailConfig(
+                smtpHost = parsed.smtpHost!!,
+                smtpPort = parsed.smtpPort!!,
+                username = parsed.username!!,
+                password = parsed.password!!,
+                fromAddress = parsed.fromAddress!!,
+                timeout = parsed.timeout!!
+            )
         }
     }
 }
 ```
 
-### 4. YAML Configuration
+### 6. YAML Configuration
 
 ```yaml
 email:
@@ -646,7 +849,7 @@ email:
   timeout: "30s"
 ```
 
-### 5. Usage
+### 7. Usage
 
 ```kotlin
 @Singleton
@@ -678,12 +881,22 @@ To create a new configuration in SympAuthy:
     - Enabled variant has properly typed, non-nullable fields
     - Add `.orThrow()` extension function
 
-3. **Create factory** in `com.sympauthy.config.factory`
-    - Use `ConfigParser` to parse and validate
-    - Collect all errors before failing
-    - Return appropriate variant
+3. **Create parser** in `com.sympauthy.config.parsing`
+    - `@Singleton` bean, injects `ConfigParser`
+    - Define a `ParsedXxxConfig` data class with nullable fields
+    - Use `ctx.parse { }` to wrap every `ConfigParser` call
+    - Only type conversion and template resolution — no validation, no cross-domain references
 
-This pattern ensures early validation, comprehensive error reporting, and type-safe configuration access throughout the
-application.
+4. **Create validator** in `com.sympauthy.config.validation`
+    - `@Singleton` bean
+    - Use `ctx.addError()` for validation errors
+    - Validate intra-domain constraints and cross-domain references
+    - Accept resolved maps for cross-domain data (e.g., `audiencesById: Map<String, Audience>`)
 
+5. **Create factory** in `com.sympauthy.config.factory`
+    - `@Factory` bean, injects parser and validator
+    - Thin orchestration: create `ConfigParsingContext`, call parser, call validator, assemble result
+    - Return appropriate Enabled/Disabled variant
 
+This pattern ensures early validation, comprehensive error reporting, clean separation of concerns, and type-safe
+configuration access throughout the application.
