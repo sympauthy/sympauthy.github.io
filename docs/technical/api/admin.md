@@ -34,14 +34,14 @@ Everything is ready out of the box — no secret to configure.
 Admin scopes follow the naming convention `admin:{domain}:{action}`, providing fine-grained control so operators can
 grant only the minimum necessary privileges.
 
-| Scope                  | Description                                             |
-|------------------------|---------------------------------------------------------|
-| `admin:config:read`    | List and view configuration resources (clients, claims) |
-| `admin:users:read`     | List and view users                                     |
-| `admin:users:write`    | Create, update, disable, enable users                   |
-| `admin:users:delete`   | Delete users (separated for GDPR sensitivity)           |
-| `admin:consent:read`   | View consents                                           |
-| `admin:consent:write`  | Revoke consents, force logout                           |
+| Scope                  | Description                                                                |
+|------------------------|----------------------------------------------------------------------------|
+| `admin:config:read`    | List and view configuration resources (audiences, clients, claims, scopes) |
+| `admin:users:read`     | List and view users                                                        |
+| `admin:users:write`    | Create, update, disable, enable users                                      |
+| `admin:users:delete`   | Delete users (separated for GDPR sensitivity)                              |
+| `admin:consent:read`   | View consents                                                              |
+| `admin:consent:write`  | Revoke consents, force logout                                              |
 
 The `admin:users:delete` scope is intentionally separated from `admin:users:write` because user deletion is an
 irreversible operation with GDPR implications and should require explicit authorization.
@@ -136,10 +136,10 @@ The required scope for each endpoint is documented in the [Endpoints](#endpoints
 
 ## Endpoints
 
-> **Work in progress** — [Client Management](#client-management) and [Claim Management](#claim-management) endpoints
-> are implemented. The remaining endpoints below are planned but not yet implemented. The paths and response formats
-> shown are preliminary and may change. See [GitHub issue #109](https://github.com/sympauthy/sympauthy/issues/109)
-> for progress.
+> **Work in progress** — [Client Management](#client-management), [Claim Management](#claim-management),
+> [Scope Management](#scope-management), and [Audience Management](#audience-management) endpoints are implemented.
+> The remaining endpoints below are planned but not yet implemented. The paths and response formats shown are
+> preliminary and may change. See [GitHub issue #109](https://github.com/sympauthy/sympauthy/issues/109) for progress.
 
 ### Client Management
 
@@ -463,6 +463,108 @@ Endpoints for viewing configured scopes. Since scopes are defined in configurati
 - Auditing which scopes are enabled and how they are categorized
 - Reviewing which claims are protected by each consentable scope
 - Filtering scopes by type to inspect admin, client, or user-facing permissions separately
+
+---
+
+### Audience Management
+
+Endpoints for viewing configured [audiences](/functional/audience). Since audiences are defined in configuration files
+(not in a database), these endpoints expose them as read-only resources — following the same pattern as
+[Client Management](#client-management), [Claim Management](#claim-management), and
+[Scope Management](#scope-management). Requires the `admin:config:read` scope.
+
+#### List Audiences
+
+**Path**: `/api/v1/admin/audiences`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:config:read` scope
+
+**Purpose**: Retrieves a paginated list of all configured audiences.
+
+**Query Parameters**:
+
+- `page` (optional): Zero-indexed page number (default: `0`)
+- `size` (optional): Number of results per page (default: `20`)
+
+**Response Format**:
+
+```json
+{
+  "audiences": [
+    {
+      "audience_id": "my-app",
+      "token_audience": "my-app"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "total": 1
+}
+```
+
+**Properties**:
+
+- `audiences`: Array of audience records
+    - `audience_id`: Unique identifier of the audience, as defined in the [configuration](/technical/configuration/audience)
+    - `token_audience`: Value used as the [`aud`](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3) claim in access and refresh tokens issued for clients belonging to this audience. Defaults to the audience identifier when not explicitly configured
+- `page`: Current page number
+- `size`: Number of results per page
+- `total`: Total number of audiences
+
+**Use Cases**:
+
+- Admin dashboard listing all configured audiences and their token audience values
+- Verifying which `aud` claim value will appear in tokens for a given audience
+- Auditing audience configurations without accessing configuration files directly
+
+---
+
+#### Get Audience Details
+
+**Path**: `/api/v1/admin/audiences/{audienceId}`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:config:read` scope
+
+**Purpose**: Retrieves details for a specific audience.
+
+**Path Parameters**:
+
+- `audienceId`: Unique identifier of the audience
+
+**Response Format**:
+
+`200 OK`:
+
+```json
+{
+  "audience_id": "my-app",
+  "token_audience": "my-app"
+}
+```
+
+`404 Not Found`:
+
+```json
+{
+  "error": "not_found",
+  "error_description": "No audience found with id: my-app"
+}
+```
+
+**Properties**:
+
+- `audience_id`: Unique identifier of the audience, as defined in the [configuration](/technical/configuration/audience)
+- `token_audience`: Value used as the [`aud`](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3) claim in access and refresh tokens issued for clients belonging to this audience. Defaults to the audience identifier when not explicitly configured
+
+**Use Cases**:
+
+- Verify the token audience value for a specific audience in an admin dashboard
+- Confirm an audience exists and inspect its configuration
+- Look up the `aud` claim value that will appear in tokens issued for a specific audience
 
 ---
 
