@@ -1181,7 +1181,7 @@ and `admin:consent:write` for modifications.
   "consents": [
     {
       "audience_id": "my-app",
-      "client_id": "my-web-app",
+      "prompted_by_client_id": "my-web-app",
       "scopes": [
         "profile",
         "email"
@@ -1190,7 +1190,7 @@ and `admin:consent:write` for modifications.
     },
     {
       "audience_id": "backoffice",
-      "client_id": "backoffice-app",
+      "prompted_by_client_id": "backoffice-app",
       "scopes": [
         "email"
       ],
@@ -1207,7 +1207,7 @@ and `admin:consent:write` for modifications.
 
 - `consents`: Array of active consent records
     - `audience_id`: Identifier of the [audience](/functional/audience) that received consent
-    - `client_id`: Identifier of the client that originally prompted consent (kept for audit)
+    - `prompted_by_client_id`: Identifier of the client that originally prompted consent (kept for audit)
     - `scopes`: List of scopes the user has consented to for this audience
     - `consented_at`: ISO 8601 timestamp (UTC) when consent was granted
 - `page`: Current page number
