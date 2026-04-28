@@ -11,8 +11,9 @@ All Admin API endpoints are under `/api/v1/admin/` and require authentication wi
 SympAuthy provides a dedicated `admin` [Micronaut environment](/technical/configuration/environments) that
 pre-configures everything needed to use the Admin API:
 
-- All admin scopes listed in the [Admin Scopes](#admin-scopes) table below
-- A default `admin` client with all admin scopes in its `allowed-scopes`
+- An `admin` [audience](/functional/audience) that admin scopes are bound to
+- All admin scopes listed in the [Admin Scopes](#admin-scopes) table below, restricted to the `admin` audience
+- A default `admin` client in the `admin` audience with all admin scopes in its `allowed-scopes`
 
 To activate the admin environment, include `admin` in the `MICRONAUT_ENVIRONMENTS` variable:
 
@@ -24,8 +25,10 @@ The default admin client is a [public client](/functional/client#confidential-an
 uses [PKCE](/technical/security#pkce-proof-key-for-code-exchange) instead of a client secret.
 Everything is ready out of the box — no secret to configure.
 
-> You can also configure admin access manually without using the `admin` environment. Add the desired admin scopes
-> to any client's `allowed-scopes` in the [configuration](/technical/configuration/client) and mark it as a
+> You can also configure admin access manually without using the `admin` environment. Set
+> [`admin.audience`](/technical/configuration/admin) to an existing audience, add the desired admin scopes
+> to a client's `allowed-scopes` in the [configuration](/technical/configuration/client), and ensure the client
+> belongs to the same audience. Mark the client as a
 > [public client](/functional/client#confidential-and-public-clients) to use PKCE. This is useful if
 > you need multiple admin clients with different permission levels.
 

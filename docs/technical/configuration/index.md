@@ -65,6 +65,7 @@ urls:
 - [Environments](/technical/configuration/environments) — Micronaut environments for out-of-the-box configurations.
 - [Database](/technical/configuration/database) — Database connection (PostgreSQL, H2).
 - [Mail](/technical/configuration/mail) — Email / SMTP configuration.
+- [Admin](/technical/configuration/admin) — Admin API, integrated UI, and admin audience binding.
 - [Client](/technical/configuration/client) — OAuth client definitions.
 - [Audience](/technical/configuration/audience) — Audience grouping and token audience configuration.
 - [Authorization](/technical/configuration/authorization) — Authentication, authorization flows, MFA, and rules.

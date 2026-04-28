@@ -63,6 +63,7 @@ export default defineConfig({
                 { text: 'Environments', link: '/technical/configuration/environments' },
                 { text: 'Database', link: '/technical/configuration/database' },
                 { text: 'Mail', link: '/technical/configuration/mail' },
+                { text: 'Admin', link: '/technical/configuration/admin' },
                 { text: 'Client', link: '/technical/configuration/client' },
                 { text: 'Audience', link: '/technical/configuration/audience' },
                 { text: 'Authorization', link: '/technical/configuration/authorization' },

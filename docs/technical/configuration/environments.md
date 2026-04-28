@@ -8,6 +8,10 @@ well-crafted configurations out-of-the-box.
   It does not enable any feature that is considered unsecure.
 - [```by-mail```](https://github.com/sympauthy/sympauthy/blob/main/server/src/main/resources/application-by-mail.yml):
   Allow the end-user to sign in/sign-up using a login/password with the login being an email address.
+- [```admin```](https://github.com/sympauthy/sympauthy/blob/main/server/src/main/resources/application-admin.yml):
+  Enable the [Admin API](/technical/api/admin) and integrated admin UI. Creates an `admin`
+  [audience](/functional/audience), binds admin scopes to it, and pre-configures an `admin` client with all
+  admin scopes. See the [admin configuration](/technical/configuration/admin) for details.
 - [Well-known providers](/technical/well-known_providers):
   Pre-built configurations for common third-party providers (Google, Discord, etc.). Activating one by its environment
   name automatically configures the OAuth2 URLs, scopes, and claim mappings for that provider.

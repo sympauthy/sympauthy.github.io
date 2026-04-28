@@ -68,6 +68,11 @@ Admin scopes are grantable scopes defined by SympAuthy that protect operations o
 [Admin API](/technical/api/admin). They follow the naming convention `admin:{domain}:{action}`,
 providing fine-grained control so operators can grant only the minimum necessary privileges.
 
+Admin scopes are bound to the [audience](/functional/audience) configured in
+[`admin.audience`](/technical/configuration/admin). Only clients belonging to that audience can request
+or receive admin scopes. This prevents privilege escalation where a client in an unrelated audience could
+obtain administrative access.
+
 | Scope                  | Description                                        |
 |------------------------|----------------------------------------------------|
 | `admin:config:read`    | View configuration resources (clients, claims)     |
@@ -123,7 +128,8 @@ not supported — client scopes are defined exclusively by SympAuthy.
 Custom scopes can optionally be scoped to an **[audience](/functional/audience)** by setting the `audience` field
 in the scope configuration. When set, the scope only applies within that audience — clients in other audiences
 cannot request it. When `audience` is not set (the default), the scope is shared across all audiences. Built-in
-scopes (OpenID Connect, admin, and client scopes) are always unscoped.
+OpenID Connect and client scopes are always unscoped. Admin scopes are scoped to the audience configured in
+[`admin.audience`](/technical/configuration/admin).
 
 They can be declared either by configuration or by API.
 

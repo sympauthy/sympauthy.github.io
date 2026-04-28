@@ -45,9 +45,10 @@ they only apply within that audience — clients in other audiences cannot reque
 
 When `audience` is not set (the default), the scope or claim is shared across all audiences.
 
-Built-in scopes — [OpenID Connect](/functional/scope#openid-connect-scopes),
-[admin](/functional/scope#admin-scopes), and [client](/functional/scope#client-scope) scopes — are always
-unscoped and available to all audiences.
+Built-in [OpenID Connect](/functional/scope#openid-connect-scopes) and
+[client](/functional/scope#client-scope) scopes are always unscoped and available to all audiences.
+[Admin scopes](/functional/scope#admin-scopes) are scoped to the audience configured in
+[`admin.audience`](/technical/configuration/admin).
 
 ## Token audience
 
