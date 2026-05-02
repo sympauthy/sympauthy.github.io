@@ -69,6 +69,7 @@ urls:
 - [Client](/technical/configuration/client) — OAuth client definitions.
 - [Audience](/technical/configuration/audience) — Audience grouping and token audience configuration.
 - [Authorization](/technical/configuration/authorization) — Authentication, authorization flows, MFA, and rules.
+- [Invitation](/technical/configuration/invitation) — Bootstrap invitations declared in configuration.
 - [Provider](/technical/configuration/provider) — Third-party authentication provider configuration (OIDC, OAuth2).
 - [Claim](/technical/configuration/claim) — Claim collection configuration.
 - [Scope](/technical/configuration/scope) — Scope configuration.

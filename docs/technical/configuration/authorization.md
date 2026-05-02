@@ -70,13 +70,14 @@ The flow may be completely customized and served by a completely different serve
 > URI, the origin (`scheme://host:port`) is extracted and whitelisted. Requests from any other origin are refused. See
 > the [Security](/technical/security#cors-restriction-on-the-flow-api) documentation for details.
 
-| Key                      | Type | Description                                                                                                           | Required<br>Default |
-|--------------------------|------|-----------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```sign-in```            | uri  | The URL where the end-user will be enabled to sign-in using any supported methods (password or third party providers) | YES<br>/sign-in     |
-| ```mfa```                | uri  | The URL of the MFA router/method-selection page.                                                                      | NO                  |
-| ```mfa-totp-enroll```    | uri  | The URL of the TOTP enrollment page.                                                                                  | NO                  |
-| ```mfa-totp-challenge``` | uri  | The URL of the TOTP challenge page.                                                                                   | NO                  |
-| ```error```              | uri  | The URL where the end-user will be redirected if an error occurs during the authentication.                           | YES<br>/error       |
+| Key                      | Type | Description                                                                                                                                                                                                       | Required<br>Default |
+|--------------------------|------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
+| ```error```              | uri  | The URL where the end-user will be redirected if an error occurs during the authentication.                                                                                                                       | YES<br>/error       |
+| ```mfa```                | uri  | The URL of the MFA router/method-selection page.                                                                                                                                                                  | NO                  |
+| ```mfa-totp-challenge``` | uri  | The URL of the TOTP challenge page.                                                                                                                                                                               | NO                  |
+| ```mfa-totp-enroll```    | uri  | The URL of the TOTP enrollment page.                                                                                                                                                                              | NO                  |
+| ```sign-in```            | uri  | The URL where the end-user will be enabled to sign-in using any supported methods (password or third party providers).                                                                                            | YES<br>/sign-in     |
+| ```sign-up```            | uri  | The URL of the sign-up page. Required when [`sign-up-enabled`](/technical/configuration/audience) or [`invitation-enabled`](/technical/configuration/audience) is `true` on any [audience](/functional/audience). | NO                  |
 
 > The `mfa`, `mfa-totp-enroll`, and `mfa-totp-challenge` URLs are required when [`mfa.totp.enabled`](#mfa) is `true`.
 > SympAuthy validates this at startup and fails fast if they are missing.

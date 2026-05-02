@@ -46,6 +46,7 @@ export default defineConfig({
             { text: 'User Authorization', link: '/functional/user_authorization' },
             { text: 'Client Authorization', link: '/functional/client_authorization' },
             { text: 'Consent', link: '/functional/consent' },
+            { text: 'Invitation', link: '/functional/invitation' },
             { text: 'End-User Management', link: '/functional/end-user_management' },
           ]
         }
@@ -67,6 +68,7 @@ export default defineConfig({
                 { text: 'Client', link: '/technical/configuration/client' },
                 { text: 'Audience', link: '/technical/configuration/audience' },
                 { text: 'Authorization', link: '/technical/configuration/authorization' },
+                { text: 'Invitation', link: '/technical/configuration/invitation' },
                 { text: 'Provider', link: '/technical/configuration/provider' },
                 { text: 'Claim', link: '/technical/configuration/claim' },
                 { text: 'Scope', link: '/technical/configuration/scope' },

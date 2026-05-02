@@ -15,6 +15,11 @@ before they can proceed.
 user's basic information (name, email, etc.) from the provider and uses it to create the account automatically. No
 password is needed.
 
+**With an [invitation](/functional/invitation)**, an administrator or client application creates a single-use
+invitation token and shares it with the intended user. The user redeems the token during the authorize flow and
+then registers through the normal sign-up process. Invitations allow self-registration even when open sign-up is
+disabled on the [audience](/functional/audience).
+
 Once the account exists, the user can sign back in at any time using the same method — or any other enabled method
 that uses the same email address.
 

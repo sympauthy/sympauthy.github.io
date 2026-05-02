@@ -37,14 +37,16 @@ Everything is ready out of the box — no secret to configure.
 Admin scopes follow the naming convention `admin:{domain}:{action}`, providing fine-grained control so operators can
 grant only the minimum necessary privileges.
 
-| Scope                  | Description                                                                |
-|------------------------|----------------------------------------------------------------------------|
-| `admin:config:read`    | List and view configuration resources (audiences, clients, claims, scopes) |
-| `admin:users:read`     | List and view users                                                        |
-| `admin:users:write`    | Create, update, disable, enable users                                      |
-| `admin:users:delete`   | Delete users (separated for GDPR sensitivity)                              |
-| `admin:consent:read`   | View consents                                                              |
-| `admin:consent:write`  | Revoke consents, force logout                                              |
+| Scope                       | Description                                                                |
+|-----------------------------|----------------------------------------------------------------------------|
+| `admin:config:read`         | List and view configuration resources (audiences, clients, claims, scopes) |
+| `admin:consent:read`        | View consents                                                              |
+| `admin:consent:write`       | Revoke consents, force logout                                              |
+| `admin:invitations:read`    | List and view [invitations](/functional/invitation)                        |
+| `admin:invitations:write`   | Create and revoke [invitations](/functional/invitation)                    |
+| `admin:users:read`          | List and view users                                                        |
+| `admin:users:write`         | Create, update, disable, enable users                                      |
+| `admin:users:delete`        | Delete users (separated for GDPR sensitivity)                              |
 
 The `admin:users:delete` scope is intentionally separated from `admin:users:write` because user deletion is an
 irreversible operation with GDPR implications and should require explicit authorization.
@@ -1372,4 +1374,283 @@ new tokens can be obtained.
 - Respond to user requests to disconnect an application
 - Enforce access policies during security incidents
 
+---
+
+### Invitation Management
+
+Endpoints for creating, viewing, and revoking [invitations](/functional/invitation). Invitations allow
+invitation-only registration for [audiences](/functional/audience) where open sign-up is disabled.
+Requires `admin:invitations:read` for read operations and `admin:invitations:write` for creation and revocation.
+
+The admin API can see and manage all invitations regardless of who created them (admin or client).
+
+#### Create Invitation
+
+**Path**: `/api/v1/admin/invitations`
+
+**Method**: POST
+
+**Authentication**: Bearer token with `admin:invitations:write` scope
+
+**Purpose**: Creates a single-use invitation for a specific audience. The invitation token is returned only in this
+response — it cannot be retrieved later.
+
+**Request Format**:
+
+```json
+{
+  "audience": "default",
+  "expires_at": "2026-04-15T00:00:00Z",
+  "claims": {
+    "custom_department": "Engineering",
+    "role": "admin"
+  },
+  "note": "Onboarding Jane from the Engineering team"
+}
+```
+
+**Properties**:
+
+- `audience` (required): The [audience](/functional/audience) the invitation is bound to. When the invitation is
+  redeemed, the requesting client must belong to this audience.
+- `expires_at` (optional): Expiration date as an ISO 8601 timestamp (UTC). Defaults to
+  `now + default-expiration`. Capped at `now + max-expiration`. See
+  [advanced configuration](/technical/configuration/advanced#advanced-invitation) for these values.
+- `claims` (optional): Custom [claim](/functional/claims) values to pre-set on the user's account upon
+  registration. Only custom claims are accepted — OpenID Connect claims must come from the user. Unlike the
+  [Client API](/technical/api/client#create-invitation), admin invitations skip the claim
+  [ACL](/technical/configuration/claim#claims-id-acl) check — any enabled custom claim can be pre-assigned.
+- `note` (optional): Admin-only note attached to the invitation.
+
+**Response Format**:
+
+`201 Created`:
+
+```json
+{
+  "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "token": "dGhpcyBpcyBhIHNlY3VyZSByYW5kb20gdG9rZW4",
+  "audience": "default",
+  "status": "pending",
+  "claims": {
+    "custom_department": "Engineering",
+    "role": "admin"
+  },
+  "note": "Onboarding Jane from the Engineering team",
+  "created_at": "2026-03-28T10:00:00Z",
+  "expires_at": "2026-04-04T10:00:00Z"
+}
+```
+
+**Properties**:
+
+- `invitation_id`: Unique identifier of the invitation
+- `token`: The invitation token. **Returned only at creation** — subsequent reads show `token_prefix` instead.
+  The client application is responsible for building the authorize URL with the `invitation_token` parameter.
+- `audience`: Audience identifier the invitation is bound to
+- `status`: Invitation status (`pending`)
+- `claims`: Pre-assigned custom claims, or `null` if none
+- `note`: Admin note, or `null` if none
+- `created_at`: ISO 8601 timestamp (UTC) when the invitation was created
+- `expires_at`: ISO 8601 timestamp (UTC) when the invitation expires
+
+**Use Cases**:
+
+- Invite specific people to register for a closed-registration audience
+- Pre-assign roles or department claims during onboarding
+- Create time-limited invitations for contractors or temporary team members
+
+---
+
+#### List Invitations
+
+**Path**: `/api/v1/admin/invitations`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:invitations:read` scope
+
+**Purpose**: Retrieves a paginated list of all invitations across all audiences and creators.
+
+**Query Parameters**:
+
+- `page` (optional): Zero-indexed page number (default: `0`)
+- `size` (optional): Number of results per page (default: `20`)
+- `status` (optional): Filter by invitation status (`pending`, `used`, `revoked`, `expired`)
+- `audience` (optional): Filter by audience identifier
+
+**Response Format**:
+
+```json
+{
+  "invitations": [
+    {
+      "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "token_prefix": "dGhpcyBp",
+      "audience": "default",
+      "status": "pending",
+      "claims": {
+        "custom_department": "Engineering",
+        "role": "admin"
+      },
+      "note": "Onboarding Jane from the Engineering team",
+      "created_at": "2026-03-28T10:00:00Z",
+      "expires_at": "2026-04-04T10:00:00Z"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "total": 1
+}
+```
+
+**Properties**:
+
+- `invitations`: Array of invitation records
+    - `invitation_id`: Unique identifier of the invitation
+    - `token_prefix`: First 8 characters of the token, for identification purposes. The full token is never
+      returned after creation.
+    - `audience`: Audience identifier
+    - `status`: Invitation status. Possible values: `"pending"` | `"used"` | `"revoked"` | `"expired"`
+    - `claims`: Pre-assigned custom claims, or `null`
+    - `note`: Admin note, or `null`
+    - `created_at`: ISO 8601 timestamp (UTC) when the invitation was created
+    - `expires_at`: ISO 8601 timestamp (UTC) when the invitation expires
+- `page`: Current page number
+- `size`: Number of results per page
+- `total`: Total number of invitations matching the filters
+
+**Use Cases**:
+
+- List all pending invitations in an admin dashboard
+- Audit invitation usage across audiences
+- Find expired or unused invitations for cleanup
+
+---
+
+#### Get Invitation
+
+**Path**: `/api/v1/admin/invitations/{invitation_id}`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:invitations:read` scope
+
+**Purpose**: Retrieves details for a specific invitation. When the invitation has been used, the response includes
+the `user_id` and `used_at` fields.
+
+**Path Parameters**:
+
+- `invitation_id`: Unique identifier of the invitation
+
+**Response Format**:
+
+`200 OK` (pending invitation):
+
+```json
+{
+  "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "token_prefix": "dGhpcyBp",
+  "audience": "default",
+  "status": "pending",
+  "claims": {
+    "custom_department": "Engineering",
+    "role": "admin"
+  },
+  "note": "Onboarding Jane from the Engineering team",
+  "created_at": "2026-03-28T10:00:00Z",
+  "expires_at": "2026-04-04T10:00:00Z"
+}
+```
+
+`200 OK` (used invitation):
+
+```json
+{
+  "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "token_prefix": "dGhpcyBp",
+  "audience": "default",
+  "status": "used",
+  "claims": {
+    "custom_department": "Engineering",
+    "role": "admin"
+  },
+  "note": "Onboarding Jane from the Engineering team",
+  "created_at": "2026-03-28T10:00:00Z",
+  "expires_at": "2026-04-04T10:00:00Z",
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "used_at": "2026-03-29T09:15:00Z"
+}
+```
+
+`404 Not Found`:
+
+```json
+{
+  "error": "not_found",
+  "error_description": "No invitation found with id: a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+}
+```
+
+**Properties**:
+
+- `invitation_id`: Unique identifier of the invitation
+- `token_prefix`: First 8 characters of the token
+- `audience`: Audience identifier
+- `status`: Invitation status (`pending`, `used`, `revoked`, `expired`)
+- `claims`: Pre-assigned custom claims, or `null`
+- `note`: Admin note, or `null`
+- `created_at`: ISO 8601 timestamp (UTC) when the invitation was created
+- `expires_at`: ISO 8601 timestamp (UTC) when the invitation expires
+- `user_id`: Identifier of the user who redeemed the invitation (only present when `status` is `used`)
+- `used_at`: ISO 8601 timestamp (UTC) when the invitation was redeemed (only present when `status` is `used`)
+
+**Use Cases**:
+
+- Check whether an invitation has been used and by whom
+- Verify invitation details before sharing with the intended user
+- Audit invitation lifecycle for compliance
+
+---
+
+#### Revoke Invitation
+
+**Path**: `/api/v1/admin/invitations/{invitation_id}/revoke`
+
+**Method**: POST
+
+**Authentication**: Bearer token with `admin:invitations:write` scope
+
+**Purpose**: Revokes a pending invitation. The invitation can no longer be redeemed. This operation is immediate
+and permanent.
+
+**Path Parameters**:
+
+- `invitation_id`: Unique identifier of the invitation
+
+**Response Format**:
+
+`200 OK`:
+
+```json
+{
+  "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "status": "revoked"
+}
+```
+
+`404 Not Found`:
+
+```json
+{
+  "error": "not_found",
+  "error_description": "No invitation found with id: a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+}
+```
+
+**Use Cases**:
+
+- Revoke an invitation that was sent to the wrong person
+- Cancel an invitation after an employee's offer is rescinded
+- Clean up unused invitations as part of a security audit
 

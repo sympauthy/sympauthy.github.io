@@ -75,20 +75,33 @@ Endpoints return one of two response patterns:
     - When `redirect_url` is **present**: User must be redirected (step can be skipped)
     - When `redirect_url` is **absent**: User must complete an action on the current step
 
+#### Invitation Token
+
+When [invitation](/functional/invitation)-based registration is enabled, the OAuth 2 authorize endpoint
+(`GET /api/v1/flow/authorize`) accepts an optional `invitation_token` query parameter. When present, SympAuthy
+validates the token (exists, not expired, not revoked, not used, client belongs to the invitation's audience) and
+binds the invitation to the flow state. If validation fails, an OAuth error response (`invalid_request`) is
+returned.
+
+When an invitation is bound and the user is not yet registered, the flow redirects to the sign-up page instead of
+the sign-in page. Since the invitation is bound at the authorize step, both password and provider sign-up paths
+work seamlessly — no further token handling is needed by the flow UI.
+
 ## Flow Endpoints
 
 ### 1. Configuration Endpoint
 
 **Path**: `/api/v1/flow/configuration`
 
-**Authentication**: None required (anonymous access)
+**Authentication**: Requires valid `state` query parameter
 
 **Purpose**: Provides initial configuration for the authentication flow. This should be the first call made by a custom
-flow.
+flow after obtaining the state from the authorize redirect.
 
 #### GET Request
 
 Returns the flow configuration including enabled features, collectable claims, and available authentication providers.
+The response is specific to the client that initiated the authorize flow.
 
 **Response Format**:
 
@@ -104,7 +117,8 @@ Returns the flow configuration including enabled features, collectable claims, a
   ],
   "features": {
     "password_sign_in": true,
-    "sign_up": true
+    "sign_up_enabled": true,
+    "invitation_enabled": false
   },
   "password": {
     "identifier_claims": [
@@ -132,7 +146,12 @@ Returns the flow configuration including enabled features, collectable claims, a
 
 - `features`: Enabled authentication features
     - `password_sign_in`: Whether password-based sign-in is available
-    - `sign_up`: Whether user registration is available
+    - `sign_up_enabled`: Whether open registration is available for the client's
+      [audience](/functional/audience)
+    - `invitation_enabled`: Whether [invitation](/functional/invitation)-based registration is enabled for the
+      client's audience. When `sign_up_enabled` is `false` and `invitation_enabled` is `true`, the UI can show a
+      message like "Registration requires an invitation" and hide the sign-up form — users arriving via invitation
+      already have it bound to their flow state
 
 - `password`: Password authentication configuration
     - `identifier_claims`: Claims used as login identifiers and required during registration
@@ -144,7 +163,7 @@ Returns the flow configuration including enabled features, collectable claims, a
 
 **Important Notes**:
 
-- This configuration is cacheable across users (client-specific, not user-specific)
+- This configuration is specific to the client that initiated the authorize flow
 - URLs in the configuration require the `state` parameter to be manually added before use
 - The configuration determines which other endpoints are available
 
@@ -189,7 +208,19 @@ The request accepts:
 
 1. Validates the password and required claims
 2. Creates the user account
-3. Returns redirect to the next step (typically claims collection or validation)
+3. If an [invitation](/functional/invitation) is bound to the flow state, its pre-assigned claims are applied to
+   the new account and the invitation is marked as used
+4. Returns redirect to the next step (typically claims collection or validation)
+
+**Invitation behavior**:
+
+- When `sign-up-enabled: false` and `invitation-enabled: true` on the [audience](/functional/audience): sign-up
+  requires a bound invitation (from the `invitation_token` on the authorize endpoint). Returns **403 Forbidden**
+  if no invitation is bound.
+- When `sign-up-enabled: true` and `invitation-enabled: true`: sign-up works normally. If an invitation is bound,
+  its pre-assigned claims are applied.
+- The same behavior applies when a user signs up through a third-party provider (if no account exists and
+  `sign-up-enabled` is `false`, an invitation must be bound).
 
 ---
 

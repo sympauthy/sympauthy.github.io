@@ -59,6 +59,17 @@ This value defaults to the audience identifier if not set explicitly.
 This means all clients in the same audience produce access tokens with the same `aud` claim, making it easy for
 resource servers to validate tokens regardless of which specific client requested them.
 
+## Registration control
+
+Each audience has two flags that control how end-users can register:
+
+- **`sign-up-enabled`** — when `true` (the default), anyone can create an account through the interactive flow.
+- **`invitation-enabled`** — when `true`, [invitations](/functional/invitation) can be used to allow specific
+  people to register, even when open registration is disabled.
+
+These flags combine to produce four registration modes. See [Invitation](/functional/invitation#registration-modes)
+for the full matrix.
+
 ## Configuration
 
 Audiences are declared in the `audiences` configuration section. Refer to the

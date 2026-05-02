@@ -6,12 +6,13 @@ This page covers configuration that is not necessary for a regular operator but 
 
 This section holds configuration that will change the general behavior of the server.
 
-| Key                            | Type   | Description                                                        | Required<br>Default        |
-|--------------------------------|--------|--------------------------------------------------------------------|----------------------------|
-| ```jwt```                      | object |                                                                    | YES                        |
+| Key                            | Type   | Description                                                                                             | Required<br>Default        |
+|--------------------------------|--------|---------------------------------------------------------------------------------------------------------|----------------------------|
+| ```invitation```               | object | [Invitation](/functional/invitation) token settings. See [advanced.invitation](#advanced-invitation).   | YES                        |
+| ```jwt```                      | object |                                                                                                         | YES                        |
+| ```keys-generation-strategy``` | string |                                                                                                         | YES<br>```autoincrement``` |
 | ```user-merging-strategy```    | string | **Deprecated** — replaced by [`auth.user-merging-enabled`](/technical/configuration/authorization#auth). | YES<br>```by-mail```       |
-| ```keys-generation-strategy``` | string |                                                                    | YES<br>```autoincrement``` |
-| ```validation-code```          | object | See [advanced.validation-code](#advanced-validation-code).         | YES                        |
+| ```validation-code```          | object | See [advanced.validation-code](#advanced-validation-code).                                              | YES                        |
 
 ### ```advanced.hash```
 
@@ -21,6 +22,28 @@ This section holds configuration that will change the general behavior of the se
 | ```cost-parameter```            | int  |                                                                                      | YES<br>```16384```  |
 | ```key-length```                | int  | Number of bytes generated as output of the hashing algorithm.                        | YES<br>```32```     |
 | ```parallelization-parameter``` | int  |                                                                                      | YES<br>```1```      |
+| ```salt-length```               | int  | Number of random bytes to generate and then use as a salt for the hashing algorithm. | YES<br>```256```    |
+
+### ```advanced.invitation```
+
+Configuration for [invitation](/functional/invitation) token generation and expiration.
+
+| Key                        | Type     | Description                                                                                 | Required<br>Default |
+|----------------------------|----------|---------------------------------------------------------------------------------------------|---------------------|
+| ```default-expiration```   | duration | Default validity period when no `expires_at` is provided at creation.                       | YES<br>```7d```     |
+| ```max-expiration```       | duration | Maximum allowed validity period. `expires_at` values beyond this limit are capped.          | YES<br>```30d```    |
+| ```token-length```         | int      | Number of random bytes for token generation (before base64url encoding).                    | YES<br>```32```     |
+
+### ```advanced.invitation.hash```
+
+Scrypt parameters for hashing invitation tokens. Follows the same structure as [`advanced.hash`](#advanced-hash).
+
+| Key                             | Type | Description                                                                          | Required<br>Default |
+|---------------------------------|------|--------------------------------------------------------------------------------------|---------------------|
+| ```block-size```                | int  | Scrypt block size parameter (r).                                                     | YES<br>```8```      |
+| ```cost-parameter```            | int  | Scrypt CPU/memory cost parameter (N).                                                | YES<br>```16384```  |
+| ```key-length```                | int  | Number of bytes generated as output of the hashing algorithm.                        | YES<br>```32```     |
+| ```parallelization-parameter``` | int  | Scrypt parallelization parameter (p).                                                | YES<br>```1```      |
 | ```salt-length```               | int  | Number of random bytes to generate and then use as a salt for the hashing algorithm. | YES<br>```256```    |
 
 ### ```advanced.jwt```

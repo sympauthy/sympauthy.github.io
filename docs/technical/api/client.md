@@ -11,11 +11,13 @@ Client scopes follow the `{resource}:{action}` naming convention. They control w
 can perform through the Client API. See [Scope](/functional/scope#client-scope) for details on how client scopes
 are granted.
 
-| Scope                | Description                                  |
-|----------------------|----------------------------------------------|
-| `users:read`         | List users with consented scopes             |
-| `users:claims:read`  | Read claims the client is authorized to access  |
-| `users:claims:write` | Write claims the client is authorized to modify |
+| Scope                | Description                                              |
+|----------------------|----------------------------------------------------------|
+| `invitations:read`   | List and view [invitations](/functional/invitation) created by this client |
+| `invitations:write`  | Create and revoke [invitations](/functional/invitation)  |
+| `users:read`         | List users with consented scopes                         |
+| `users:claims:read`  | Read claims the client is authorized to access           |
+| `users:claims:write` | Write claims the client is authorized to modify          |
 
 ## Authentication
 
@@ -420,3 +422,285 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
 - Tag users with custom attributes (roles, departments, etc.)
 - Maintain additional user information beyond OpenID Connect claims
 - Update user attributes from external systems
+
+---
+
+### Invitation Management
+
+Endpoints for creating, viewing, and revoking [invitations](/functional/invitation). Invitations allow
+invitation-only registration for [audiences](/functional/audience) where open sign-up is disabled.
+Requires `invitations:read` for read operations and `invitations:write` for creation and revocation.
+
+A client can only see and manage invitations it created. The [Admin API](/technical/api/admin#invitation-management)
+can manage all invitations regardless of creator.
+
+#### Create Invitation
+
+**Path**: `/api/v1/client/invitations`
+
+**Method**: POST
+
+**Authentication**: Bearer token with `invitations:write` scope
+
+**Purpose**: Creates a single-use invitation for the client's [audience](/functional/audience). The audience is
+automatically set to the requesting client's audience — there is no `audience` field in the request. The invitation
+token is returned only in this response — it cannot be retrieved later.
+
+**Request Format**:
+
+```json
+{
+  "expires_at": "2026-04-15T00:00:00Z",
+  "claims": {
+    "custom_department": "Engineering"
+  },
+  "note": "Onboarding Jane"
+}
+```
+
+**Properties**:
+
+- `expires_at` (optional): Expiration date as an ISO 8601 timestamp (UTC). Defaults to
+  `now + default-expiration`. Capped at `now + max-expiration`. See
+  [advanced configuration](/technical/configuration/advanced#advanced-invitation) for these values.
+- `claims` (optional): Custom [claim](/functional/claims) values to pre-set on the user's account upon
+  registration. Only custom claims are accepted — OpenID Connect claims must come from the user. The client must
+  have unconditional write access to each claim via the claim's
+  [ACL](/technical/configuration/claim#claims-id-acl).
+- `note` (optional): Note attached to the invitation.
+
+**Response Format**:
+
+`400 Bad Request` (claim not writable):
+
+```json
+{
+  "error": "invitation.claim_not_writable",
+  "error_description": "The client does not have write access to the claim: custom_role"
+}
+```
+
+`201 Created`:
+
+```json
+{
+  "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "token": "dGhpcyBpcyBhIHNlY3VyZSByYW5kb20gdG9rZW4",
+  "audience": "default",
+  "status": "pending",
+  "claims": {
+    "custom_department": "Engineering"
+  },
+  "note": "Onboarding Jane",
+  "created_at": "2026-03-28T10:00:00Z",
+  "expires_at": "2026-04-04T10:00:00Z"
+}
+```
+
+**Properties**:
+
+- `invitation_id`: Unique identifier of the invitation
+- `token`: The invitation token. **Returned only at creation** — subsequent reads show `token_prefix` instead.
+  The client application is responsible for building the authorize URL with the `invitation_token` parameter.
+- `audience`: Audience identifier (automatically set to the client's audience)
+- `status`: Invitation status (`pending`)
+- `claims`: Pre-assigned custom claims, or `null` if none
+- `note`: Note, or `null` if none
+- `created_at`: ISO 8601 timestamp (UTC) when the invitation was created
+- `expires_at`: ISO 8601 timestamp (UTC) when the invitation expires
+
+**Use Cases**:
+
+- Application-driven invitation flow where the client manages who can register
+- Onboarding workflows that create invitations as part of a larger process
+- Self-service invite features within an application
+
+---
+
+#### List Invitations
+
+**Path**: `/api/v1/client/invitations`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `invitations:read` scope
+
+**Purpose**: Retrieves a paginated list of invitations created by the requesting client. Invitations created by
+other clients or by administrators are not returned.
+
+**Query Parameters**:
+
+- `page` (optional): Zero-indexed page number (default: `0`)
+- `size` (optional): Number of results per page (default: `20`)
+- `status` (optional): Filter by invitation status (`pending`, `used`, `revoked`, `expired`)
+
+**Response Format**:
+
+```json
+{
+  "invitations": [
+    {
+      "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "token_prefix": "dGhpcyBp",
+      "audience": "default",
+      "status": "pending",
+      "claims": {
+        "custom_department": "Engineering"
+      },
+      "note": "Onboarding Jane",
+      "created_at": "2026-03-28T10:00:00Z",
+      "expires_at": "2026-04-04T10:00:00Z"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "total": 1
+}
+```
+
+**Properties**:
+
+- `invitations`: Array of invitation records
+    - `invitation_id`: Unique identifier of the invitation
+    - `token_prefix`: First 8 characters of the token, for identification purposes
+    - `audience`: Audience identifier
+    - `status`: Invitation status. Possible values: `"pending"` | `"used"` | `"revoked"` | `"expired"`
+    - `claims`: Pre-assigned custom claims, or `null`
+    - `note`: Note, or `null`
+    - `created_at`: ISO 8601 timestamp (UTC) when the invitation was created
+    - `expires_at`: ISO 8601 timestamp (UTC) when the invitation expires
+- `page`: Current page number
+- `size`: Number of results per page
+- `total`: Total number of invitations matching the filters
+
+**Use Cases**:
+
+- Display pending invitations in an application's admin panel
+- Track invitation usage and redemption
+- Manage invitations within the application's own workflow
+
+---
+
+#### Get Invitation
+
+**Path**: `/api/v1/client/invitations/{invitation_id}`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `invitations:read` scope
+
+**Purpose**: Retrieves details for a specific invitation created by the requesting client. Returns 404 if the
+invitation was not created by this client.
+
+**Path Parameters**:
+
+- `invitation_id`: Unique identifier of the invitation
+
+**Response Format**:
+
+`200 OK` (pending invitation):
+
+```json
+{
+  "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "token_prefix": "dGhpcyBp",
+  "audience": "default",
+  "status": "pending",
+  "claims": {
+    "custom_department": "Engineering"
+  },
+  "note": "Onboarding Jane",
+  "created_at": "2026-03-28T10:00:00Z",
+  "expires_at": "2026-04-04T10:00:00Z"
+}
+```
+
+`200 OK` (used invitation):
+
+```json
+{
+  "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "token_prefix": "dGhpcyBp",
+  "audience": "default",
+  "status": "used",
+  "claims": {
+    "custom_department": "Engineering"
+  },
+  "note": "Onboarding Jane",
+  "created_at": "2026-03-28T10:00:00Z",
+  "expires_at": "2026-04-04T10:00:00Z",
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "used_at": "2026-03-29T09:15:00Z"
+}
+```
+
+`404 Not Found`:
+
+```json
+{
+  "error": "not_found",
+  "error_description": "No invitation found with id: a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+}
+```
+
+**Properties**:
+
+- `invitation_id`: Unique identifier of the invitation
+- `token_prefix`: First 8 characters of the token
+- `audience`: Audience identifier
+- `status`: Invitation status (`pending`, `used`, `revoked`, `expired`)
+- `claims`: Pre-assigned custom claims, or `null`
+- `note`: Note, or `null`
+- `created_at`: ISO 8601 timestamp (UTC) when the invitation was created
+- `expires_at`: ISO 8601 timestamp (UTC) when the invitation expires
+- `user_id`: Identifier of the user who redeemed the invitation (only present when `status` is `used`)
+- `used_at`: ISO 8601 timestamp (UTC) when the invitation was redeemed (only present when `status` is `used`)
+
+**Use Cases**:
+
+- Check whether a specific invitation has been redeemed
+- Display invitation status in the application's admin panel
+- Correlate invitation redemption with user onboarding steps
+
+---
+
+#### Revoke Invitation
+
+**Path**: `/api/v1/client/invitations/{invitation_id}/revoke`
+
+**Method**: POST
+
+**Authentication**: Bearer token with `invitations:write` scope
+
+**Purpose**: Revokes a pending invitation created by the requesting client. The invitation can no longer be
+redeemed. Returns 404 if the invitation was not created by this client. This operation is immediate and permanent.
+
+**Path Parameters**:
+
+- `invitation_id`: Unique identifier of the invitation
+
+**Response Format**:
+
+`200 OK`:
+
+```json
+{
+  "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "status": "revoked"
+}
+```
+
+`404 Not Found`:
+
+```json
+{
+  "error": "not_found",
+  "error_description": "No invitation found with id: a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+}
+```
+
+**Use Cases**:
+
+- Cancel an invitation that is no longer needed
+- Revoke access before the invitation is redeemed
+- Clean up invitations as part of an application's lifecycle management
