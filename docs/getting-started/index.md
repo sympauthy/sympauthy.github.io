@@ -133,9 +133,6 @@ docker run -ti --rm -p 8080:8080 \
   '-auth.by-password.enabled=true' \
   '-auth.identifier-claims=email' \
   '-claims.email.enabled=true' \
-  '-rules.user[0].scopes=admin:config:read,admin:users:read,admin:users:write,admin:users:delete,admin:consent:read,admin:consent:write' \
-  '-rules.user[0].behavior=grant' \
-  '-rules.user[0].expressions=CLAIM("email") = "admin@example.com"' \
   '-urls.root=http://localhost:8080'
 ```
 
@@ -148,10 +145,12 @@ XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - Issuer: http
 XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - Authentication by password: enabled.
 XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - Authentication by provider: disabled.
 XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - MFA disabled.
-XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X claim (X standard, X custom).
-XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X scopes (X consentables, X grantable, X admins, X clients).
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X audiences.
 XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X client.
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X scopes (X consentables, X grantable, X admins, X clients).
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X claims (X standards, X custom).
 XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X rule (X user, X client).
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X templates (X client, X scope, X claims).
 ```
 
 The server should be available on port ```8080```. You can verify the server is up and running by accessing to the API
@@ -185,13 +184,9 @@ the [database configuration](/technical/configuration/database).
 ##### Enable the Admin UI
 
 - ```MICRONAUT_ENVIRONMENTS=default,admin```: The ```admin``` [Micronaut environment](/technical/configuration/environments)
-  enables the Admin UI and pre-configures an ```admin``` client with all admin scopes. See the
+  enables the Admin UI, pre-configures an ```admin``` client with all admin scopes, and creates a
+  [bootstrap invitation](/technical/configuration/invitation) for the first administrator. See the
   [Admin API](/technical/api/admin) documentation for details.
-
-##### Grant admin permissions
-
-- ```rules.user[0]```: A [scope granting rule](/functional/user_authorization#scope-granting-rules) that
-  automatically grants all admin scopes to the user who signs up with the email ```admin@example.com```.
 
 You can pass additional configurations to the server by appending the following to the command:
 ```-<configuration key>=<value>```. The list of available ```<configuration key>```  is described in details in
@@ -202,12 +197,15 @@ the [Configuration](/technical/configuration/) section of this documentation.
 The simplest way to verify your instance is working is to use the Admin UI, which is pre-configured
 by the `admin` [Micronaut environment](/technical/configuration/environments).
 
-1. Go to `http://localhost:8080/admin`
-2. Create an account using the email ```admin@example.com```
-3. After signing in, you will have access to the Admin UI with full admin permissions
+1. Look at the SympAuthy startup logs for the invitation URL. The `admin` environment creates a
+   [bootstrap invitation](/technical/configuration/invitation) on first startup and logs the URL to stdout:
 
-The [scope granting rule](/functional/user_authorization#scope-granting-rules) configured in the Docker
-command automatically grants all admin scopes to the user with this email address.
+   ```
+   XX:XX:XX.XXX [main] INFO  c.s.b.m.i.BootstrapInvitationManager - Bootstrap invitation 'first-admin' created for audience 'admin'. Registration URL: http://localhost:8080/admin/register?invitation_token=<token>
+   ```
+
+2. Open the invitation URL in your browser to create your admin account.
+3. After signing in, you will have access to the Admin UI with full admin permissions.
 
 This confirms that your SympAuthy instance is running correctly and can handle OAuth 2.1 authentication flows.
 
