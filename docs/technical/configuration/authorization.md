@@ -86,6 +86,10 @@ The flow may be completely customized and served by a completely different serve
 
 This section holds the configuration of scope granting rules and act-as rules.
 
+The ```expressions``` in every rule are evaluated with the same engine. See
+[Rule Expressions](/technical/rule_expressions) for the functions available in expressions
+(```CLAIM```, ```CLAIM_IS_VERIFIED```, ```CLIENT```) and which rule types each one can be used in.
+
 | Key          | Type            | Description                                                                                                                                                                                                                                                                                   | Required<br>Default |
 |--------------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
 | ```act_as``` | array of object | [Act-as rules](/functional/delegation#act-as-rules) evaluated during [OAuth 2.0 Token Exchange (RFC 8693)](https://datatracker.ietf.org/doc/html/rfc8693) to authorize a confidential client to obtain a token acting on behalf of a target user. Permission-only — they grant no scope. Expressions evaluate the acting client using ```CLIENT(...)``` and the target user's claims using ```CLAIM(...)``` and ```CLAIM_IS_VERIFIED(...)```. | NO |
@@ -122,7 +126,7 @@ rules:
       behavior: grant
       order: 0
       expressions:
-        - CLIENT("name") = "backoffice"
+        - CLIENT("client_id") = "backoffice"
 ```
 
 ### ```rules.act_as```

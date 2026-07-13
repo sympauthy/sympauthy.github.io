@@ -21,3 +21,9 @@ and [Well-known providers](well-known_providers) for pre-configured OAuth provid
 SympAuthy exposes several APIs for different use cases: standard OAuth 2.1 & OpenID Connect endpoints, plus custom APIs
 for building authentication flows, querying user data, and administering the server. See the [API](api/) documentation
 for a complete overview.
+
+## Rule expressions
+
+Scope granting rules and act-as rules are driven by expressions you write in configuration. See the
+[Rule Expressions](rule_expressions) documentation for the functions available in those expressions and which rule
+types each one can be used in.

@@ -21,7 +21,9 @@ scope granting rules or by delegating to a third-party through webhook.
 ### Scope granting rules
 
 Scope granting rules are conditions evaluated during an authorization attempt to automatically grant or deny grantable
-scopes. Their expressions evaluate **user claims** to determine whether a scope should be granted.
+scopes. Their expressions evaluate **user claims** to determine whether a scope should be granted, using the
+```CLAIM(...)``` and ```CLAIM_IS_VERIFIED(...)``` functions. See [Rule Expressions](/technical/rule_expressions) for the
+full list of functions and which rule types they are available in.
 
 They are declared in the [Configuration](/technical/configuration/authorization#rules) under ```rules.user``` of the
 authorization server and look like the following:

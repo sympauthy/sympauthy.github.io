@@ -118,6 +118,7 @@ export default defineConfig({
               ]
             },
             { text: 'Authorization Webhook', link: '/technical/authorization_webhook' },
+            { text: 'Rule Expressions', link: '/technical/rule_expressions' },
             { text: 'Well-known Providers', link: '/technical/well-known_providers' },
             { text: 'Security', link: '/technical/security' },
           ]
