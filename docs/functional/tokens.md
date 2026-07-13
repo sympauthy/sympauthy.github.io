@@ -33,8 +33,9 @@ the `at+jwt` type header and contains the following claims:
 | `client_id` | The client that requested the token.                                                                                                                                                                                                                                     | MUST     |
 | `iat`       | Issued-at time.                                                                                                                                                                                                                                                          | MUST     |
 | `jti`       | Unique token identifier.                                                                                                                                                                                                                                                 | MUST     |
-| `scope`     | Space-separated list of granted scopes. For `authorization_code` tokens: [consentable](/functional/scope#consentable-scope) and [grantable](/functional/scope#grantable-scope) scopes. For `client_credentials` tokens: [client](/functional/scope#client-scope) scopes. | SHOULD   |
+| `scope`     | Space-separated list of granted scopes. For `authorization_code` tokens: [consentable](/functional/scope#consentable-scope) and [grantable](/functional/scope#grantable-scope) scopes. For `client_credentials` tokens: [client](/functional/scope#client-scope) scopes. For [delegated](/functional/delegation) (token-exchange) tokens: empty — the token is identity-only. | SHOULD   |
 | `cnf`       | Confirmation claim. Present when the token is [DPoP-bound](#sender-constrained-tokens-dpop); contains the `jkt` (JWK SHA-256 Thumbprint) of the client's public key.                                                                                                     | OPTIONAL |
+| `act`       | Actor claim ([RFC 8693](https://datatracker.ietf.org/doc/html/rfc8693)). Present on [delegated](/functional/delegation) (act-as) tokens; a JSON object whose `sub` is the `client_id` of the client acting on behalf of the user.                                          | OPTIONAL |
 
 The client can read this information directly from the token without making an additional request to SympAuthy.
 
@@ -44,6 +45,13 @@ Access tokens have a short lifespan — typically minutes to a few hours. The ex
 `token.access-token.lifespan` configuration key.
 
 Once expired, the access token is rejected. The client must use the refresh token to obtain a new one.
+
+### Acting on behalf of a user
+
+A confidential client can also obtain an access token that acts **on behalf of a user** — without that
+user signing in — by exchanging its own token for a delegated one. Such a token carries the user as
+`sub`, the acting client in an `act` claim, and no scopes. See [Delegation](/functional/delegation)
+for details.
 
 ## Refresh token
 

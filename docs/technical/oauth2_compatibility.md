@@ -14,11 +14,18 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 | Resource Owner Password Credentials Grant | Not Supported | Removed in [draft-ietf-oauth-v2-1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1) (was RFC 6749 - 4.3) |
 | Client Credentials Grant                  | Supported     | [draft-ietf-oauth-v2-1 - section 4.2](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-4.2)       |
 | Refresh Token Grant                       | Supported     | [draft-ietf-oauth-v2-1 - section 4.3](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-4.3)       |
+| Token Exchange Grant (delegation)         | Supported     | [RFC 8693](https://datatracker.ietf.org/doc/html/rfc8693)                                                            |
 
 > The Implicit Grant and Resource Owner Password Credentials grant have been removed from OAuth 2.1. The Implicit Grant
 > exposes tokens in the browser URL. The ROPC grant exposes user credentials directly to the client, bypassing the
 > delegated authorization model that OAuth was designed to provide, and offers no support for multi-factor
 > authentication.
+
+> SympAuthy supports [OAuth 2.0 Token Exchange (RFC 8693)](https://datatracker.ietf.org/doc/html/rfc8693)
+> for **delegation**: a confidential client can obtain an identity-only access token that acts on behalf
+> of a user *by id* (Phase 1), recording the acting client in an `act` claim. On-behalf-of by exchanging
+> a user's own token (Phase 2) is **planned**. See the [Delegation](/functional/delegation) documentation
+> for details.
 
 ## Token Types
 
@@ -125,4 +132,5 @@ For more information about OAuth specifications, visit:
 - [JWT Profile for OAuth 2.0 Access Tokens (RFC 9068)](https://datatracker.ietf.org/doc/html/rfc9068)
 - [OAuth 2.0 Demonstrating Proof of Possession (RFC 9449)](https://datatracker.ietf.org/doc/html/rfc9449)
 - [OAuth 2.0 Token Introspection (RFC 7662)](https://datatracker.ietf.org/doc/html/rfc7662)
+- [OAuth 2.0 Token Exchange (RFC 8693)](https://datatracker.ietf.org/doc/html/rfc8693)
 - [OpenID Connect Specifications](https://openid.net/connect/)

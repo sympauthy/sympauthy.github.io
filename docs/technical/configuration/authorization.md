@@ -84,10 +84,11 @@ The flow may be completely customized and served by a completely different serve
 
 ## ```rules```
 
-This section holds the configuration of scope granting rules.
+This section holds the configuration of scope granting rules and act-as rules.
 
 | Key          | Type            | Description                                                                                                                                                                                                                                                                                   | Required<br>Default |
 |--------------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
+| ```act_as``` | array of object | [Act-as rules](/functional/delegation#act-as-rules) evaluated during [OAuth 2.0 Token Exchange (RFC 8693)](https://datatracker.ietf.org/doc/html/rfc8693) to authorize a confidential client to obtain a token acting on behalf of a target user. Permission-only — they grant no scope. Expressions evaluate the acting client using ```CLIENT(...)``` and the target user's claims using ```CLAIM(...)``` and ```CLAIM_IS_VERIFIED(...)```. | NO |
 | ```user```   | array of object | [Scope granting rules](/functional/user_authorization#scope-granting-rules) evaluated during `authorization_code` flows to grant or deny [grantable scopes](/functional/scope#grantable-scope). Expressions evaluate **user claims** using ```CLAIM(...)``` and ```CLAIM_IS_VERIFIED(...)```. | NO                  |
 | ```client``` | array of object | [Scope granting rules](/functional/client_authorization#scope-granting-rules) evaluated during `client_credentials` flows to grant or deny [client scopes](/functional/scope#client-scope). Expressions evaluate **client attributes** using ```CLIENT(...)```.                               | NO                  |
 
@@ -123,3 +124,38 @@ rules:
       expressions:
         - CLIENT("name") = "backoffice"
 ```
+
+### ```rules.act_as```
+
+Act-as rules authorize a [confidential client](/functional/client#confidential-and-public-clients) to
+obtain an access token that acts **on behalf of a user**, via
+[OAuth 2.0 Token Exchange (RFC 8693)](https://datatracker.ietf.org/doc/html/rfc8693). Unlike scope
+granting rules, they are **permission-only**: they carry no ```scopes``` and grant nothing — they only
+```allow``` or ```deny``` the delegation. See [Delegation](/functional/delegation#act-as-rules) for the
+functional overview.
+
+| Key               | Type            | Description                                                                                                                                                                                                                          | Required<br>Default |
+|-------------------|-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
+| ```behavior```    | string          | ```allow``` to permit the delegation, ```deny``` to forbid it.                                                                                                                                                                      | NO<br>```allow```   |
+| ```expressions``` | array of string | Conditions that must all evaluate to ```true``` for the rule to match. Reference the acting client with ```CLIENT(...)``` and the target user's claims with ```CLAIM(...)``` / ```CLAIM_IS_VERIFIED(...)```.                        | **YES**             |
+| ```name```        | string          | Display name used in logs to refer to this rule. Defaults to a generated ```<order> - <BEHAVIOR>```.                                                                                                                                | NO                  |
+| ```order```       | int             | Precedence when multiple rules match. A matched rule with greater order overrides matched rules of lower order. A matched ```deny``` always wins over ```allow``` of same or lower order. If no rule matches, the request is denied (fail-closed). | NO<br>```0```       |
+
+**Example**:
+
+```yaml
+rules:
+  act_as:
+    # A specific bot may act as users who have a verified Discord identity.
+    - behavior: allow
+      order: 0
+      expressions:
+        - CLIENT("client_id") = "discord-bot" && CLAIM_IS_VERIFIED("discord_id")
+    # Admin clients may act as any user (no per-user condition).
+    - behavior: allow
+      order: 0
+      expressions:
+        - CLIENT("audience") = "admin"
+```
+
+> There are no act-as rules defined in the out-of-the-box configuration.

@@ -68,6 +68,7 @@ export default defineConfig({
                 { text: 'Consent', link: '/functional/consent' },
                 { text: 'User Authorization', link: '/functional/user_authorization' },
                 { text: 'Client Authorization', link: '/functional/client_authorization' },
+                { text: 'Delegation', link: '/functional/delegation' },
               ]
             },
             {
