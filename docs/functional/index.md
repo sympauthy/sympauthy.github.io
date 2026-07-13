@@ -20,15 +20,26 @@ Its main design concepts are:
 
 ## Table of Contents
 
-1. [How it works](how_it_works)
-2. [Audience](audience)
-3. [Client](client)
-4. [Authentication](authentication)
-   - [Interactive Flow](interactive_flow)
-   - [Tokens](tokens)
-5. [Claims](claims)
-6. [Scopes](scope)
-7. [User Authorization](user_authorization)
-8. [Client Authorization](client_authorization)
-9. [Consent](consent)
-10. [End-User Management](end-user_management)
+- [How it works](how_it_works)
+
+**Clients & Audiences**
+- [Audience](audience)
+- [Client](client)
+
+**Authentication**
+- [Authentication](authentication)
+- [Interactive Flow](interactive_flow)
+
+**User Accounts**
+- [Invitation](invitation)
+- [End-User Management](end-user_management)
+
+**Authorization**
+- [Scopes](scope)
+- [Consent](consent)
+- [User Authorization](user_authorization)
+- [Client Authorization](client_authorization)
+
+**Tokens & Claims**
+- [Claims](claims)
+- [Tokens](tokens)

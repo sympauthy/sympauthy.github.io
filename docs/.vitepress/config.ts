@@ -36,18 +36,48 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/functional/' },
             { text: 'How it works', link: '/functional/how_it_works' },
-            { text: 'Audience', link: '/functional/audience' },
-            { text: 'Client', link: '/functional/client' },
-            { text: 'Authentication', link: '/functional/authentication' },
-            { text: 'Interactive Flow', link: '/functional/interactive_flow' },
-            { text: 'Tokens', link: '/functional/tokens' },
-            { text: 'Claims', link: '/functional/claims' },
-            { text: 'Scopes', link: '/functional/scope' },
-            { text: 'User Authorization', link: '/functional/user_authorization' },
-            { text: 'Client Authorization', link: '/functional/client_authorization' },
-            { text: 'Consent', link: '/functional/consent' },
-            { text: 'Invitation', link: '/functional/invitation' },
-            { text: 'End-User Management', link: '/functional/end-user_management' },
+            {
+              text: 'Clients &amp; Audiences',
+              collapsed: false,
+              items: [
+                { text: 'Audience', link: '/functional/audience' },
+                { text: 'Client', link: '/functional/client' },
+              ]
+            },
+            {
+              text: 'Authentication',
+              collapsed: false,
+              items: [
+                { text: 'Authentication', link: '/functional/authentication' },
+                { text: 'Interactive Flow', link: '/functional/interactive_flow' },
+              ]
+            },
+            {
+              text: 'User Accounts',
+              collapsed: false,
+              items: [
+                { text: 'Invitation', link: '/functional/invitation' },
+                { text: 'End-User Management', link: '/functional/end-user_management' },
+              ]
+            },
+            {
+              text: 'Authorization',
+              collapsed: false,
+              items: [
+                { text: 'Scopes', link: '/functional/scope' },
+                { text: 'Consent', link: '/functional/consent' },
+                { text: 'User Authorization', link: '/functional/user_authorization' },
+                { text: 'Client Authorization', link: '/functional/client_authorization' },
+              ]
+            },
+            {
+              text: 'Tokens &amp; Claims',
+              collapsed: false,
+              items: [
+                { text: 'Claims', link: '/functional/claims' },
+                { text: 'Tokens', link: '/functional/tokens' },
+              ]
+            },
           ]
         }
       ],
