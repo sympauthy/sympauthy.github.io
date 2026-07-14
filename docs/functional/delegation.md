@@ -120,3 +120,19 @@ The issued token is a normal [access token](/functional/tokens#structure-of-an-a
 
 It uses the standard
 [access token expiration](/technical/configuration/authorization#auth-token).
+
+## Single level of delegation
+
+SympAuthy supports **only a single level of delegation**.
+[RFC 8693](https://datatracker.ietf.org/doc/html/rfc8693#section-4.1) allows a *chain* of actors: the
+```act``` claim may itself nest another ```act``` claim to express "A is acting for B, which is acting
+for C" (composite delegation). SympAuthy never produces such a chain:
+
+- The issued ```act``` claim is always **flat** — a single ```{ "sub": "<acting client_id>" }``` naming
+  the acting client, with no nested ```act```.
+- A delegated token cannot itself be exchanged again. The ```subject_token``` of a token-exchange
+  request must be a plain [client-credentials](/functional/client_authorization) access token (one with
+  no user attached), so an already-delegated act-as token is rejected as a ```subject_token```.
+
+Delegation therefore never extends beyond one hop: an acting client acts directly on behalf of the
+target user, and nothing can act on behalf of that delegated identity in turn.
