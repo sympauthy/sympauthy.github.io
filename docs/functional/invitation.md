@@ -96,10 +96,10 @@ The primary use case is bootstrapping the first administrator. When the `admin`
 `invitation-enabled: true` by default. A bootstrap invitation in the configuration allows the first admin to
 self-register without any manual database intervention.
 
-On startup, SympAuthy checks whether any user has already consented to any client in the invitation's audience.
-If no one has, the invitation is created and its token is logged to stdout. If at least one user exists, the
-bootstrap invitation is skipped — it is no longer needed. Each restart generates a new token and invalidates the
-previous one.
+On startup, SympAuthy checks whether any user holds an active (non-revoked) consent for a client in the invitation's
+audience. If none does, the invitation is created and its token is logged to stdout. If at least one active consent
+exists, the bootstrap invitation is skipped — it is no longer needed. Each restart generates a new token and revokes
+any previous pending bootstrap invitation.
 
 ## Token security
 
