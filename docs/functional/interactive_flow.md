@@ -13,8 +13,8 @@ SympAuthy ships with a built-in authentication UI that is used by default. It ha
 page out of the box, so no additional setup is required to get a working authentication experience.
 
 If the built-in interface does not fit the needs of your application — for example, because you want a fully branded
-sign-in page — you can replace it with your own custom UI. This is done by configuring the `urls.flow` key in the
-[configuration](/technical/configuration/authorization#urls-flow) to point to your own page instead of the built-in one.
+sign-in page — you can replace it with your own custom UI. This is done by configuring the `flows.<id>` key in the
+[configuration](/technical/configuration/authorization#flows-id) to point to your own pages instead of the built-in one.
 
 A custom UI communicates with the [Flow API](/technical/api/flow) to guide the user through
 authentication step by step. The Flow API drives the experience: after each action the user takes, the server tells the
@@ -38,15 +38,13 @@ The UI does not need any logic to decide this: it just follows the pointer and e
 
 ## The steps
 
-### 1. Loading the configuration
+### 1. Loading the sign-in options
 
-Before showing anything, the UI asks the server what options are available for this instance of SympAuthy. The server
-describes:
-
-- whether password-based sign-in is enabled,
-- whether new users can register,
-- which third-party providers (Google, GitHub, etc.) are configured,
-- whether multi-factor authentication is enabled and which methods are available.
+Before showing anything, the UI asks the server what the current step offers. Each step describes itself rather than
+relying on one global configuration call: the sign-in screen advertises whether password sign-in is enabled, which
+third-party providers (Google, GitHub, etc.) are configured, and whether new users can register. The later steps do the
+same — the sign-up screen lists the information to collect, and the multi-factor step decides which verification to
+show.
 
 The UI uses this information to decide which buttons and forms to display. An instance with only Google sign-in
 configured will not show a password form.

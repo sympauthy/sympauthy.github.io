@@ -19,10 +19,13 @@ See the [Security](/technical/security#cors-restriction-on-the-flow-api) page fo
 
 #### State Management
 
-All authenticated endpoints require a state token that identifies the ongoing authorization attempt and session (all
-endpoints except the initial configuration call require it).
+All Flow API endpoints require a state token that identifies the ongoing authorization attempt and session.
 
-How the state is transmitted depends on the HTTP method:
+Every URL the server returns in a response — `redirect_url`, cross-links such as `sign_up_redirect_url` and
+`sign_in_redirect_url`, and provider `authorize_url` — already includes the `state`, so you can follow it directly. You
+only attach the `state` yourself to the requests your UI originates.
+
+How you transmit the state on those requests depends on the HTTP method:
 
 | Request type                     | State location                      |
 |----------------------------------|-------------------------------------|
@@ -75,6 +78,10 @@ Endpoints return one of two response patterns:
     - When `redirect_url` is **present**: User must be redirected (step can be skipped)
     - When `redirect_url` is **absent**: User must complete an action on the current step
 
+The `GET` steps that render sign-in and sign-up return either the step's config **or** a `redirect_url`. When
+`redirect_url` is present every config field is `null`, so check `redirect_url` first and only read the config fields
+when it is absent.
+
 #### Invitation Token
 
 When [invitation](/functional/invitation)-based registration is enabled, the OAuth 2 authorize endpoint
@@ -89,37 +96,24 @@ work seamlessly — no further token handling is needed by the flow UI.
 
 ## Flow Endpoints
 
-### 1. Configuration Endpoint
+### 1. Sign-In Endpoint
 
-**Path**: `/api/v1/flow/configuration`
+**Path**: `/api/v1/flow/sign-in`
 
-**Authentication**: Requires valid `state` query parameter
+**Authentication**: GET requires `?state=` query parameter; POST requires `Authorization: State <jwt>` header
 
-**Purpose**: Provides initial configuration for the authentication flow. This should be the first call made by a custom
-flow after obtaining the state from the authorize redirect.
+**Purpose**: Renders the sign-in step and authenticates existing users with login and password credentials.
 
 #### GET Request
 
-Returns the flow configuration including enabled features, collectable claims, and available authentication providers.
-The response is specific to the client that initiated the authorize flow.
+Returns the configuration needed to render the sign-in screen — the available password and provider sign-in methods and
+the cross-link to sign-up — **or** a `redirect_url` when the user does not belong on the sign-in step. The response is
+specific to the client that initiated the authorize flow and to the current attempt.
 
 **Response Format**:
 
 ```json
 {
-  "claims": [
-    {
-      "id": "email",
-      "required": true,
-      "name": "Email Address",
-      "type": "string"
-    }
-  ],
-  "features": {
-    "password_sign_in": true,
-    "sign_up_enabled": true,
-    "invitation_enabled": false
-  },
   "password": {
     "identifier_claims": [
       "email"
@@ -129,43 +123,60 @@ The response is specific to the client that initiated the authorize flow.
     {
       "id": "google",
       "name": "Google",
-      "authorize_url": "/api/v1/flow/providers/google/authorize"
+      "authorize_url": "/api/v1/flow/providers/google/authorize?state=..."
     }
-  ]
+  ],
+  "sign_up_redirect_url": "/sign-up?state=...",
+  "redirect_url": null
 }
 ```
 
 **Properties**:
 
-- `claims`: Array of claims that can be collected from users
-    - `id`: Unique claim identifier
-    - `required`: Whether the claim must be provided
-    - `name`: Localized display name
-    - `group`: Optional grouping identifier
-    - `type`: Data type (`string`, `number`, or `date`)
-
-- `features`: Enabled authentication features
-    - `password_sign_in`: Whether password-based sign-in is available
-    - `sign_up_enabled`: Whether open registration is available for the client's
-      [audience](/functional/audience)
-    - `invitation_enabled`: Whether [invitation](/functional/invitation)-based registration is enabled for the
-      client's audience. When `sign_up_enabled` is `false` and `invitation_enabled` is `true`, the UI can show a
-      message like "Registration requires an invitation" and hide the sign-up form — users arriving via invitation
-      already have it bound to their flow state
-
-- `password`: Password authentication configuration
-    - `identifier_claims`: Claims used as login identifiers and required during registration
-
-- `providers`: Available OAuth 2 identity providers
+- `password`: Password sign-in configuration, or `null` when password sign-in is disabled
+    - `identifier_claims`: Claims accepted as the login identifier (typically `email`)
+- `providers`: Third-party identity providers to offer, or `null`/empty when none are configured
     - `id`: Provider identifier
-    - `name`: Display name
-    - `authorize_url`: URL to initiate OAuth flow (state parameter must be added)
+    - `name`: Localized display name
+    - `authorize_url`: URL that starts the provider's OAuth flow (already includes `state`)
+- `sign_up_redirect_url`: Link to the sign-up step, used to render the "Create an account" link. Present only when
+  sign-up is allowed for this attempt (in a normal, non-invitation sign-in: when open registration is enabled), and
+  `null` otherwise
+- `redirect_url`: Set when the user should **not** be on the sign-in step — e.g. an
+  [invitation](/functional/invitation) flow (→ sign-up page) or an already-authenticated user (→ next step). When set,
+  every other field is `null`; follow it instead of rendering the form
 
-**Important Notes**:
+#### POST Request
 
-- This configuration is specific to the client that initiated the authorize flow
-- URLs in the configuration require the `state` parameter to be manually added before use
-- The configuration determines which other endpoints are available
+Validates user credentials and establishes an authenticated session.
+
+**Request Format**:
+
+```json
+{
+  "login": "user@example.com",
+  "password": "securePassword123"
+}
+```
+
+**Properties**:
+
+- `login`: User identifier (matched against the claims listed in `password.identifier_claims`)
+- `password`: User's password
+
+**Response Format**:
+
+```json
+{
+  "redirect_url": "/api/v1/flow/claims?state=..."
+}
+```
+
+**Workflow**:
+
+1. Validates login/password combination
+2. Identifies user by matching login against the configured `identifier_claims`
+3. Returns redirect to next step (typically claims collection or flow completion)
 
 ---
 
@@ -173,9 +184,53 @@ The response is specific to the client that initiated the authorize flow.
 
 **Path**: `/api/v1/flow/sign-up`
 
-**Authentication**: Requires valid state in `Authorization: State <jwt>` header
+**Authentication**: GET requires `?state=` query parameter; POST requires `Authorization: State <jwt>` header
 
-**Purpose**: Handles new user registration with password-based authentication.
+**Purpose**: Renders the sign-up step and handles new user registration with password-based authentication.
+
+#### GET Request
+
+Returns the configuration needed to render the sign-up screen — the password requirements, the claims to collect, and
+the cross-link to sign-in — **or** a `redirect_url` when the user does not belong on the sign-up step.
+
+**Response Format**:
+
+```json
+{
+  "password": {
+    "identifier_claims": [
+      "email"
+    ]
+  },
+  "claims": [
+    {
+      "id": "given_name",
+      "required": true,
+      "name": "First name",
+      "type": "string",
+      "group": "identity"
+    }
+  ],
+  "sign_in_redirect_url": "/sign-in?state=...",
+  "redirect_url": null
+}
+```
+
+**Properties**:
+
+- `password`: Password sign-up configuration, or `null` when password sign-up is disabled
+    - `identifier_claims`: Claims used as the account identifier and required during registration
+- `claims`: Claims to collect on the sign-up form
+    - `id`: Claim identifier
+    - `required`: Whether the claim must be provided
+    - `name`: Localized display name
+    - `type`: Data type (`string`, `number`, or `date`)
+    - `group`: Group this claim belongs to (e.g. `identity`), or `null` if ungrouped
+- `sign_in_redirect_url`: Link to the sign-in step, used to render the "Already have an account?" link. Present only
+  when sign-in is allowed, and therefore **`null` during an [invitation](/functional/invitation) flow** (invitations do
+  not allow signing into an existing account)
+- `redirect_url`: Set when the user should **not** be on the sign-up step — e.g. sign-up is disabled for the audience
+  (→ sign-in page) or an already-authenticated user (→ next step). When set, every other field is `null`
 
 #### POST Request
 
@@ -194,7 +249,8 @@ Creates a new user account with the provided password and claims.
 The request accepts:
 
 - `password`: User's chosen password (required)
-- Additional claims as configured in `identifier_claims` (dynamic properties)
+- The identifier claims from `password.identifier_claims` and the claims listed in the GET response's `claims` array,
+  as dynamic properties
 
 **Response Format**:
 
@@ -224,49 +280,7 @@ The request accepts:
 
 ---
 
-### 3. Sign-In Endpoint
-
-**Path**: `/api/v1/flow/sign-in`
-
-**Authentication**: Requires valid state in `Authorization: State <jwt>` header
-
-**Purpose**: Authenticates existing users with login and password credentials.
-
-#### POST Request
-
-Validates user credentials and establishes an authenticated session.
-
-**Request Format**:
-
-```json
-{
-  "login": "user@example.com",
-  "password": "securePassword123"
-}
-```
-
-**Properties**:
-
-- `login`: User identifier (matched against claims configured in `identifier_claims`)
-- `password`: User's password
-
-**Response Format**:
-
-```json
-{
-  "redirect_url": "/api/v1/flow/claims?state=..."
-}
-```
-
-**Workflow**:
-
-1. Validates login/password combination
-2. Identifies user by matching login against configured `identifier_claims`
-3. Returns redirect to next step (typically claims collection or flow completion)
-
----
-
-### 4. Providers Endpoints
+### 3. Providers Endpoints
 
 **Base Path**: `/api/v1/flow/providers/{providerId}`
 
@@ -311,7 +325,7 @@ Validates user credentials and establishes an authenticated session.
 
 ---
 
-### 5. Claims Endpoint
+### 4. Claims Endpoint
 
 **Path**: `/api/v1/flow/claims`
 
@@ -325,9 +339,8 @@ Returns all collectable claims with their metadata, any already-collected values
 providers. Only claims within the user's consented scopes are returned; identifier claims (used for sign-in/sign-up) are
 excluded.
 
-This single endpoint provides everything needed to build the claims collection form — there is no need to
-cross-reference
-the configuration endpoint for claim metadata.
+This single endpoint provides everything needed to build the claims collection form — the claim metadata is included in
+the response, so there is nothing else to fetch.
 
 **Response Format**:
 
@@ -427,7 +440,7 @@ it.
 
 ---
 
-### 6. Claims Validation Endpoints
+### 5. Claims Validation Endpoints
 
 **Base Path**: `/api/v1/flow/claims/validation`
 
@@ -576,7 +589,7 @@ When resend was blocked (anti-spam):
 
 ---
 
-### 7. MFA Endpoints
+### 6. MFA Endpoints
 
 **Base Path**: `/api/v1/flow/mfa`
 
@@ -748,14 +761,14 @@ has already enrolled in at least one MFA method, returns an error.
 
 ### Recommended Implementation Steps
 
-1. **Initialize Session**
+1. **Render the Sign-In Step**
+   ```http
+   GET /api/v1/flow/sign-in?state={state}
    ```
-   GET /api/v1/flow/configuration
-   ```
-    - No state parameter required
-    - Cache configuration for the session
-    - Determine available authentication methods
-    - Build UI based on enabled features
+    - Requires the `state` obtained from the authorize redirect
+    - Returns the sign-in config (`password`, `providers`, `sign_up_redirect_url`) **or** a `redirect_url`
+    - If `redirect_url` is set, follow it — e.g. an invitation flow sends the user to the sign-up step
+    - Otherwise build the UI from the returned config and determine the available authentication methods
 
 2. **Authenticate User** (choose one path)
 
@@ -773,8 +786,8 @@ has already enrolled in at least one MFA method, returns an error.
 
    **Option C - Provider Authentication**:
    ```
-   Redirect to provider's authorize_url from configuration
-   (add state parameter to the URL)
+   Redirect to the provider's authorize_url from the sign-in response
+   (the URL already includes the state)
    ```
 
 3. **Multi-Factor Authentication** (if MFA is enabled)
@@ -826,7 +839,8 @@ has already enrolled in at least one MFA method, returns an error.
 ### Example Flow Sequence
 
 ```
-1. GET /api/v1/flow/configuration
+1. GET /api/v1/flow/sign-in?state=abc123
+   → Returns: {"password": {...}, "providers": [...], "sign_up_redirect_url": "/sign-up?state=abc123"}
    ↓
 2. POST /api/v1/flow/sign-in   [Authorization: State abc123]
    → Returns: {"redirect_url": "/api/v1/flow/mfa?state=abc123"}
@@ -872,8 +886,9 @@ The Flow API implements two types of error handling:
 
 1. **Always follow redirects**: The server controls flow progression through `redirect_url`
 2. **Check for auto-skip**: Some GET endpoints may return only `redirect_url` if the step can be skipped
-3. **Preserve state**: Include the state token in all authenticated requests — as `?state=` query parameter for GET
-   requests, and as `Authorization: State <jwt>` header for POST requests
+3. **Preserve state**: Attach the state token to every request your UI originates — as `?state=` query parameter for
+   GET requests, and as `Authorization: State <jwt>` header for POST requests. URLs the server returns
+   (`redirect_url`, cross-links, provider `authorize_url`) already include the state, so follow them as-is
 4. **Handle dynamic claims**: Claims are configuration-driven; don't hardcode which claims to collect
 5. **Respect resend limits**: Honor the `resendDate` to prevent spam and improve deliverability
 6. **Pre-fill values**: Use `value` and `suggested_value` from responses to improve user experience

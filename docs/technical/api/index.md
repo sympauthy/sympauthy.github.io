@@ -21,8 +21,7 @@ specification compliance details.
 Low-level endpoints for building custom authentication flows, providing fine-grained control over the authentication
 experience. All endpoints are under `/api/v1/flow/`:
 
-- **Configuration**: Get flow settings, enabled features, and available providers
-- **Sign-Up/Sign-In**: Password-based registration and authentication
+- **Sign-In/Sign-Up**: Password-based authentication and registration
 - **Provider OAuth**: Third-party authentication via OAuth providers
 - **Claims Collection**: Gather additional user information
 - **Claim Validation**: Verify claims via EMAIL/SMS validation codes
