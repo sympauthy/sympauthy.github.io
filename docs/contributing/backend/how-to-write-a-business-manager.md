@@ -325,12 +325,13 @@ When implementing an RFC or specification, include links:
 
 ```kotlin
 /**
- * Manager supporting the lifecycle of web-based interactive authorization flows:
+ * Manager providing utility methods supporting the lifecycle of interactive auth flows described in the
+ * OAuth 2 like:
  * - [Authorization Code Grant](https://datatracker.ietf.org/doc/html/rfc6749#section-4.1)
  * - [Implicit Grant](https://datatracker.ietf.org/doc/html/rfc6749#section-4.2)
  */
 @Singleton
-class WebAuthorizationFlowManager(...)
+class InteractiveAuthFlowSessionManager(...)
 ```
 
 ### Method-Level KDoc

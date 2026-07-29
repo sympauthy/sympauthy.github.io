@@ -69,7 +69,7 @@ The format for business exception error codes follows this pattern:
 
 For example:
 
-- `auth.authorize_attempt.complete.missing_user` - Error in auth package, authorize_attempt manager, complete method
+- `auth.interactive_flow_session.complete.missing_user` - Error in auth package, interactive_flow_session manager, complete method
 - `claim.validate.invalid_email` - Error in claim package, validate method
 - `user.missing` - Generic error in user package
 

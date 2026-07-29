@@ -3,7 +3,7 @@
 When the built-in [scope granting rules](/functional/user_authorization#scope-granting-rules) are not sufficient, you
 can delegate [grantable scope](/functional/scope#grantable-scope) decisions to an external HTTP server — typically the
 client application's own backend. When an authorization webhook is configured for a client, SympAuthy calls the external
-server during the authorization attempt. The external server responds with per-scope grant/deny decisions, which
+server during the authorization request. The external server responds with per-scope grant/deny decisions, which
 SympAuthy uses to issue the token.
 
 The webhook receives the grantable scopes requested by the client, but is not limited to them. It may grant additional

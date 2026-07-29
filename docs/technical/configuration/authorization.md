@@ -16,7 +16,7 @@ This page covers authentication and authorization configuration: identity settin
 
 | Key              | Type     | Description                                                                                                                                                              | Required<br>Default |
 |------------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```expiration``` | duration | Maximum duration an authorization attempt is valid before it expires. The end-user must complete the entire authorization flow (sign-in, claims collection, MFA, etc.) within this time. | YES<br>```30m```    |
+| ```expiration``` | duration | Maximum duration an interactive flow session is valid before it expires. The end-user must complete the entire authorization flow (sign-in, claims collection, MFA, etc.) within this time. | YES<br>```30m```    |
 
 ### ```auth.by-password```
 

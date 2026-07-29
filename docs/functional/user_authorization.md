@@ -20,7 +20,7 @@ scope granting rules or by delegating to a third-party through webhook.
 
 ### Scope granting rules
 
-Scope granting rules are conditions evaluated during an authorization attempt to automatically grant or deny grantable
+Scope granting rules are conditions evaluated during an authorization request to automatically grant or deny grantable
 scopes. Their expressions evaluate **user claims** to determine whether a scope should be granted, using the
 ```CLAIM(...)``` and ```CLAIM_IS_VERIFIED(...)``` functions. See [Rule Expressions](/technical/rule_expressions) for the
 full list of functions and which rule types they are available in.
@@ -40,7 +40,7 @@ authorization server and look like the following:
 The ```scopes``` is the list of scopes that will be affected by the rule. If multiple rules affect the same scopes, the
 order in which they will be applied will be determined by the ```behavior``` and the ```order```.
 
-A rule is **applicable** if one of the listed ```scopes``` is requested during an authorization attempt. However the
+A rule is **applicable** if one of the listed ```scopes``` is requested during an authorization request. However the
 ones that are listed in ```scopes``` but not requested will not be granted or denied.
 
 The ```behavior``` is one of the following:
@@ -48,7 +48,7 @@ The ```behavior``` is one of the following:
 - ```grant```: The ```scopes``` will be included in tokens emitted to the user.
 - ```deny```: The ```scopes``` will not be included in tokens emitted to the user.
 
-A rule is **matched** if all the ```expressions``` return ```true``` for a given authorization attempt.
+A rule is **matched** if all the ```expressions``` return ```true``` for a given authorization request.
 
 The ```order``` helps you to control how the rules are applied when they have conflicting scopes:
 
@@ -61,7 +61,7 @@ The ```order``` helps you to control how the rules are applied when they have co
 
 When the built-in scope granting rules are not sufficient, you can delegate grantable scope decisions to an external
 HTTP server — typically the client application's own backend. When an authorization webhook is configured for a client,
-SympAuthy calls the external server during the authorization attempt. The external server responds with per-scope
+SympAuthy calls the external server during the authorization request. The external server responds with per-scope
 grant/deny decisions, which SympAuthy uses to issue the token.
 
 When an authorization webhook is configured for a client:

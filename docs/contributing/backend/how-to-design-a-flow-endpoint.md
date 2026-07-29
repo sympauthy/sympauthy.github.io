@@ -22,7 +22,7 @@ class SignInController( /* ... */ )
 ```
 
 - Use **kebab-case** for the step segment (`sign-in`, `sign-up`, `claims/validation`).
-- Every flow endpoint is `@Secured(HAS_STATE)` — it runs inside an ongoing authorization attempt
+- Every flow endpoint is `@Secured(HAS_STATE)` — it runs inside an ongoing interactive flow session
   identified by the `state` token. Only the initial `/api/oauth2/authorize` entry point is unauthenticated.
 
 A step controller exposes up to two handlers:
@@ -36,21 +36,21 @@ The `state` is transmitted differently per method — `?state=` on GET, `Authori
 POST. See [State management](/technical/api/flow#state-management) and [Security](/technical/security)
 for why. You never read the state yourself; the helpers below do it for you.
 
-## Never hand-roll: use `WebAuthorizationFlowControllerUtil`
+## Never hand-roll: use `InteractiveAuthFlowSessionControllerUtil`
 
-`WebAuthorizationFlowControllerUtil` is the single entry point every flow handler goes through. It
-decodes and verifies the state, loads the `OnGoingAuthorizeAttempt` and its `WebAuthorizationFlow`,
+`InteractiveAuthFlowSessionControllerUtil` is the single entry point every flow handler goes through. It
+decodes and verifies the state, loads the `OnGoingInteractiveFlowSession` and its `InteractiveFlow`,
 runs your step logic, translates exceptions, and computes the next-step redirect. Pick the helper that
 matches your handler:
 
 | Helper | Use for |
 |--------|---------|
-| `fetchOnGoingAttemptThenRunAndRedirect` | A `GET` step: serve config **or** redirect |
-| `fetchOnGoingAttemptWithUserThenRunAndRedirect` | A `GET` step that needs the authenticated `User` |
-| `fetchOnGoingAttemptThenUpdateAndRedirect` / `…WithUser…` | A `POST` step: mutate, then redirect |
+| `fetchOnGoingSessionThenRunAndRedirect` | A `GET` step: serve config **or** redirect |
+| `fetchOnGoingSessionWithUserThenRunAndRedirect` | A `GET` step that needs the authenticated `User` |
+| `fetchOnGoingSessionThenUpdateAndRedirect` / `…WithUser…` | A `POST` step: mutate, then redirect |
 
 ::: warning
-Do not decode the state, load the attempt, or build redirects directly in a controller. Doing so
+Do not decode the state, load the session, or build redirects directly in a controller. Doing so
 bypasses the centralized state handling and the recoverable/unrecoverable exception split, and it is the
 first thing a review will send back.
 :::
@@ -64,17 +64,17 @@ Flow responses come in two shapes (see [Response patterns](/technical/api/flow#r
   every config field is `null`; the client checks `redirect_url` first.
 
 A `GET` step uses the config-or-redirect shape: return the config when the step applies to the current
-attempt, otherwise let the engine redirect the user to the step they actually belong on.
+session, otherwise let the engine redirect the user to the step they actually belong on.
 
 ```kotlin
 @Get
 suspend fun getSignInConfiguration(
     authentication: Authentication
-): SignInFlowResource = webAuthorizationFlowControllerUtil.fetchOnGoingAttemptThenRunAndRedirect(
+): SignInFlowResource = interactiveAuthFlowSessionControllerUtil.fetchOnGoingSessionThenRunAndRedirect(
     state = authentication.stateOrNull,
-    run = { authorizeAttempt, flow ->
-        if (signInApplies(authorizeAttempt, flow)) {
-            buildSignInConfiguration(authorizeAttempt, flow)
+    run = { session, flow ->
+        if (signInApplies(session, flow)) {
+            buildSignInConfiguration(session, flow)
         } else {
             null // step does not apply → the util computes the correct redirect
         }
@@ -85,37 +85,44 @@ suspend fun getSignInConfiguration(
 ```
 
 When `run` returns a value, `mapResultToResource` turns it into the response. When `run` returns `null`,
-the helper calls `WebAuthorizationFlowManager.getStatusAndCompleteIfNecessary` and
-`WebAuthorizationFlowRedirectUriBuilder.getRedirectUri` to find the correct next step, then
-`mapRedirectUriToResource` wraps that URI. Completed, failed and expired attempts are handled the same
-way for free.
+the helper asks the flow's purpose engine for the next step: `InteractiveFlowPurposeRegistry` selects the
+session's `InteractiveFlowPurposeHandler`, which completes the session if needed and computes the next
+abstract `InteractiveFlowStep`; `InteractiveFlowStepUriMapper.toRedirectUri` then maps that step to a
+concrete page URI, which `mapRedirectUriToResource` wraps. Completed, failed and expired sessions are
+handled the same way for free.
 
 ## The applicability predicate
 
 The heart of a `GET` step is the predicate that decides *applies → serve config* vs *does not apply →
-redirect*. It must mirror the routing in `WebAuthorizationFlowRedirectUriBuilder`, so a step that does
-not apply never redirects back to itself.
+redirect*. It must mirror the step the purpose handler would compute for the same session, so a step that
+does not apply never redirects back to itself.
 
 ```kotlin
-private fun signInApplies(
-    authorizeAttempt: OnGoingAuthorizeAttempt,
-    flow: WebAuthorizationFlow
+private suspend fun signInApplies(
+    session: OnGoingInteractiveFlowSession,
+    flow: InteractiveFlow
 ): Boolean {
-    if (authorizeAttempt.userId != null) return false          // already authenticated → next step
-    return authorizeAttempt.invitationId == null               // invitation → sign-up page
+    if (session.userId != null) return false               // already authenticated → next step
+    val invitationId = oauth2Manager.fetchOAuth2(session).invitationId
+    return invitationId == null                            // invitation → sign-up page
         || flow.signUpUri == null
 }
 ```
 
+The session carries only flow-generic state (`userId`, MFA, terminal status); OAuth2 request data such as
+the invitation is fetched on demand via `InteractiveFlowSessionOAuth2Manager.fetchOAuth2(session)`, never
+read off the session object.
+
 The next-step routing lives in two places you should read before adding a step:
 
-- `WebAuthorizationFlowStatus` — the boolean flags describing what the attempt still needs
+- `OAuth2AuthorizeInteractiveFlowStatus` — the boolean flags describing what the session still needs
   (`missingUser`, `missingMfa`, `missingRequiredClaims`, …).
-- `WebAuthorizationFlowRedirectUriBuilder` — the cascade that turns that status into the next URI.
+- `OAuth2AuthorizeInteractiveFlowPurposeHandler` — the handler that turns that status into the next
+  abstract `InteractiveFlowStep`, which `InteractiveFlowStepUriMapper` maps to the concrete page URI.
 
 ::: tip
 Sanity-check every not-applicable branch: for each reason your predicate returns `null`, confirm the
-redirect builder sends the user *somewhere else*. If it would route back to the current step, you have a
+purpose handler sends the user *somewhere else*. If it would route back to the current step, you have a
 redirect loop.
 :::
 
@@ -148,11 +155,11 @@ data class SignInFlowResource(
 ## URLs always carry state
 
 Every URL a flow endpoint returns — `redirect_url`, cross-links, provider `authorize_url` — is built
-with the state already appended, so the client can follow it directly. Use the redirect builder rather
+with the state already appended, so the client can follow it directly. Use the step URI mapper rather
 than assembling URLs by hand:
 
-- `WebAuthorizationFlowRedirectUriBuilder.appendStateToUri(attempt, uri)` for an arbitrary URL.
-- `getSignInRedirectUri(attempt, flow)` / `getSignUpRedirectUri(attempt, flow)` for the sign-in / sign-up
+- `InteractiveFlowStepUriMapper.appendState(session, uri)` for an arbitrary URL.
+- `getSignInRedirectUri(session, flow)` / `getSignUpRedirectUri(session, flow)` for the sign-in / sign-up
   pages.
 
 **Cross-links** (a link from one step to a sibling, e.g. sign-in → sign-up) are included **only when the
@@ -160,9 +167,9 @@ target is allowed**. Decide that with a manager predicate, never with logic inli
 
 ```kotlin
 val signUpRedirectUrl = if (
-    webAuthorizationFlowManager.isSignUpAllowed(authorizeAttempt) && flow.signUpUri != null
+    interactiveAuthFlowSessionManager.isSignUpAllowed(session) && flow.signUpUri != null
 ) {
-    redirectUriBuilder.getSignUpRedirectUri(authorizeAttempt, flow)?.toString()
+    stepUriMapper.getSignUpRedirectUri(session, flow)?.toString()
 } else null
 ```
 
@@ -176,9 +183,9 @@ because it re-submits the original body (including credentials) to the redirect 
 
 A flow controller only assembles the response resource and delegates to the helper. The step's behaviour
 and its predicates live in [business managers](/contributing/backend/how-to-write-a-business-manager) — for example
-`WebAuthorizationFlowPasswordManager.signInWithPassword` and `WebAuthorizationFlowManager.isSignUpAllowed`.
+`InteractiveAuthFlowSessionPasswordManager.signInWithPassword` and `InteractiveAuthFlowSessionManager.isSignUpAllowed`.
 Managers never return entities, and they signal problems with [business exceptions](/contributing/backend/how-to-throw-an-exception):
-a **recoverable** exception becomes a `4xx` the user can retry; an **unrecoverable** one marks the attempt
+a **recoverable** exception becomes a `4xx` the user can retry; an **unrecoverable** one marks the session
 failed and redirects to the error page. The helper applies that split for you.
 
 A `POST` step follows the same shape, mutating through a manager and letting the helper redirect:
@@ -189,11 +196,11 @@ suspend fun signIn(
     authentication: Authentication,
     @Body inputResource: SignInInputResource
 ): SimpleFlowResource =
-    webAuthorizationFlowControllerUtil.fetchOnGoingAttemptThenUpdateAndRedirect(
+    interactiveAuthFlowSessionControllerUtil.fetchOnGoingSessionThenUpdateAndRedirect(
         state = authentication.stateOrNull,
-        update = { authorizeAttempt, _ ->
+        update = { session, _ ->
             passwordFlowManager.signInWithPassword(
-                authorizeAttempt = authorizeAttempt,
+                session = session,
                 login = inputResource.login,
                 password = inputResource.password
             )
@@ -220,9 +227,9 @@ the handler with `@Operation` so it appears in the generated OpenAPI document.
 ## Checklist
 
 - [ ] Controller under `/api/v1/flow/<step>` (kebab-case), `@Secured(HAS_STATE)`.
-- [ ] Every handler goes through `WebAuthorizationFlowControllerUtil` — no manual state or redirect handling.
-- [ ] `GET` returns config **or** `redirect_url`; the applicability predicate mirrors the redirect builder.
+- [ ] Every handler goes through `InteractiveAuthFlowSessionControllerUtil` — no manual state or redirect handling.
+- [ ] `GET` returns config **or** `redirect_url`; the applicability predicate mirrors the purpose handler's step.
 - [ ] Response resource is UI-only; `*FlowResource` only if it carries `redirect_url`; sub-resources reused.
-- [ ] URLs built via the redirect builder (state appended); cross-links gated by a manager predicate; 303 not 307.
+- [ ] URLs built via the step URI mapper (state appended); cross-links gated by a manager predicate; 303 not 307.
 - [ ] Step logic and predicates live in managers; exceptions are recoverable/unrecoverable business exceptions.
 - [ ] Endpoint documented in the [Flow API](/technical/api/flow) reference.

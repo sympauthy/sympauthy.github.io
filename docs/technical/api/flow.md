@@ -19,7 +19,7 @@ See the [Security](/technical/security#cors-restriction-on-the-flow-api) page fo
 
 #### State Management
 
-All Flow API endpoints require a state token that identifies the ongoing authorization attempt and session.
+All Flow API endpoints require a state token that identifies the ongoing interactive flow session.
 
 Every URL the server returns in a response — `redirect_url`, cross-links such as `sign_up_redirect_url` and
 `sign_in_redirect_url`, and provider `authorize_url` — already includes the `state`, so you can follow it directly. You
@@ -108,7 +108,7 @@ work seamlessly — no further token handling is needed by the flow UI.
 
 Returns the configuration needed to render the sign-in screen — the available password and provider sign-in methods and
 the cross-link to sign-up — **or** a `redirect_url` when the user does not belong on the sign-in step. The response is
-specific to the client that initiated the authorize flow and to the current attempt.
+specific to the client that initiated the authorize flow and to the current interactive flow session.
 
 **Response Format**:
 
@@ -140,7 +140,7 @@ specific to the client that initiated the authorize flow and to the current atte
     - `name`: Localized display name
     - `authorize_url`: URL that starts the provider's OAuth flow (already includes `state`)
 - `sign_up_redirect_url`: Link to the sign-up step, used to render the "Create an account" link. Present only when
-  sign-up is allowed for this attempt (in a normal, non-invitation sign-in: when open registration is enabled), and
+  sign-up is allowed for this interactive flow session (in a normal, non-invitation sign-in: when open registration is enabled), and
   `null` otherwise
 - `redirect_url`: Set when the user should **not** be on the sign-in step — e.g. an
   [invitation](/functional/invitation) flow (→ sign-up page) or an already-authenticated user (→ next step). When set,

@@ -107,7 +107,7 @@ The mechanism works as follows:
 1. Before starting the authorization flow, the client generates a random string called the `code_verifier`.
 2. The client computes a challenge: `code_challenge = BASE64URL(SHA256(code_verifier))`.
 3. The client sends the `code_challenge` and `code_challenge_method=S256` as parameters to the authorization endpoint.
-4. SympAuthy stores the challenge alongside the authorization attempt.
+4. SympAuthy stores the challenge alongside the interactive flow session.
 5. At token exchange, the client sends the original `code_verifier`.
 6. SympAuthy recomputes the challenge from the verifier and compares it to the stored value. If they do not match, the
    request is rejected with `invalid_grant`.
@@ -188,7 +188,7 @@ filter runs, so browsers receive the necessary permission headers even for endpo
 ## CSRF protection on flow POST endpoints
 
 The Flow API uses a JWT-encoded state token to protect against cross-site request forgery. When an authorization request
-is received, SympAuthy generates a signed JWT (containing the `AuthorizeAttempt` ID) and passes it through all flow
+is received, SympAuthy generates a signed JWT (containing the `InteractiveFlowSession` ID) and passes it through all flow
 redirect URIs as the `state` query parameter. This token is required on every subsequent flow request.
 
 For GET requests (page navigation and initial data fetching), the state is read from the `?state=` URL query parameter.
@@ -301,7 +301,7 @@ Several safeguards are in place:
 - **Skip guard**: The skip endpoint (`GET /api/v1/flow/mfa/skip`) is protected. Attempting to skip MFA returns an error
   when `mfa.required` is `true` or when the user has already enrolled in at least one MFA method, ensuring no enrolled
   user can bypass the requirement.
-- **Per-session enforcement**: The MFA step is recorded on the authorization attempt (`mfa_passed_date` column). Each
+- **Per-session enforcement**: The MFA step is recorded on the interactive flow session (`mfa_passed_date` column). Each
   new sign-in session requires a fresh MFA verification — passing MFA once does not carry over to future sessions.
 - **Server-side secrets**: TOTP secrets are stored in the `totp_enrollments` database table. They are never exposed to
   the client after the initial enrollment.
