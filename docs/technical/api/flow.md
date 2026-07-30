@@ -116,7 +116,13 @@ specific to the client that initiated the authorize flow and to the current inte
 {
   "password": {
     "identifier_claims": [
-      "email"
+      {
+        "id": "email",
+        "required": true,
+        "name": "Email",
+        "type": "string",
+        "group": null
+      }
     ]
   },
   "providers": [
@@ -134,7 +140,12 @@ specific to the client that initiated the authorize flow and to the current inte
 **Properties**:
 
 - `password`: Password sign-in configuration, or `null` when password sign-in is disabled
-    - `identifier_claims`: Claims accepted as the login identifier (typically `email`)
+    - `identifier_claims`: Claims accepted as the login identifier (typically `email`). Each entry describes one claim:
+        - `id`: Claim identifier
+        - `required`: Whether the claim must be provided
+        - `name`: Localized display name
+        - `type`: Data type (`string`, `number`, or `date`)
+        - `group`: Group this claim belongs to (e.g. `identity`), or `null` if ungrouped
 - `providers`: Third-party identity providers to offer, or `null`/empty when none are configured
     - `id`: Provider identifier
     - `name`: Localized display name
@@ -190,8 +201,8 @@ Validates user credentials and establishes an authenticated session.
 
 #### GET Request
 
-Returns the configuration needed to render the sign-up screen — the password requirements, the claims to collect, and
-the cross-link to sign-in — **or** a `redirect_url` when the user does not belong on the sign-up step.
+Returns the configuration needed to render the sign-up screen — the password requirements and the identifier claims to
+collect, and the cross-link to sign-in — **or** a `redirect_url` when the user does not belong on the sign-up step.
 
 **Response Format**:
 
@@ -199,18 +210,15 @@ the cross-link to sign-in — **or** a `redirect_url` when the user does not bel
 {
   "password": {
     "identifier_claims": [
-      "email"
+      {
+        "id": "email",
+        "required": true,
+        "name": "Email",
+        "type": "string",
+        "group": null
+      }
     ]
   },
-  "claims": [
-    {
-      "id": "given_name",
-      "required": true,
-      "name": "First name",
-      "type": "string",
-      "group": "identity"
-    }
-  ],
   "sign_in_redirect_url": "/sign-in?state=...",
   "redirect_url": null
 }
@@ -219,13 +227,13 @@ the cross-link to sign-in — **or** a `redirect_url` when the user does not bel
 **Properties**:
 
 - `password`: Password sign-up configuration, or `null` when password sign-up is disabled
-    - `identifier_claims`: Claims used as the account identifier and required during registration
-- `claims`: Claims to collect on the sign-up form
-    - `id`: Claim identifier
-    - `required`: Whether the claim must be provided
-    - `name`: Localized display name
-    - `type`: Data type (`string`, `number`, or `date`)
-    - `group`: Group this claim belongs to (e.g. `identity`), or `null` if ungrouped
+    - `identifier_claims`: Claims that uniquely identify the account and are collected on the sign-up form. Each entry
+      describes one claim:
+        - `id`: Claim identifier
+        - `required`: Whether the claim must be provided
+        - `name`: Localized display name
+        - `type`: Data type (`string`, `number`, or `date`)
+        - `group`: Group this claim belongs to (e.g. `identity`), or `null` if ungrouped
 - `sign_in_redirect_url`: Link to the sign-in step, used to render the "Already have an account?" link. Present only
   when sign-in is allowed, and therefore **`null` during an [invitation](/functional/invitation) flow** (invitations do
   not allow signing into an existing account)
@@ -234,23 +242,24 @@ the cross-link to sign-in — **or** a `redirect_url` when the user does not bel
 
 #### POST Request
 
-Creates a new user account with the provided password and claims.
+Creates a new user account with the provided password and identifier claims.
 
 **Request Format**:
 
 ```json
 {
   "password": "securePassword123",
-  "email": "user@example.com",
-  "username": "johndoe"
+  "email": "user@example.com"
 }
 ```
 
 The request accepts:
 
 - `password`: User's chosen password (required)
-- The identifier claims from `password.identifier_claims` and the claims listed in the GET response's `claims` array,
-  as dynamic properties
+- The identifier claims from `password.identifier_claims`, as dynamic properties
+
+Only identifier claims are saved on the created account. Any other claim present in the request is **discarded** —
+additional information is gathered later, at the [claims collection step](#_4-claims-endpoint).
 
 **Response Format**:
 
@@ -262,8 +271,8 @@ The request accepts:
 
 **Workflow**:
 
-1. Validates the password and required claims
-2. Creates the user account
+1. Validates the password and the required identifier claims
+2. Creates the user account (saving only the identifier claims)
 3. If an [invitation](/functional/invitation) is bound to the flow state, its pre-assigned claims are applied to
    the new account and the invitation is marked as used
 4. Returns redirect to the next step (typically claims collection or validation)
