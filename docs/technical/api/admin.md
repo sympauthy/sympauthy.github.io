@@ -44,8 +44,8 @@ grant only the minimum necessary privileges.
 | `admin:consent:write`       | Revoke consents, force logout                                              |
 | `admin:invitations:read`    | List and view [invitations](/functional/invitation)                        |
 | `admin:invitations:write`   | Create and revoke [invitations](/functional/invitation)                    |
-| `admin:users:read`          | List and view users                                                        |
-| `admin:users:write`         | Create, update, disable, enable users                                      |
+| `admin:users:read`          | List and view users and their MFA methods                                  |
+| `admin:users:write`         | Create, update, disable, enable users; revoke MFA methods and start MFA enrollment |
 | `admin:users:delete`        | Delete users (separated for GDPR sensitivity)                              |
 
 The `admin:users:delete` scope is intentionally separated from `admin:users:write` because user deletion is an
@@ -1114,6 +1114,210 @@ that client only.
 - Revoke access for a user on a specific application without affecting their other sessions
 - Respond to a client-specific security incident
 - Remove access to a particular service for a departing team member
+
+---
+
+### MFA Management
+
+Endpoints for viewing and managing a user's registered
+[multi-factor authentication](/functional/authentication#multi-factor-authentication-mfa) methods, and for starting an
+admin-initiated MFA enrollment on a user's behalf. Requires `admin:users:read` for read operations and
+`admin:users:write` for modifications.
+
+#### List MFA Methods
+
+**Path**: `/api/v1/admin/users/{user_id}/mfa`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:users:read` scope
+
+**Purpose**: Retrieves a paginated list of the MFA methods a user has registered.
+
+**Path Parameters**:
+
+- `user_id`: Unique identifier of the user
+
+**Query Parameters**:
+
+- `page` (optional): Zero-indexed page number (default: `0`)
+- `size` (optional): Number of results per page (default: `20`)
+
+**Response Format**:
+
+`200 OK`:
+
+```json
+{
+  "mfa_methods": [
+    {
+      "mfa_id": "6f2a1b7c-9d3e-4a5f-8b21-0c4d5e6f7a8b",
+      "type": "totp",
+      "registered_at": "2026-01-15T14:30:00Z"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "total": 1
+}
+```
+
+**Errors**:
+
+| Error code | Description |
+|------------|-------------|
+| `not_found` | The resource you are looking for is not available on this authorization server. |
+
+**Properties**:
+
+- `mfa_methods`: Array of registered MFA method records
+    - `mfa_id`: Unique identifier of the MFA registration
+    - `type`: Type of MFA method. Possible values: `"totp"`
+    - `registered_at`: ISO 8601 timestamp (UTC) when the MFA method was registered
+- `page`: Current page number
+- `size`: Number of results per page
+- `total`: Total number of MFA methods registered by the user
+
+**Use Cases**:
+
+- Display a user's registered second factors in an admin dashboard
+- Verify whether a user has MFA configured before enforcing a policy
+- Audit MFA coverage across accounts
+
+---
+
+#### Revoke MFA Method
+
+**Path**: `/api/v1/admin/users/{user_id}/mfa/{mfa_id}`
+
+**Method**: DELETE
+
+**Authentication**: Bearer token with `admin:users:write` scope
+
+**Purpose**: Revokes a specific MFA method registered by a user. The user can no longer use it as a second factor.
+Returns 404 if no MFA registration matches the given identifier.
+
+**Path Parameters**:
+
+- `user_id`: Unique identifier of the user
+- `mfa_id`: Unique identifier of the MFA registration to revoke
+
+**Response Format**:
+
+`200 OK`:
+
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "mfa_id": "6f2a1b7c-9d3e-4a5f-8b21-0c4d5e6f7a8b",
+  "revoked": true
+}
+```
+
+**Errors**:
+
+| Error code | Description |
+|------------|-------------|
+| `not_found` | The resource you are looking for is not available on this authorization server. |
+
+**Properties**:
+
+- `user_id`: Unique identifier of the user
+- `mfa_id`: Identifier of the MFA registration that was revoked
+- `revoked`: Confirmation that the MFA method was revoked
+
+**Use Cases**:
+
+- Remove a lost or compromised authenticator from a user's account
+- Help a user locked out of their second factor recover access
+- Clean up stale MFA registrations during account maintenance
+
+---
+
+#### Start MFA Enrollment
+
+**Path**: `/api/v1/admin/users/{user_id}/mfa/enrollment`
+
+**Method**: POST
+
+**Authentication**: Bearer token with `admin:users:write` scope
+
+**Purpose**: Starts a standalone MFA enrollment [interactive flow](/functional/interactive_flow) on a user's behalf and
+returns a `redirect_url` to hand or send to that user. When the user completes enrollment, they are redirected to the
+`return_uri`; if the administrator also supplies an optional `cancel_uri`, the user may instead abandon the enrollment
+and be sent there. Because the enrollment is initiated by an administrator rather than the user, the flow is gated by a
+confirmation the user must approve — shown as initiated by "an administrator."
+
+This is the administrator counterpart to the client-driven
+[Start MFA Enrollment](/technical/api/client#start-mfa-enrollment) endpoint. Unlike that endpoint, it requires no
+end-user access token: the administrator names the **user** via the path and the **client** the user will be returned
+into via `client_id` in the body.
+
+**Path Parameters**:
+
+- `user_id`: Unique identifier of the user to enroll
+
+**Request Format**:
+
+```json
+{
+  "client_id": "my-app",
+  "return_uri": "https://app.example.com/account/security",
+  "cancel_uri": "https://app.example.com/account/security"
+}
+```
+
+**Properties**:
+
+- `client_id`: Identifier of the client the end-user is returned into once enrollment completes. The `return_uri` and
+  optional `cancel_uri` are validated against **this client's** [registered redirect URIs](/technical/configuration/client).
+- `return_uri`: URI the end-user is redirected to once enrollment completes. It must match one of the named client's
+  registered redirect URIs — validated with the same OAuth 2.1 redirect-URI rules as the authorization endpoint — to
+  prevent open redirects.
+- `cancel_uri` (optional): URI the end-user is redirected to if they cancel the enrollment via the flow's
+  [Cancel Endpoint](/technical/api/flow#_7-cancel-endpoint). Like `return_uri`, it must match one of the named client's
+  registered redirect URIs and is validated with the same rules. When omitted, the enrollment offers no way to cancel
+  and the end-user must complete it.
+
+**Response Format**:
+
+`200 OK`:
+
+```json
+{
+  "redirect_url": "https://auth.example.com/flow/mfa?state=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Errors**:
+
+| Error code | Description |
+|------------|-------------|
+| `admin.users.mfa.enrollment.mfa_disabled` | This authorization server is not configured to support multi-factor authentication, so an enrollment cannot be started. |
+| `not_found` | The resource you are looking for is not available on this authorization server. |
+
+- Returns **400 Bad Request** with `admin.users.mfa.enrollment.mfa_disabled` when no MFA method is enabled in the server
+  configuration ([`mfa.totp.enabled`](/technical/configuration/authorization#mfa)). The check happens up front, before
+  any enrollment session is created.
+- Returns **400 Bad Request** when the `return_uri` or `cancel_uri` does not match the named client's registered
+  redirect URIs.
+- Returns **404 Not Found** (`not_found`) when no user **or** no client exists for the given identifiers.
+
+**Properties**:
+
+- `redirect_url`: URL to hand or send to the end-user so they can enroll their authenticator. The signed `state`
+  identifying the enrollment [interactive flow](/technical/api/flow#state-management) session is already included as a
+  query parameter.
+
+Unlike the [client endpoint](/technical/api/client#start-mfa-enrollment), the response carries **only** `redirect_url`
+— no standalone `state` field. The administrator does not drive the flow through the API; they simply deliver the link
+to the user, so the `state` is needed only inside the URL.
+
+**Use Cases**:
+
+- Enroll a second factor for a user during onboarding or a support interaction
+- Enforce MFA on privileged accounts by sending users a ready-to-use enrollment link
+- Drive MFA enrollment from an admin dashboard without the user starting it themselves
 
 ---
 
