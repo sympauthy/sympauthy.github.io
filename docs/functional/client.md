@@ -33,3 +33,41 @@ Each client must be registered in SympAuthy before it can authenticate users. Re
 - **allowed redirect URIs**: The list of URIs the client is allowed to redirect end-users to after authentication. At least one URI must be configured.
 
 Refer to the [configuration](/technical/configuration/client) section for the full list of options and an example.
+
+## What a client can do
+
+Beyond delegating sign-in, a client can act on the users of its [audience](/functional/audience) through the
+[Client API](/technical/api/client) — a set of endpoints the client calls as itself, authenticated with the
+[client credentials grant](/functional/authentication#service-account-authentication) and gated by
+[client scopes](/functional/scope#client-scope). What a given client is allowed to do depends on the scopes it has been
+[granted](/functional/client_authorization):
+
+- **Look up its users** — list the end-users who have [consented](/functional/consent) to its audience and read their
+  identity information. Requires `users:read`.
+- **Read and write claims** — read the [claims](/functional/claims) it is authorized to see and update the ones it is
+  authorized to modify, according to each claim's access control list. Requires `users:claims:read` /
+  `users:claims:write`.
+- **Manage invitations** — create, list, and revoke [invitations](/functional/invitation) for audiences where open
+  sign-up is disabled. Requires `invitations:read` / `invitations:write`.
+- **Start MFA enrollment on demand** — let a signed-in user add a second factor from within the application
+  (see [below](#enrolling-mfa-on-demand)). Requires `users:mfa:write`.
+
+For the request and response details of every operation, see the [Client API](/technical/api/client) reference.
+
+### Enrolling MFA on demand
+
+Normally an end-user enrolls in [multi-factor authentication](/functional/authentication#multi-factor-authentication-mfa)
+during sign-in — the first time they authenticate after MFA is enabled. A client can also let an **already-signed-in**
+user enroll a second factor **on their own initiative** — for example, from an account-settings or security screen —
+without sending them through a full sign-in.
+
+The client asks SympAuthy to start an enrollment on behalf of one of its users and gets back a URL to send that user
+to. The user goes through the same enrollment steps as during sign-in — choosing a method, then setting up TOTP — and
+once finished is redirected back to the application. An enrollment started this way cannot be skipped.
+
+Because the action is performed for a specific user, the client identifies **both itself and the user** when making the
+request. The address the user is returned to is restricted to the client's registered redirect URIs, so users can only
+ever be sent back to the application they came from.
+
+This is exposed through the [Start MFA Enrollment](/technical/api/client#multi-factor-authentication-mfa) endpoint of
+the Client API.

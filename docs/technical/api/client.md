@@ -18,6 +18,8 @@ are granted.
 | `users:read`         | List users with consented scopes                         |
 | `users:claims:read`  | Read claims the client is authorized to access           |
 | `users:claims:write` | Write claims the client is authorized to modify          |
+| `users:mfa:read`     | *(Reserved)* Read a user's MFA enrollment status — no endpoint consumes it yet |
+| `users:mfa:write`    | Start [MFA enrollment](#multi-factor-authentication-mfa) for a signed-in user |
 
 ## Authentication
 
@@ -69,28 +71,24 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 Each Client API endpoint requires a specific client scope. The access token must include the scope required by the
 endpoint being called.
 
-- If the token is missing or invalid: **401 Unauthorized**
-- If the token is valid but lacks the required scope: **403 Forbidden**
-
-**401 Response Example**:
-
-```json
-{
-  "error": "unauthorized",
-  "error_description": "Missing or invalid access token."
-}
-```
-
-**403 Response Example**:
-
-```json
-{
-  "error": "forbidden",
-  "error_description": "The access token does not include the required scope: users:read"
-}
-```
+- If the token is missing or invalid: **401 Unauthorized** (`unauthorized`)
+- If the token is valid but lacks the required scope: **403 Forbidden** (`forbidden`)
 
 The required scope for each endpoint is documented in the [Endpoints](#endpoints) section below.
+
+### Error format
+
+When a request fails, the API responds with a JSON error object containing the HTTP `status`, a stable
+machine-readable `error_code`, a user-facing `description`, and — only when the `print-details-in-error` feature is
+enabled on the server — a technical `details` message. Each failure case in this page is listed by its `error_code`
+and `description`.
+
+The following errors may be returned by any endpoint:
+
+| Error code     | Description                                                                    |
+|----------------|--------------------------------------------------------------------------------|
+| `unauthorized` | The access to this resource is protected. Please authenticate before retrying. |
+| `forbidden`    | The access token does not include the required scope to access this resource.  |
 
 ## Endpoints
 
@@ -167,6 +165,12 @@ Endpoints for listing users and viewing their authorization status. Requires the
 }
 ```
 
+**Errors**:
+
+| Error code | Description |
+|------------|-------------|
+| `client.subject_without_provider` | The `subject` query parameter requires a `provider_id` to be specified. |
+
 **Properties**:
 
 - `users`: Array of user consent records
@@ -232,14 +236,11 @@ Endpoints for listing users and viewing their authorization status. Requires the
 }
 ```
 
-`404 Not Found`:
+**Errors**:
 
-```json
-{
-  "error": "not_found",
-  "error_description": "No user found with id: 550e8400-e29b-41d4-a716-446655440000"
-}
-```
+| Error code | Description |
+|------------|-------------|
+| `not_found` | The resource you are looking for is not available on this authorization server. |
 
 **Properties**:
 
@@ -302,14 +303,11 @@ read based on each claim's [ACL](/technical/configuration/claim#claims-id-acl).
 }
 ```
 
-`404 Not Found`:
+**Errors**:
 
-```json
-{
-  "error": "not_found",
-  "error_description": "No user found with id: 550e8400-e29b-41d4-a716-446655440000"
-}
-```
+| Error code | Description |
+|------------|-------------|
+| `not_found` | The resource you are looking for is not available on this authorization server. |
 
 **Properties**:
 
@@ -385,23 +383,12 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
 }
 ```
 
-`400 Bad Request`:
+**Errors**:
 
-```json
-{
-  "error": "invalid_claim",
-  "error_description": "The claim 'email' cannot be modified by the client. Either the claim does not exist or the client does not hold the required scopes."
-}
-```
-
-`404 Not Found`:
-
-```json
-{
-  "error": "not_found",
-  "error_description": "No user found with id: 550e8400-e29b-41d4-a716-446655440000"
-}
-```
+| Error code | Description |
+|------------|-------------|
+| `client.invalid_claim` | The claim `{claim}` cannot be modified by the client. Either the claim does not exist or the client does not hold the required scopes. |
+| `not_found` | The resource you are looking for is not available on this authorization server. |
 
 **Properties**:
 
@@ -422,6 +409,100 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
 - Tag users with custom attributes (roles, departments, etc.)
 - Maintain additional user information beyond OpenID Connect claims
 - Update user attributes from external systems
+
+---
+
+### Multi-Factor Authentication (MFA)
+
+Endpoint for starting [multi-factor authentication](/functional/authentication#multi-factor-authentication-mfa)
+enrollment for a signed-in end-user on demand — outside of a sign-in flow. This lets an application offer MFA
+enrollment from, for example, an account-settings or security screen. Requires the `users:mfa:write` scope.
+
+#### Start MFA Enrollment
+
+**Path**: `/api/v1/client/mfa/enrollment`
+
+**Method**: POST
+
+**Authentication**: Bearer token with `users:mfa:write` scope, **plus** the end-user's access token in the request
+body (see **Dual authentication** below)
+
+**Purpose**: Starts a standalone MFA enrollment [interactive flow](/functional/interactive_flow) for an
+already-signed-in end-user and returns a URL to send them to. When the user completes enrollment, they are redirected
+to the `return_uri` supplied by the client. Unlike enrollment offered during sign-in, a standalone enrollment started
+through this endpoint cannot be skipped.
+
+**Dual authentication**: This endpoint acts on behalf of an end-user, so it identifies **two** parties and requires
+**two** credentials:
+
+1. **The client** — authenticates with its client-credentials Bearer token, like every other Client API endpoint, and
+   must hold the `users:mfa:write` scope.
+2. **The end-user** — identified by their own access token, passed in the request body as `access_token`. The server
+   validates this token and derives the user to enroll from it.
+
+The end-user's access token must have been **issued to the calling client**: a client cannot start enrollment using a
+token minted for another client. It must also be a user token — a client-credentials token, which has no associated
+user, is rejected.
+
+**Request Format**:
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "return_uri": "https://app.example.com/account/security"
+}
+```
+
+**Properties**:
+
+- `access_token`: A valid, non-expired access token belonging to the end-user to enroll. It must have been issued to
+  the calling client.
+- `return_uri`: URI the end-user is redirected to once enrollment completes. It must match one of the calling client's
+  [registered redirect URIs](/technical/configuration/client) — validated with the same OAuth 2.1 redirect-URI rules
+  as the authorization endpoint — to prevent open redirects.
+
+**Response Format**:
+
+`200 OK`:
+
+```json
+{
+  "state": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "redirect_url": "https://auth.example.com/flow/mfa?state=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Errors**:
+
+| Error code | Description |
+|------------|-------------|
+| `client.mfa.enrollment.mfa_disabled` | This authorization server is not configured to support multi-factor authentication, so an enrollment cannot be started. Please contact the support of the application to report this issue. |
+| `client.mfa.enrollment.invalid_access_token` | The access token identifying the end-user is missing, expired, revoked, not associated with an end-user, or was not issued to your client. Obtain a fresh access token for the end-user and try again. |
+
+An invalid `return_uri` — one that does not match the client's registered redirect URIs — is rejected the same way.
+
+**Properties**:
+
+- `state`: Signed token identifying the enrollment [interactive flow](/technical/api/flow#state-management) session.
+- `redirect_url`: URL to navigate the end-user's browser to in order to run the enrollment steps. The `state` is
+  already included in the URL.
+
+The client is responsible for navigating the end-user's browser to `redirect_url`. The endpoint returns JSON rather
+than issuing a `303` redirect because the caller is a client backend holding a bearer token, not the browser itself.
+
+**Important Notes**:
+
+- The MFA-not-enabled check happens up front: if no MFA method is enabled in the server configuration
+  ([`mfa.totp.enabled`](/technical/configuration/authorization#mfa)), the endpoint fails immediately with a `400`
+  error before any enrollment session is created.
+- Enrollment reuses the same steps as the sign-in flow — method selection, then TOTP enrollment. See
+  [How an Interactive Flow Works](/functional/interactive_flow).
+
+**Use Cases**:
+
+- Offer MFA enrollment from an application's account-settings or security screen.
+- Prompt existing users to add a second factor without sending them through a full re-authentication.
+- Drive MFA enrollment from a custom, branded UI.
 
 ---
 
@@ -471,15 +552,6 @@ token is returned only in this response — it cannot be retrieved later.
 
 **Response Format**:
 
-`400 Bad Request` (claim not writable):
-
-```json
-{
-  "error": "invitation.claim_not_writable",
-  "error_description": "The client does not have write access to the claim: custom_role"
-}
-```
-
 `201 Created`:
 
 ```json
@@ -508,6 +580,13 @@ token is returned only in this response — it cannot be retrieved later.
 - `note`: Note, or `null` if none
 - `created_at`: ISO 8601 timestamp (UTC) when the invitation was created
 - `expires_at`: ISO 8601 timestamp (UTC) when the invitation expires
+
+**Errors**:
+
+| Error code | Description |
+|------------|-------------|
+| `invitation.unknown_claim` | The claim `{claim}` does not exist or is not enabled. Please check the available claims and try again. |
+| `invitation.claim_not_writable` | The claim `{claim}` cannot be pre-assigned by this client. The client does not hold the required scopes. |
 
 **Use Cases**:
 
@@ -634,14 +713,11 @@ invitation was not created by this client.
 }
 ```
 
-`404 Not Found`:
+**Errors**:
 
-```json
-{
-  "error": "not_found",
-  "error_description": "No invitation found with id: a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-}
-```
+| Error code | Description |
+|------------|-------------|
+| `not_found` | The resource you are looking for is not available on this authorization server. |
 
 **Properties**:
 
@@ -690,14 +766,12 @@ redeemed. Returns 404 if the invitation was not created by this client. This ope
 }
 ```
 
-`404 Not Found`:
+**Errors**:
 
-```json
-{
-  "error": "not_found",
-  "error_description": "No invitation found with id: a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-}
-```
+| Error code | Description |
+|------------|-------------|
+| `not_found` | The resource you are looking for is not available on this authorization server. |
+| `invitation.cannot_revoke` | The invitation cannot be revoked because it is in status `{status}`; only pending invitations can be revoked. |
 
 **Use Cases**:
 
