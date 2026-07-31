@@ -100,6 +100,8 @@ Client scopes are defined by SympAuthy and protect operations of the
 | `users:read`         | List users with consented scopes                     |
 | `users:claims:read`  | Read claims the client is authorized to access       |
 | `users:claims:write` | Write claims the client is authorized to modify      |
+| `users:mfa:read`     | Read a user's MFA enrollment status (reserved for future use) |
+| `users:mfa:write`    | Start MFA enrollment for a signed-in user            |
 
 See [Client Authorization](/functional/client_authorization) for details on client scope granting rules.
 

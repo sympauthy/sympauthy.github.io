@@ -116,28 +116,24 @@ Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
 Each Admin API endpoint requires a specific admin scope. The access token must include the scope required by the
 endpoint being called.
 
-- If the token is missing or invalid: **401 Unauthorized**
-- If the token is valid but lacks the required scope: **403 Forbidden**
-
-**401 Response Example**:
-
-```json
-{
-  "error": "unauthorized",
-  "error_description": "Missing or invalid access token."
-}
-```
-
-**403 Response Example**:
-
-```json
-{
-  "error": "forbidden",
-  "error_description": "The access token does not include the required scope: admin:users:read"
-}
-```
+- If the token is missing or invalid: **401 Unauthorized** (`unauthorized`)
+- If the token is valid but lacks the required scope: **403 Forbidden** (`forbidden`)
 
 The required scope for each endpoint is documented in the [Endpoints](#endpoints) section below.
+
+### Error format
+
+When a request fails, the API responds with a JSON error object containing the HTTP `status`, a stable
+machine-readable `error_code`, a user-facing `description`, and — only when the `print-details-in-error` feature is
+enabled on the server — a technical `details` message. Each failure case in this page is listed by its `error_code`
+and `description`.
+
+The following errors may be returned by any endpoint:
+
+| Error code     | Description                                                                    |
+|----------------|--------------------------------------------------------------------------------|
+| `unauthorized` | The access to this resource is protected. Please authenticate before retrying. |
+| `forbidden`    | The access token does not include the required scope to access this resource.  |
 
 ## Endpoints
 
@@ -250,14 +246,11 @@ in responses. Requires the `admin:config:read` scope.
 }
 ```
 
-`404 Not Found`:
+**Errors**:
 
-```json
-{
-  "error": "not_found",
-  "error_description": "No client found with id: my-app"
-}
-```
+| Error code | Description |
+|------------|-------------|
+| `not_found` | The resource you are looking for is not available on this authorization server. |
 
 **Properties**:
 
@@ -551,14 +544,11 @@ Endpoints for viewing configured [audiences](/functional/audience). Since audien
 }
 ```
 
-`404 Not Found`:
+**Errors**:
 
-```json
-{
-  "error": "not_found",
-  "error_description": "No audience found with id: my-app"
-}
-```
+| Error code | Description |
+|------------|-------------|
+| `not_found` | The resource you are looking for is not available on this authorization server. |
 
 **Properties**:
 
@@ -695,18 +685,15 @@ filtering.
 
 **Errors**:
 
-Returns **400 Bad Request** with error code `invalid_claim` when:
+Returns **400 Bad Request** with error code `user.search.invalid_claim` when:
 
 - `claims` contains a disabled or unknown claim ID
 - `sort` references a disabled or unknown claim ID
 - A claim filter query parameter references a disabled or unknown claim ID
 
-```json
-{
-  "error": "invalid_claim",
-  "error_description": "Unknown or disabled claim: department"
-}
-```
+| Error code | Description |
+|------------|-------------|
+| `user.search.invalid_claim` | The claim `{claim}` is not recognized or is currently disabled. Please check the available claims and try again. |
 
 **Use Cases**:
 
@@ -1178,14 +1165,11 @@ Endpoints for viewing and managing the links between end-user accounts and exter
 }
 ```
 
-`404 Not Found`:
+**Errors**:
 
-```json
-{
-  "error": "not_found",
-  "error_description": "No user found with id: 550e8400-e29b-41d4-a716-446655440000"
-}
-```
+| Error code | Description |
+|------------|-------------|
+| `not_found` | The resource you are looking for is not available on this authorization server. |
 
 **Properties**:
 
@@ -1234,14 +1218,11 @@ link exists for the user and provider pair.
 }
 ```
 
-`404 Not Found`:
+**Errors**:
 
-```json
-{
-  "error": "not_found",
-  "error_description": "No provider link found for user 550e8400-e29b-41d4-a716-446655440000 and provider: discord"
-}
-```
+| Error code | Description |
+|------------|-------------|
+| `not_found` | The resource you are looking for is not available on this authorization server. |
 
 **Properties**:
 
@@ -1583,14 +1564,11 @@ the `user_id` and `used_at` fields.
 }
 ```
 
-`404 Not Found`:
+**Errors**:
 
-```json
-{
-  "error": "not_found",
-  "error_description": "No invitation found with id: a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-}
-```
+| Error code | Description |
+|------------|-------------|
+| `not_found` | The resource you are looking for is not available on this authorization server. |
 
 **Properties**:
 
@@ -1639,14 +1617,11 @@ and permanent.
 }
 ```
 
-`404 Not Found`:
+**Errors**:
 
-```json
-{
-  "error": "not_found",
-  "error_description": "No invitation found with id: a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-}
-```
+| Error code | Description |
+|------------|-------------|
+| `not_found` | The resource you are looking for is not available on this authorization server. |
 
 **Use Cases**:
 

@@ -63,11 +63,11 @@ POST is used for actions that do not map cleanly to CRUD operations (e.g., `disa
 | 200 OK | Successful GET, PATCH, action POST, DELETE | Return the resource or confirmation |
 | 201 Created | Successful resource creation (POST) | Return the created resource |
 | 400 Bad Request | Invalid input, business rule violation | Default for all `BusinessException` |
-| 401 Unauthorized | Missing or invalid authentication token | `{"error": "unauthorized", ...}` |
-| 403 Forbidden | Valid token but insufficient scope | `{"error": "forbidden", ...}` |
-| 404 Not Found | Resource does not exist | `{"error": "not_found", ...}` |
-| 409 Conflict | Resource already exists or state conflict | `{"error": "conflict", ...}` |
-| 500 Internal Server Error | Unexpected server error | `{"error": "internal_server_error", ...}` |
+| 401 Unauthorized | Missing or invalid authentication token | `{"error_code": "unauthorized", ...}` |
+| 403 Forbidden | Valid token but insufficient scope | `{"error_code": "forbidden", ...}` |
+| 404 Not Found | Resource does not exist | `{"error_code": "not_found", ...}` |
+| 409 Conflict | Resource already exists or state conflict | `{"error_code": "conflict", ...}` |
+| 500 Internal Server Error | Unexpected server error | `{"error_code": "internal_server_error", ...}` |
 
 DELETE operations return `200` with a confirmation body so the caller can verify which resource was affected:
 
@@ -198,31 +198,41 @@ GET /api/v1/admin/users?sort=created_at&order=desc
 
 ## Error responses
 
-All errors follow a consistent format:
+All errors are serialized as an `ErrorResource` with a consistent structure:
 
 ```json
 {
-  "error": "<error_code>",
-  "error_description": "<human-readable description>"
+  "status": 404,
+  "error_code": "<error_code>",
+  "description": "<user-facing message>",
+  "details": "<technical message for developers>",
+  "properties": null
 }
 ```
 
-- `error`: machine-readable code (lowercase, underscores)
-- `error_description`: human-readable message for debugging
+- `status`: HTTP status code of the response
+- `error_code`: stable, machine-readable code identifying the error (the exception's `detailsId`)
+- `description`: user-facing message, safe to display to the end-user and may guide recovery (the exception's
+  `descriptionId`)
+- `details`: technical message to help developers troubleshoot. Only populated when the `print-details-in-error`
+  feature is enabled — otherwise `null`, so internals are never leaked in production
+- `properties`: list of per-property validation errors (each with a `path` and a `description`), or `null`
 
 Authentication and authorization errors use standardized codes:
 
 ```json
 {
-  "error": "unauthorized",
-  "error_description": "Missing or invalid access token."
+  "status": 401,
+  "error_code": "unauthorized",
+  "description": "The access to this resource is protected. Please authenticate before retrying."
 }
 ```
 
 ```json
 {
-  "error": "forbidden",
-  "error_description": "The access token does not include the required scope: admin:users:read"
+  "status": 403,
+  "error_code": "forbidden",
+  "description": "The access token does not include the required scope to access this resource."
 }
 ```
 
@@ -231,8 +241,8 @@ Business errors follow the structured error code pattern defined in
 `descriptionId`, and the distinction between recoverable and unrecoverable exceptions.
 
 ::: warning
-Never expose internal stack traces or implementation details in error responses. The `error_description` should help
-troubleshoot without revealing system internals.
+Never expose internal stack traces or implementation details in error responses. The `details` message is gated behind
+the `print-details-in-error` feature, and neither `description` nor `details` should reveal system internals.
 :::
 
 ## Authentication
