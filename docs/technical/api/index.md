@@ -26,6 +26,7 @@ experience. All endpoints are under `/api/v1/flow/`:
 - **Claims Collection**: Gather additional user information
 - **Claim Validation**: Verify claims via EMAIL/SMS validation codes
 - **MFA**: TOTP enrollment, challenge, and method routing
+- **Cancellation**: Let the end-user abandon the flow and hand them back to the initiator
 
 The Flow API uses state-based session management and a redirect-driven pattern where each step returns a `redirect_url`
 to guide flow progression. Steps can auto-skip when no user interaction is required.

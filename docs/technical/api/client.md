@@ -429,7 +429,8 @@ body (see **Dual authentication** below)
 
 **Purpose**: Starts a standalone MFA enrollment [interactive flow](/functional/interactive_flow) for an
 already-signed-in end-user and returns a URL to send them to. When the user completes enrollment, they are redirected
-to the `return_uri` supplied by the client. Unlike enrollment offered during sign-in, a standalone enrollment started
+to the `return_uri` supplied by the client; if the client also supplies an optional `cancel_uri`, the user may instead
+abandon the enrollment and be sent there. Unlike enrollment offered during sign-in, a standalone enrollment started
 through this endpoint cannot be skipped.
 
 **Dual authentication**: This endpoint acts on behalf of an end-user, so it identifies **two** parties and requires
@@ -449,7 +450,8 @@ user, is rejected.
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "return_uri": "https://app.example.com/account/security"
+  "return_uri": "https://app.example.com/account/security",
+  "cancel_uri": "https://app.example.com/account/security"
 }
 ```
 
@@ -460,6 +462,10 @@ user, is rejected.
 - `return_uri`: URI the end-user is redirected to once enrollment completes. It must match one of the calling client's
   [registered redirect URIs](/technical/configuration/client) — validated with the same OAuth 2.1 redirect-URI rules
   as the authorization endpoint — to prevent open redirects.
+- `cancel_uri` (optional): URI the end-user is redirected to if they cancel the enrollment via the flow's
+  [Cancel Endpoint](/technical/api/flow#_7-cancel-endpoint). Like `return_uri`, it must match one of the calling
+  client's [registered redirect URIs](/technical/configuration/client) and is validated with the same OAuth 2.1
+  redirect-URI rules. When omitted, the enrollment offers no way to cancel and the end-user must complete it.
 
 **Response Format**:
 
@@ -479,7 +485,8 @@ user, is rejected.
 | `client.mfa.enrollment.mfa_disabled` | This authorization server is not configured to support multi-factor authentication, so an enrollment cannot be started. Please contact the support of the application to report this issue. |
 | `client.mfa.enrollment.invalid_access_token` | The access token identifying the end-user is missing, expired, revoked, not associated with an end-user, or was not issued to your client. Obtain a fresh access token for the end-user and try again. |
 
-An invalid `return_uri` — one that does not match the client's registered redirect URIs — is rejected the same way.
+An invalid `return_uri` or `cancel_uri` — one that does not match the client's registered redirect URIs — is rejected
+the same way.
 
 **Properties**:
 

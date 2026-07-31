@@ -107,6 +107,27 @@ application receives an authorization code that it exchanges for tokens to acces
 
 From the user's perspective, they are simply sent back to wherever they came from, now signed in.
 
+## Cancelling the flow
+
+A user does not have to see the flow through to the end. If your custom UI offers a way out — a "Cancel" button on the
+sign-in page, for example — the user can deliberately abandon the flow before completing it. This is different from an
+error: nothing went wrong, the user simply chose to stop.
+
+Where the user ends up depends on how the flow was started:
+
+- **A sign-in requested by an application** — the user is sent back to the application that asked them to authenticate,
+  which is told that the user declined. No authorization code is issued, so the application does not gain access to the
+  user's account. This is the standard way to report that a user backed out of signing in.
+- **An action started on the user's behalf** — for example, enrolling in
+  [multi-factor authentication](/functional/authentication#multi-factor-authentication-mfa) from an account-settings
+  screen. Here the user is returned to wherever the application designated when it started that action, typically the
+  screen they came from.
+
+Whether a flow can be cancelled at all depends on the initiator providing somewhere to send the user back to. A sign-in
+requested by an application can always be cancelled, because the application always provides a return destination. An
+action started on the user's behalf can only be cancelled if the application supplied a cancellation destination when it
+started the flow; otherwise the user must complete it.
+
 ## Error handling
 
 If the user makes a mistake at any step — entering a wrong password, typing an incorrect verification code — they

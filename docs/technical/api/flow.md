@@ -766,6 +766,57 @@ has already enrolled in at least one MFA method, returns an error.
 
 ---
 
+### 7. Cancel Endpoint
+
+**Path**: `/api/v1/flow/cancel`
+
+**Method**: POST
+
+**Authentication**: Requires `Authorization: State <jwt>` header
+
+**Purpose**: Lets the end-user abandon the ongoing interactive flow. Works for any flow: the session is marked as
+cancelled and the response carries the `redirect_url` that hands the user back to whoever initiated the flow. Wire this
+endpoint to a "Cancel" control on your flow UI.
+
+This endpoint takes no request body — the flow to cancel is identified solely by the `state`.
+
+**Response Format**:
+
+```json
+{
+  "redirect_url": "https://client.app/callback?error=access_denied&state=..."
+}
+```
+
+**Cancellation target**: Where `redirect_url` points depends on how the flow was initiated:
+
+- **OAuth 2 authorization** (a flow started from the authorize endpoint): the client's `redirect_uri` carrying the
+  OAuth 2 `error=access_denied` response, with the client `state` echoed and **no** authorization code minted — the
+  standard way to tell the client that the user declined.
+- **Standalone flow** (e.g. a client-initiated
+  [MFA enrollment](/technical/api/client#start-mfa-enrollment)): the cancellation URI supplied when the flow was
+  created — the `cancel_uri` on the MFA enrollment endpoint — returned verbatim.
+
+**Errors**:
+
+| Error code | Description |
+|------------|-------------|
+| `auth.interactive_flow_session.cancel.no_cancel_target` | This flow does not offer cancellation. Complete it or let it expire instead. |
+
+A flow started without a cancellation target — a standalone flow whose initiator supplied no cancel URI — cannot be
+cancelled: the endpoint returns a recoverable **400** with the error above and the flow stays on its current step.
+OAuth 2 authorization flows always have a cancellation target (the client `redirect_uri`), so they can always be
+cancelled.
+
+**Workflow**:
+
+1. The end-user activates the "Cancel" control on the flow UI
+2. The server marks the flow session as cancelled
+3. Returns the `redirect_url` that hands the user back to the initiator
+4. The UI redirects the end-user's browser to `redirect_url`
+
+---
+
 ## Implementing a Custom Flow
 
 ### Recommended Implementation Steps
@@ -902,3 +953,5 @@ The Flow API implements two types of error handling:
 5. **Respect resend limits**: Honor the `resendDate` to prevent spam and improve deliverability
 6. **Pre-fill values**: Use `value` and `suggested_value` from responses to improve user experience
 7. **Localization**: Send appropriate `Accept-Language` header for localized claim names and messages
+8. **Offer a cancel path**: Let users abandon the flow through the [Cancel Endpoint](#_7-cancel-endpoint) and follow the
+   returned `redirect_url` to hand them back to the initiator
