@@ -817,6 +817,103 @@ cancelled.
 
 ---
 
+### 8. Confirm Endpoint
+
+**Base Path**: `/api/v1/flow/confirm`
+
+**Purpose**: Drives the **confirmation gate** at the start of a flow that a client or an administrator initiated on a
+signed-in end-user's behalf — for example a client-initiated [MFA enrollment](/technical/api/client#start-mfa-enrollment)
+or a [provider link](/technical/api/client#provider-linking). Before the rest of the flow runs, the end-user must
+explicitly approve the action. This gate is present only in initiated flows; a normal sign-in has no confirmation step.
+
+The end-user **approves** by calling `POST`, or **denies** by abandoning the flow through the
+[Cancel Endpoint](#_7-cancel-endpoint).
+
+#### GET Request
+
+**Path**: `/api/v1/flow/confirm`
+
+**Method**: GET
+
+**Authentication**: Requires `?state=` query parameter
+
+**Purpose**: Returns everything the custom UI needs to render the confirmation step — the action being approved and who
+requested it — or a `redirect_url` to continue the flow when there is nothing to confirm (the confirmation was already
+given, or the session carries no confirmation step).
+
+**Response Format**:
+
+Confirmation required:
+
+```json
+{
+  "action": "LINK_PROVIDER",
+  "requires_reauthentication": true,
+  "initiating_client_id": "my-app"
+}
+```
+
+Nothing to confirm — follow the redirect:
+
+```json
+{
+  "redirect_url": "/api/v1/flow/...?state=..."
+}
+```
+
+**Properties**:
+
+- `action`: Machine-readable code of the action the end-user is asked to approve; turn it into localized copy in your
+  UI. Possible values: `ENROLL_MFA` (a [MFA enrollment](/technical/api/client#start-mfa-enrollment)) and `LINK_PROVIDER`
+  (a [provider link](/technical/api/client#provider-linking)). `null` when a `redirect_url` is returned.
+- `requires_reauthentication`: Whether the end-user will be asked to **re-authenticate** (prove they own the account)
+  after approving — so the UI can warn them up front. `true` for a provider link (which mints a durable login credential
+  and so requires proof of account ownership first), `false` for MFA enrollment. Always `false` and irrelevant when a
+  `redirect_url` is returned.
+- `initiating_client_id`: Identifier of the client that initiated the action on the end-user's behalf. `null` when an
+  **administrator** initiated it — the UI should then render a generic initiator such as "an administrator" — or when a
+  `redirect_url` is returned.
+- `redirect_url`: URL to redirect the end-user to instead of rendering the confirmation step. When present, all other
+  fields are `null` (except `requires_reauthentication`, which is `false`).
+
+#### POST Request
+
+**Path**: `/api/v1/flow/confirm`
+
+**Method**: POST
+
+**Authentication**: Requires `Authorization: State <jwt>` header
+
+**Purpose**: Records the end-user's approval of the action and advances the flow to its next step. Takes no request
+body — the flow is identified solely by the `state`.
+
+To **deny** the action instead of approving it, do not call this endpoint; abandon the flow through the
+[Cancel Endpoint](#_7-cancel-endpoint).
+
+**Response Format**:
+
+```json
+{
+  "redirect_url": "https://auth.example.com/flow/...?state=..."
+}
+```
+
+**Properties**:
+
+- `redirect_url`: URL to redirect the end-user's browser to in order to continue the flow — the next step after the
+  confirmation (e.g. the re-authentication step for a provider link, or the enrollment step for an MFA enrollment).
+
+**Workflow**:
+
+1. The UI calls `GET /api/v1/flow/confirm` and renders the action (and, when `requires_reauthentication` is `true`, a
+   notice that a re-authentication step follows)
+2. The end-user activates the "Confirm" control
+3. The UI calls `POST /api/v1/flow/confirm`
+4. The server records the approval and returns the `redirect_url` for the next step
+5. The UI redirects the end-user's browser to `redirect_url`
+
+---
+
 ## Implementing a Custom Flow
 
 ### Recommended Implementation Steps
