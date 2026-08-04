@@ -51,6 +51,8 @@ Beyond delegating sign-in, a client can act on the users of its [audience](/func
   sign-up is disabled. Requires `invitations:read` / `invitations:write`.
 - **Start MFA enrollment on demand** — let a signed-in user add a second factor from within the application
   (see [below](#enrolling-mfa-on-demand)). Requires `users:mfa:write`.
+- **Link an identity provider on demand** — let a signed-in user connect an additional identity provider to their
+  account (see [below](#linking-an-identity-provider-on-demand)). Requires `users:providers:write`.
 
 For the request and response details of every operation, see the [Client API](/technical/api/client) reference.
 
@@ -71,3 +73,25 @@ ever be sent back to the application they came from.
 
 This is exposed through the [Start MFA Enrollment](/technical/api/client#multi-factor-authentication-mfa) endpoint of
 the Client API.
+
+### Linking an identity provider on demand
+
+An account can be associated with one or more external [identity providers](/technical/configuration/provider), letting
+the user sign in through them. A client can let an **already-signed-in** user connect an **additional** provider to
+their account — for example, adding a "Sign in with Google" option to an account they originally created with a
+password — from an account-settings or security screen, without sending them through a full sign-in.
+
+The client asks SympAuthy to start a link on behalf of one of its users and gets back a URL to send that user to. The
+user is asked to **confirm** the action and to **re-authenticate**, then authorizes the target provider; once the link
+is created they are redirected back to the application. The provider identity is attached to their existing account — it
+never creates a new one.
+
+Re-authentication is required and cannot be skipped: linking a provider mints a **durable login credential**, so the
+user must prove they own the account before the link is created. This prevents a leaked access token from silently
+attaching a new way to sign in.
+
+Because the action is performed for a specific user, the client identifies **both itself and the user** when making the
+request. The address the user is returned to is restricted to the client's registered redirect URIs, so users can only
+ever be sent back to the application they came from.
+
+This is exposed through the [Start Provider Link](/technical/api/client#provider-linking) endpoint of the Client API.

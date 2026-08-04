@@ -20,6 +20,7 @@ are granted.
 | `users:claims:write` | Write claims the client is authorized to modify          |
 | `users:mfa:read`     | *(Reserved)* Read a user's MFA enrollment status — no endpoint consumes it yet |
 | `users:mfa:write`    | Start [MFA enrollment](#multi-factor-authentication-mfa) for a signed-in user |
+| `users:providers:write` | Start [provider linking](#provider-linking) for a signed-in user      |
 
 ## Authentication
 
@@ -510,6 +511,121 @@ than issuing a `303` redirect because the caller is a client backend holding a b
 - Offer MFA enrollment from an application's account-settings or security screen.
 - Prompt existing users to add a second factor without sending them through a full re-authentication.
 - Drive MFA enrollment from a custom, branded UI.
+
+---
+
+### Provider Linking
+
+Endpoint for starting an identity-provider link for a signed-in end-user on demand — outside of a sign-in flow. This
+lets an application offer a "connect another sign-in method" action from, for example, an account-settings or security
+screen. Requires the `users:providers:write` scope.
+
+#### Start Provider Link
+
+**Path**: `/api/v1/client/providers/{providerId}/link`
+
+**Method**: POST
+
+**Authentication**: Bearer token with `users:providers:write` scope, **plus** the end-user's access token in the
+request body (see **Dual authentication** below)
+
+**Purpose**: Starts a standalone provider-link [interactive flow](/functional/interactive_flow) for an
+already-signed-in end-user and returns a URL to send them to. In the flow the end-user is asked to **confirm** the
+action and to **re-authenticate**, then to authorize the target provider; the resolved provider identity is attached to
+their existing account. When the link completes, they are redirected to the `return_uri` supplied by the client; if the
+client also supplies an optional `cancel_uri`, the user may instead abandon the link and be sent there.
+
+**Why re-authentication is required**: linking a provider mints a **durable login credential** — anyone who can
+subsequently sign in through that provider gains access to the account. Requiring the browser to prove it owns the
+account before the link commits prevents a leaked end-user access token from silently attaching a new way to sign in.
+This step is not optional and cannot be skipped.
+
+**Path Parameters**:
+
+- `providerId`: Identifier of the [provider](/technical/configuration/provider) to link (e.g. `discord`, `google`). It
+  must be a known, enabled provider.
+
+**Dual authentication**: This endpoint acts on behalf of an end-user, so it identifies **two** parties and requires
+**two** credentials:
+
+1. **The client** — authenticates with its client-credentials Bearer token, like every other Client API endpoint, and
+   must hold the `users:providers:write` scope.
+2. **The end-user** — identified by their own access token, passed in the request body as `access_token`. The server
+   validates this token and derives the user to link the provider to from it.
+
+The end-user's access token must have been **issued to the calling client**: a client cannot start a link using a
+token minted for another client. It must also be a user token — a client-credentials token, which has no associated
+user, is rejected.
+
+**Request Format**:
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "return_uri": "https://app.example.com/account/security",
+  "cancel_uri": "https://app.example.com/account/security"
+}
+```
+
+**Properties**:
+
+- `access_token`: A valid, non-expired access token belonging to the end-user the provider will be linked to. It must
+  have been issued to the calling client.
+- `return_uri`: URI the end-user is redirected to once the link completes. It must match one of the calling client's
+  [registered redirect URIs](/technical/configuration/client) — validated with the same OAuth 2.1 redirect-URI rules as
+  the authorization endpoint — to prevent open redirects.
+- `cancel_uri` (optional): URI the end-user is redirected to if they cancel the link via the flow's
+  [Cancel Endpoint](/technical/api/flow#_7-cancel-endpoint). Like `return_uri`, it must match one of the calling
+  client's [registered redirect URIs](/technical/configuration/client) and is validated with the same OAuth 2.1
+  redirect-URI rules. When omitted, the link offers no way to cancel and the end-user must complete it.
+
+**Response Format**:
+
+`200 OK`:
+
+```json
+{
+  "state": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "redirect_url": "https://auth.example.com/flow/confirm?state=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Errors**:
+
+| Error code | Description |
+|------------|-------------|
+| `client.providers.link.invalid_access_token` | The access token identifying the end-user is missing, expired, revoked, not associated with an end-user, or was not issued to your client. Obtain a fresh access token for the end-user and try again. |
+| `provider.missing` | The provider `{providerId}` does not exist. |
+| `provider.disabled` | The provider `{providerId}` is disabled by configuration. |
+
+An invalid `return_uri` or `cancel_uri` — one that does not match the client's registered redirect URIs — is rejected
+the same way (**400 Bad Request**).
+
+**Properties**:
+
+- `state`: Signed token identifying the provider-link [interactive flow](/technical/api/flow#state-management) session.
+- `redirect_url`: URL to navigate the end-user's browser to in order to run the link steps (confirmation,
+  re-authentication, then provider authorization). The `state` is already included in the URL.
+
+The client is responsible for navigating the end-user's browser to `redirect_url`. The endpoint returns JSON rather
+than issuing a `303` redirect because the caller is a client backend holding a bearer token, not the browser itself.
+
+**Important Notes**:
+
+- The provider is validated up front: an unknown (`provider.missing`) or disabled (`provider.disabled`) provider fails
+  immediately with a `400` error before any link session is created.
+- The link is attached to the end-user's existing account — it never creates a new account. If the target provider
+  identity (its subject, or an identifier claim it carries) is **already linked to a different account**, the flow
+  hard-fails and the link cannot be completed. Otherwise, if that identity is already linked to *this* account, the
+  operation is idempotent.
+- The link is committed only after the end-user authorizes the target provider at the end of the flow. See
+  [How an Interactive Flow Works](/functional/interactive_flow).
+
+**Use Cases**:
+
+- Offer a "connect another sign-in method" action from an application's account-settings or security screen.
+- Let users add a social or enterprise identity provider to an account they originally created with a password.
+- Drive provider linking from a custom, branded UI.
 
 ---
 

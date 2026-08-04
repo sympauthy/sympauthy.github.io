@@ -45,7 +45,7 @@ grant only the minimum necessary privileges.
 | `admin:invitations:read`    | List and view [invitations](/functional/invitation)                        |
 | `admin:invitations:write`   | Create and revoke [invitations](/functional/invitation)                    |
 | `admin:users:read`          | List and view users and their MFA methods                                  |
-| `admin:users:write`         | Create, update, disable, enable users; revoke MFA methods and start MFA enrollment |
+| `admin:users:write`         | Create, update, disable, enable users; revoke MFA methods, start MFA enrollment, and start a provider link |
 | `admin:users:delete`        | Delete users (separated for GDPR sensitivity)                              |
 
 The `admin:users:delete` scope is intentionally separated from `admin:users:write` because user deletion is an
@@ -1439,6 +1439,108 @@ link exists for the user and provider pair.
 - Disconnect a compromised provider account from a user
 - Clean up provider links during account maintenance
 - Respond to user requests to remove a linked provider
+
+---
+
+#### Start Provider Link
+
+**Path**: `/api/v1/admin/users/{user_id}/providers/{provider_id}/link`
+
+**Method**: POST
+
+**Authentication**: Bearer token with `admin:users:write` scope
+
+**Purpose**: Starts a standalone provider-link [interactive flow](/functional/interactive_flow) on a user's behalf and
+returns a `redirect_url` to hand or send to that user. In the flow the end-user is asked to **confirm** the action —
+shown as initiated by "an administrator" — and to **re-authenticate**, then to authorize the target provider; the
+resolved provider identity is attached to their existing account. When the link completes, they are redirected to the
+`return_uri`; if the administrator also supplies an optional `cancel_uri`, the user may instead abandon the link and be
+sent there.
+
+This is the administrator counterpart to the client-driven
+[Start Provider Link](/technical/api/client#provider-linking) endpoint. Unlike that endpoint, it requires no end-user
+access token: the administrator names the **user** via the path and the **client** the user will be returned into via
+`client_id` in the body.
+
+**Why re-authentication is required**: linking a provider mints a **durable login credential** — anyone who can
+subsequently sign in through that provider gains access to the account. The user must prove they own the account before
+the link commits, so an administrator cannot attach a new sign-in method without the account holder's participation.
+This step is not optional and cannot be skipped.
+
+**Path Parameters**:
+
+- `user_id`: Unique identifier of the user to link the provider to
+- `provider_id`: Identifier of the [provider](/technical/configuration/provider) to link (e.g. `discord`, `google`). It
+  must be a known, enabled provider.
+
+**Request Format**:
+
+```json
+{
+  "client_id": "my-app",
+  "return_uri": "https://app.example.com/account/security",
+  "cancel_uri": "https://app.example.com/account/security"
+}
+```
+
+**Properties**:
+
+- `client_id`: Identifier of the client the end-user is returned into once the link completes. The `return_uri` and
+  optional `cancel_uri` are validated against **this client's** [registered redirect URIs](/technical/configuration/client).
+- `return_uri`: URI the end-user is redirected to once the link completes. It must match one of the named client's
+  registered redirect URIs — validated with the same OAuth 2.1 redirect-URI rules as the authorization endpoint — to
+  prevent open redirects.
+- `cancel_uri` (optional): URI the end-user is redirected to if they cancel the link via the flow's
+  [Cancel Endpoint](/technical/api/flow#_7-cancel-endpoint). Like `return_uri`, it must match one of the named client's
+  registered redirect URIs and is validated with the same rules. When omitted, the link offers no way to cancel and the
+  end-user must complete it.
+
+**Response Format**:
+
+`200 OK`:
+
+```json
+{
+  "redirect_url": "https://auth.example.com/flow/confirm?state=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Errors**:
+
+| Error code | Description |
+|------------|-------------|
+| `provider.missing` | The provider `{provider_id}` does not exist. |
+| `provider.disabled` | The provider `{provider_id}` is disabled by configuration. |
+| `not_found` | The resource you are looking for is not available on this authorization server. |
+
+- Returns **400 Bad Request** with `provider.missing` or `provider.disabled` when the named provider is unknown or
+  disabled. The check happens up front, before any link session is created.
+- Returns **400 Bad Request** when the `return_uri` or `cancel_uri` does not match the named client's registered
+  redirect URIs.
+- Returns **404 Not Found** (`not_found`) when no user **or** no client exists for the given identifiers.
+
+**Properties**:
+
+- `redirect_url`: URL to hand or send to the end-user so they can link the provider. The signed `state` identifying the
+  provider-link [interactive flow](/technical/api/flow#state-management) session is already included as a query
+  parameter.
+
+Unlike the [client endpoint](/technical/api/client#provider-linking), the response carries **only** `redirect_url` — no
+standalone `state` field. The administrator does not drive the flow through the API; they simply deliver the link to the
+user, so the `state` is needed only inside the URL.
+
+**Important Notes**:
+
+- The link is attached to the named user's existing account — it never creates a new account. If the target provider
+  identity (its subject, or an identifier claim it carries) is **already linked to a different account**, the flow
+  hard-fails and the link cannot be completed. Otherwise, if that identity is already linked to *this* account, the
+  operation is idempotent.
+
+**Use Cases**:
+
+- Help a user connect a social or enterprise identity provider during onboarding or a support interaction
+- Send a user a ready-to-use link to add a sign-in method to an account they created with a password
+- Drive provider linking from an admin dashboard without the user starting it themselves
 
 ---
 
