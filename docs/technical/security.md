@@ -209,6 +209,29 @@ forged cross-origin POST cannot carry a valid state header and is rejected befor
 
 See the [Flow API](api/flow#state-management) page for a description of how to pass the state in practice.
 
+## Replay protection on the interactive flow
+
+The interactive authorization flow advances a single server-side session through a sequence of steps — sign-in, claim
+collection, MFA, consent. Each step is a separate request, so without protection a **replayed or double-submitted
+step** — one captured and resent, or a form submitted twice — could apply against an outdated view of the session and
+overwrite state established by a more recent step.
+
+SympAuthy guards every lifecycle transition of the flow session with an optimistic-concurrency check. The session
+carries a version that advances with each accepted step, and a step is applied only if the session has not moved on
+since that step was issued:
+
+1. When a step is served, it is bound to the current version of the flow session.
+2. When the step is submitted, SympAuthy applies its update only if the stored version still matches — advancing the
+   version in the same atomic operation.
+3. If the version no longer matches, the session has already progressed (a later step won, or the same step was
+   replayed), so the stale update is rejected and changes nothing.
+
+A rejected step is an unrecoverable conflict: the flow session is failed and the end-user is redirected to the flow's
+[error URI](configuration/authorization#flows-id). A replayed or stale request can never overwrite the legitimate
+session state.
+
+This protection is always on and requires no configuration.
+
 ## Redirect URI validation
 
 After authentication, SympAuthy redirects the user back to the client application. Without restriction, an attacker
@@ -227,6 +250,15 @@ For native applications using loopback redirects, [RFC 8252](https://datatracker
 recommends ignoring the port component. SympAuthy follows this recommendation for redirect URIs whose host is
 `127.0.0.1` or `[::1]` over `http` or `https`. This exception does **not** apply to `localhost` or to custom-scheme
 URIs, which always require an exact match.
+
+The same allowlist protects flows that a client or an administrator starts on a signed-in user's behalf — such as
+[MFA enrollment](/technical/api/client#start-mfa-enrollment) and
+[provider linking](/technical/api/client#provider-linking). These flows are not started from the authorization
+endpoint, but they still return the end-user to a client-supplied destination: a `return_uri` when the flow completes,
+and an optional `cancel_uri` when the user abandons it. Both are validated against the initiating client's
+`allowed-redirect-uris` using the exact-matching and loopback rules described above, so a standalone flow cannot be
+turned into an open redirect either. For administrator-initiated flows, the URIs are checked against the registered
+redirect URIs of the client named in the request.
 
 ## Secure grant types
 

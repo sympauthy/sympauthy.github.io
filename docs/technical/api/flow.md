@@ -1036,6 +1036,8 @@ The Flow API implements two types of error handling:
 **Unrecoverable Errors** (HTTP 303 redirect):
 
 - Session expired, configuration error, etc.
+- A replayed or stale step submission (a step resent, or a form submitted twice against an already-advanced session) —
+  see [Replay protection on the interactive flow](/technical/security#replay-protection-on-the-interactive-flow)
 - User automatically redirected to error page
 - Flow must be restarted from the beginning
 
