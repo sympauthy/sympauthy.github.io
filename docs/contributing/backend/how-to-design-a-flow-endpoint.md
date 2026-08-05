@@ -91,6 +91,12 @@ abstract `InteractiveFlowStep`; `InteractiveFlowStepUriMapper.toRedirectUri` the
 concrete page URI, which `mapRedirectUriToResource` wraps. Completed, failed and expired sessions are
 handled the same way for free.
 
+::: tip
+`InteractiveFlowPurposeHandler` is the business-layer state machine behind that redirect: it decides which
+step a purpose needs next and what happens when the flow completes. Authoring one is covered in
+[How to write a flow purpose](/contributing/backend/how-to-write-a-flow-purpose).
+:::
+
 ## The applicability predicate
 
 The heart of a `GET` step is the predicate that decides *applies → serve config* vs *does not apply →
