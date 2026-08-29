@@ -17,8 +17,7 @@ export default defineConfig({
           { text: 'Functional', link: '/functional/' },
           { text: 'Technical', link: '/technical/' }
         ]
-      },
-      { text: 'Contributing', link: '/contributing/' }
+      }
     ],
 
     sidebar: {
@@ -122,26 +121,6 @@ export default defineConfig({
             { text: 'Rule Expressions', link: '/technical/rule_expressions' },
             { text: 'Well-known Providers', link: '/technical/well-known_providers' },
             { text: 'Security', link: '/technical/security' },
-          ]
-        }
-      ],
-      '/contributing/': [
-        {
-          text: 'Contributing',
-          items: [
-            { text: 'Overview', link: '/contributing/' },
-            { text: 'Design FAQ', link: '/contributing/design_faq' },
-            {
-              text: 'Backend',
-              items: [
-                { text: 'How to design an API endpoint', link: '/contributing/backend/how-to-design-an-api-endpoint' },
-                { text: 'How to design a flow endpoint', link: '/contributing/backend/how-to-design-a-flow-endpoint' },
-                { text: 'How to write a flow purpose', link: '/contributing/backend/how-to-write-a-flow-purpose' },
-                { text: 'How to throw an exception', link: '/contributing/backend/how-to-throw-an-exception' },
-                { text: 'How to write a business manager', link: '/contributing/backend/how-to-write-a-business-manager' },
-                { text: 'How to write a configuration', link: '/contributing/backend/how-to-write-a-configuration' }
-              ]
-            }
           ]
         }
       ]
