@@ -15,7 +15,8 @@ export default defineConfig({
         items: [
           { text: 'Overview', link: '/documentation' },
           { text: 'Functional', link: '/functional/' },
-          { text: 'Technical', link: '/technical/' }
+          { text: 'Technical', link: '/technical/' },
+          { text: 'Testcontainers', link: '/testcontainers/' }
         ]
       }
     ],
@@ -121,6 +122,28 @@ export default defineConfig({
             { text: 'Rule Expressions', link: '/technical/rule_expressions' },
             { text: 'Well-known Providers', link: '/technical/well-known_providers' },
             { text: 'Security', link: '/technical/security' },
+          ]
+        }
+      ],
+      '/testcontainers/': [
+        {
+          text: 'Testcontainers Documentation',
+          items: [
+            { text: 'Overview', link: '/testcontainers/' },
+            { text: 'Getting started', link: '/testcontainers/getting_started' },
+            { text: 'Configuration', link: '/testcontainers/configuration' },
+            {
+              text: 'Interactive Flow',
+              link: '/testcontainers/interactive_flow',
+              collapsed: false,
+              items: [
+                { text: 'Server-initiated Flows', link: '/testcontainers/server_initiated_flows' },
+              ]
+            },
+            { text: 'Clients', link: '/testcontainers/clients' },
+            { text: 'Multi-factor Authentication', link: '/testcontainers/mfa' },
+            { text: 'Invitation', link: '/testcontainers/invitation' },
+            { text: 'Admin API', link: '/testcontainers/admin' },
           ]
         }
       ]
