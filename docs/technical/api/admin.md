@@ -981,12 +981,7 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 **Response Format**:
 
-```json
-{
-  "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "deleted": true
-}
-```
+`204 No Content` — a successful deletion returns no body.
 
 **Important Notes**:
 
@@ -1204,27 +1199,13 @@ Returns 404 if no MFA registration matches the given identifier.
 
 **Response Format**:
 
-`200 OK`:
-
-```json
-{
-  "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "mfa_id": "6f2a1b7c-9d3e-4a5f-8b21-0c4d5e6f7a8b",
-  "revoked": true
-}
-```
+`204 No Content` — a successful revocation returns no body.
 
 **Errors**:
 
 | Error code | Description |
 |------------|-------------|
 | `not_found` | The resource you are looking for is not available on this authorization server. |
-
-**Properties**:
-
-- `user_id`: Unique identifier of the user
-- `mfa_id`: Identifier of the MFA registration that was revoked
-- `revoked`: Confirmation that the MFA method was revoked
 
 **Use Cases**:
 
@@ -1412,27 +1393,13 @@ link exists for the user and provider pair.
 
 **Response Format**:
 
-`200 OK`:
-
-```json
-{
-  "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "provider_id": "discord",
-  "unlinked": true
-}
-```
+`204 No Content` — a successful unlink returns no body.
 
 **Errors**:
 
 | Error code | Description |
 |------------|-------------|
 | `not_found` | The resource you are looking for is not available on this authorization server. |
-
-**Properties**:
-
-- `user_id`: Unique identifier of the user
-- `provider_id`: Identifier of the provider that was unlinked
-- `unlinked`: Confirmation that the provider was unlinked
 
 **Use Cases**:
 
@@ -1635,13 +1602,7 @@ active consent exists for the user and audience pair.
 
 **Response Format**:
 
-```json
-{
-  "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "audience_id": "my-app",
-  "revoked": true
-}
-```
+`204 No Content` — a successful revocation returns no body.
 
 **Revocation behavior**:
 
