@@ -185,6 +185,9 @@ ever added.
 OPTIONS preflight requests from an allowed origin are short-circuited with a `200` response before the authentication
 filter runs, so browsers receive the necessary permission headers even for endpoints that require a token.
 
+The request headers browsers may send across all CORS tiers are configurable — see the
+[CORS configuration](configuration/cors) reference.
+
 ## CSRF protection on flow POST endpoints
 
 The Flow API uses a JWT-encoded state token to protect against cross-site request forgery. When an authorization request

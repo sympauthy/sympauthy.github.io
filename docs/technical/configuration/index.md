@@ -73,4 +73,5 @@ urls:
 - [Provider](/technical/configuration/provider) — Third-party authentication provider configuration (OIDC, OAuth2).
 - [Claim](/technical/configuration/claim) — Claim collection configuration.
 - [Scope](/technical/configuration/scope) — Scope configuration.
+- [CORS](/technical/configuration/cors) — Cross-origin request policy and configurable allowed headers.
 - [Advanced](/technical/configuration/advanced) — JWT, hashing, URLs, and other advanced settings.
