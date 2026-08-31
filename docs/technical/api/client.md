@@ -91,6 +91,37 @@ The following errors may be returned by any endpoint:
 | `unauthorized` | The access to this resource is protected. Please authenticate before retrying. |
 | `forbidden`    | The access token does not include the required scope to access this resource.  |
 
+Endpoints returning a paginated collection may return additional errors. See [Pagination](#pagination).
+
+## Pagination
+
+Endpoints of the Client API that return a collection return it one page at a time, and all accept the same two query
+parameters:
+
+- `page` (optional): Zero-indexed page number — the first page is `0` (default: `0`)
+- `size` (optional): Number of results per page. When omitted, the server uses the page size the deployment configured
+  in [`advanced.pagination.default-size`](/technical/configuration/advanced#advanced-pagination).
+
+The largest `size` a caller may ask for is
+[`advanced.pagination.max-size`](/technical/configuration/advanced#advanced-pagination), which each deployment sets
+according to how large its collections are. A `size` above that maximum is refused with a **400 Bad Request** rather
+than reduced, so a response never reports a page size other than the one requested.
+
+**Errors**:
+
+The bounds are checked in one place, so every paged endpoint answers the same way. Any of them may return
+**400 Bad Request** with:
+
+| Error code                  | Description                                                                                                                                     |
+|-----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| `pagination.page.negative`  | The page number must be 0 or greater. The first page is 0.                                                                                      |
+| `pagination.page.too_large` | The requested page is beyond the last page that can be addressed with this page size. Request a lower page number.                              |
+| `pagination.size.too_small` | The number of results per page must be 1 or greater.                                                                                            |
+| `pagination.size.too_large` | The number of results per page must not exceed the server's configured maximum. Request fewer results per page and page through the collection. |
+
+The description of `pagination.size.too_large` names the configured maximum, so the message a caller receives states
+the actual number.
+
 ## Endpoints
 
 ### User Management
@@ -110,7 +141,7 @@ Endpoints for listing users and viewing their authorization status. Requires the
 **Query Parameters**:
 
 - `page` (optional): Zero-indexed page number (default: `0`)
-- `size` (optional): Number of results per page (default: `20`)
+- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
 - `provider_id` (optional): Filter users linked to a specific provider (e.g. `?provider_id=discord`)
 - `subject` (optional): Filter by provider subject ID. Must be used together with `provider_id`
   (e.g. `?provider_id=discord&subject=123456789012345678`)
@@ -733,7 +764,7 @@ other clients or by administrators are not returned.
 **Query Parameters**:
 
 - `page` (optional): Zero-indexed page number (default: `0`)
-- `size` (optional): Number of results per page (default: `20`)
+- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
 - `status` (optional): Filter by invitation status (`pending`, `used`, `revoked`, `expired`)
 
 **Response Format**:

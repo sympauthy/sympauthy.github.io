@@ -74,4 +74,4 @@ urls:
 - [Claim](/technical/configuration/claim) — Claim collection configuration.
 - [Scope](/technical/configuration/scope) — Scope configuration.
 - [CORS](/technical/configuration/cors) — Cross-origin request policy and configurable allowed headers.
-- [Advanced](/technical/configuration/advanced) — JWT, hashing, URLs, and other advanced settings.
+- [Advanced](/technical/configuration/advanced) — JWT, hashing, pagination bounds, and other advanced settings.
