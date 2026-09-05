@@ -37,11 +37,11 @@ example, if a name was not provided by the third-party provider.
 A user may sign in using different methods over time — for example, once with an email and password, and later using
 their Google account — while using the same email address for both.
 
-By default, SympAuthy recognises that these sign-ins come from the same person and merges them into a single account.
-The user ends up with one account regardless of which method they used to sign in.
+When account merging is enabled, SympAuthy recognises that these sign-ins come from the same person and merges them
+into a single account. The user ends up with one account regardless of which method they used to sign in.
 
-This behavior can be adjusted via the `advanced.user-merging-strategy` configuration key. For more details, see the
-[Authentication](authentication#account-merging) page.
+This behavior is controlled by the `auth.user-merging-enabled` configuration key, off unless a deployment turns it on.
+For more details, see the [Authentication](authentication#account-merging) page.
 
 ## Account deletion
 
