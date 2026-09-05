@@ -12,7 +12,7 @@ This section holds configuration that will change the general behavior of the se
 | ```hash```                     | object | Scrypt parameters used when hashing secrets. See [advanced.hash](#advanced-hash).                                               | YES                        |
 | ```invitation```               | object | [Invitation](/functional/invitation) token settings. See [advanced.invitation](#advanced-invitation).                           | YES                        |
 | ```jwt```                      | object |                                                                                                                                 | YES                        |
-| ```keys-generation-strategy``` | string |                                                                                                                                 | YES<br>```autoincrement``` |
+| ```keys-generation-strategy``` | string | How the instances of a deployment agree on the cryptographic keys they share. `auto-increment`, the only strategy published, negotiates through the database: an instance needing a key looks for an existing one, inserts a newly generated key if there is none, and every instance then settles on the row with the lowest auto-increment index. | YES<br>```auto-increment``` |
 | ```pagination```               | object | Bounds every paged endpoint applies to the `page` and `size` query parameters. See [advanced.pagination](#advanced-pagination). | YES                        |
 | ```validation-code```          | object | See [advanced.validation-code](#advanced-validation-code).                                                                      | YES                        |
 
