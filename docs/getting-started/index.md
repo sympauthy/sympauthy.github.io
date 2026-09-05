@@ -153,6 +153,11 @@ XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X rule (X us
 XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X templates (X client, X scope, X claims).
 ```
 
+If the banner reports errors instead, the server has started but declares itself **unready**, and it
+names every key it could not accept — including
+[a key that binds to nothing](/technical/configuration/#a-key-that-binds-to-nothing), which an
+existing deployment can meet for the first time on an upgrade.
+
 The server should be available on port ```8080```. You can verify the server is up and running by accessing to the API
 documentation of the server at: ```http://localhost:8080/swagger-ui```.
 
