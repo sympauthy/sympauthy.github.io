@@ -22,20 +22,21 @@ disabled on the [audience](/functional/audience).
 
 ### A sign-up counts only once the flow completes
 
-The account takes shape as the user goes: the address they typed, the claims they filled in, the provider they
+The account takes shape as the user goes: the claims they filled in, the password they chose, the provider they
 authenticated with are all recorded as they happen. But they are **provisional** until the
 [interactive flow](interactive_flow) that creates the account reaches its end, and a sign-up somebody abandons
 half-way leaves nothing behind:
 
 - The unfinished account is collected by a scheduled sweep, so it never becomes a half-created user an administrator
   has to clean up by hand.
-- The email address it used stays free in the meantime. Someone else can register with it, and so can the same person
-  on a second attempt.
+- The identifier claims it used — the email address, or whatever
+  [`auth.identifier-claims`](/technical/configuration/authorization#auth) names as the login identifier — stay free in
+  the meantime. Someone else can register with them, and so can the same person on a second attempt.
 - An [invitation](/functional/invitation) redeemed by that sign-up is not spent: the invitee's link still works and
   they can start over with it.
 
 Once the account exists, the user can sign back in at any time using the same method — or any other enabled method
-that uses the same email address.
+that resolves to the same identifier claims.
 
 ## Profile information
 
