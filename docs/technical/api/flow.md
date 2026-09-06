@@ -102,7 +102,9 @@ work seamlessly — no further token handling is needed by the flow UI.
 
 **Authentication**: GET requires `?state=` query parameter; POST requires `Authorization: State <jwt>` header
 
-**Purpose**: Renders the sign-in step and authenticates existing users with login and password credentials.
+**Purpose**: Renders the sign-in step and authenticates existing users with login and password credentials. The same
+endpoint also serves the **re-authentication** step of a flow whose session already has a user — see
+[Re-authentication](#re-authentication) below.
 
 #### GET Request
 
@@ -154,8 +156,10 @@ specific to the client that initiated the authorize flow and to the current inte
   sign-up is allowed for this interactive flow session (in a normal, non-invitation sign-in: when open registration is enabled), and
   `null` otherwise
 - `redirect_url`: Set when the user should **not** be on the sign-in step — e.g. an
-  [invitation](/functional/invitation) flow (→ sign-up page) or an already-authenticated user (→ next step). When set,
-  every other field is `null`; follow it instead of rendering the form
+  [invitation](/functional/invitation) flow (→ sign-up page) or an already-authenticated user with nothing left to
+  prove (→ next step). When set, every other field is `null`; follow it instead of rendering the form. A session that
+  already has a user is **not** redirected when the step is a [re-authentication](#re-authentication): the config is
+  returned and the form must be rendered
 
 #### POST Request
 
@@ -188,6 +192,28 @@ Validates user credentials and establishes an authenticated session.
 1. Validates login/password combination
 2. Identifies user by matching login against the configured `identifier_claims`
 3. Returns redirect to next step (typically claims collection or flow completion)
+
+#### Re-authentication
+
+This endpoint is not only reached by users who are not signed in. It also renders the **re-authentication** step —
+the gate that makes an already-identified end-user prove they still own their account before a consequential action,
+such as a [provider link](/technical/api/client#provider-linking), commits. Do not build the screen on the assumption
+that the sign-in step means nobody is signed in; build it from the `GET` response, which differs in a
+re-authentication:
+
+- **Only the session user's own methods are returned.** `password` is `null` unless that account has a password, and
+  `providers` lists only the providers **already linked** to it — not every provider the server offers.
+- **`sign_up_redirect_url` is always `null`.** Registering is not an option under a re-authentication gate, so render
+  no "Create an account" link.
+- **`POST` refuses a different account.** Credentials that are valid for another user are rejected with a
+  **recoverable** error rather than switching the session to that user. Handle it like a wrong password: show the
+  message on the same screen and let the end-user retry as the account the flow is about.
+- **An enrolled second factor is challenged again.** When the account has an MFA method enrolled, the `redirect_url`
+  returned by a successful `POST` leads to the [MFA challenge](#_6-mfa-endpoints), so the proof is at least as strong
+  as an ordinary sign-in to that account.
+
+The [Confirm Endpoint](#_8-confirm-endpoint) announces the gate up front through `requires_reauthentication`, so a UI
+rendering the confirmation step can warn the end-user that a sign-in follows.
 
 ---
 
@@ -916,6 +942,16 @@ To **deny** the action instead of approving it, do not call this endpoint; aband
 
 ## Implementing a Custom Flow
 
+The steps below cover the **sign-in** path — the flow an OAuth 2 authorization request starts. They are not the only
+path a flow can take: the server derives a flow's steps from the purposes its session carries, so a flow that a client
+or an administrator started on a signed-in end-user's behalf (an
+[MFA enrollment](/technical/api/client#start-mfa-enrollment), a [provider link](/technical/api/client#provider-linking))
+opens on the [Confirm Endpoint](#_8-confirm-endpoint), may route through the sign-in endpoint as a
+[re-authentication](#re-authentication) step and through MFA and a provider authorization, and ends by returning the
+end-user to the initiator's `return_uri` instead of minting an authorization code. **A UI that implements only the
+sign-in path cannot serve those flows**: implement the confirm step too, and follow every `redirect_url` wherever it
+points rather than assuming the next screen.
+
 ### Recommended Implementation Steps
 
 1. **Render the Sign-In Step**
@@ -995,6 +1031,9 @@ To **deny** the action instead of approving it, do not call this endpoint; aband
 
 ### Example Flow Sequence
 
+**A sign-in requested by a client application** (started by `GET /api/v1/flow/authorize`, which redirects the end-user
+to the sign-in page):
+
 ```
 1. GET /api/v1/flow/sign-in?state=abc123
    → Returns: {"password": {...}, "providers": [...], "sign_up_redirect_url": "/sign-up?state=abc123"}
@@ -1022,6 +1061,46 @@ To **deny** the action instead of approving it, do not call this endpoint; aband
    ↓
 9. Redirect to client application (flow complete)
 ```
+
+**A provider link started by a client** (started by
+[`POST /api/v1/client/providers/google/link`](/technical/api/client#provider-linking), whose `redirect_url` lands the
+end-user on step 1). The end-user is already signed into the application, so the flow opens on the confirmation and
+ends at the initiator's `return_uri`:
+
+```
+1. GET /api/v1/flow/confirm?state=def456
+   → Returns: {"action": "LINK_PROVIDER", "requires_reauthentication": true, "initiating_client_id": "my-app"}
+     (render the action, and warn that a sign-in follows)
+   ↓
+2. POST /api/v1/flow/confirm   [Authorization: State def456]
+   → Returns: {"redirect_url": "/api/v1/flow/sign-in?state=def456"}
+   ↓
+3. GET /api/v1/flow/sign-in?state=def456
+   → Returns: {"password": {...}, "providers": [...], "sign_up_redirect_url": null}
+     (re-authentication: only this account's own methods, and no "Create an account" link)
+   ↓
+4. POST /api/v1/flow/sign-in   [Authorization: State def456]
+   → Returns: {"redirect_url": "/api/v1/flow/mfa?state=def456"}
+     (credentials for a different account would be rejected here with a recoverable error)
+   ↓
+5. GET /api/v1/flow/mfa?state=def456
+   → Returns: {"redirect_url": "/api/v1/flow/mfa/totp?state=def456"}
+   ↓
+6. POST /api/v1/flow/mfa/totp   [Authorization: State def456]   {"code": "123456"}
+   → Returns: {"redirect_url": "/api/v1/flow/providers/google/authorize?state=def456"}
+   ↓
+7. GET /api/v1/flow/providers/google/authorize?state=def456
+   → 303 to Google; the end-user authorizes there
+   ↓
+8. GET /api/v1/flow/providers/google/callback?code=...&state=def456
+   → 303 to https://app.example.com/account/security   (the client's return_uri)
+   ↓
+9. Back in the application (flow complete — the provider is linked, no authorization code is issued)
+```
+
+An [MFA enrollment started by a client or an administrator](/technical/api/client#start-mfa-enrollment) has the same
+shape with fewer steps: confirm (`requires_reauthentication` is `false`), the enrollment screens, then the
+`return_uri`.
 
 ### Error Handling
 

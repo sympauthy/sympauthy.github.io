@@ -60,6 +60,22 @@ mappings via the [OAuth2 configuration](/technical/configuration/provider#oauth2
 For the full list of options, refer to the [provider configuration](/technical/configuration/provider) section.
 For providers with built-in presets, see the [well-known providers](/technical/well-known_providers) page.
 
+##### Linking a provider to an existing account
+
+Authenticating and registering are two of the three things a provider does. The third is being **added** to an account
+that already exists: a user who signed up with an email and a password can link their Google account and afterwards use
+either one. The link is made through an
+[interactive flow](/functional/interactive_flow#linking-a-third-party-provider) that an application or an administrator
+starts on the user's behalf.
+
+Because a link mints a **durable credential** for that account — from then on, whoever can authenticate with the
+provider reaches the account — the flow first makes the user
+[prove they still own it](/functional/interactive_flow#proving-you-still-own-the-account). That is why linking asks a
+user to sign in again even though they already are.
+
+Unlike merging below, linking is explicit: the user is shown what is about to happen and approves it, and the link is
+refused if the provider identity already belongs to another account.
+
 ##### Account merging
 
 A user may authenticate with multiple methods over time — for example, first with email and password, then later with
@@ -94,6 +110,12 @@ Two configuration keys control MFA behavior:
 When a user signs in for the first time after TOTP is enabled, they go through an **enrollment** screen: they scan a QR
 code (or enter a secret manually), then confirm the setup by entering a first valid code. On subsequent sign-ins, they
 are presented with a **challenge** screen where they simply enter the current code from their authenticator app.
+
+Enrollment does not have to wait for the user's next sign-in. An application can start one on its own from an
+account-settings or security screen ([Client API](/technical/api/client#start-mfa-enrollment)), and so can an
+administrator ([Admin API](/technical/api/admin#start-mfa-enrollment)). The user is sent to an
+[interactive flow](/functional/interactive_flow#an-action-started-on-the-user-s-behalf) that asks them to approve the
+action and then walks them through the same enrollment screen. An enrollment started this way cannot be skipped.
 
 For a step-by-step description of how MFA fits into the authentication flow, see
 [How an Interactive Flow Works](interactive_flow). Refer to the
