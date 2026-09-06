@@ -9,6 +9,7 @@ This section holds configuration that will change the general behavior of the se
 | Key                            | Type   | Description                                                                                                                     | Required<br>Default        |
 |--------------------------------|--------|---------------------------------------------------------------------------------------------------------------------------------|----------------------------|
 | ```authorization-webhook```    | object | Timeout bounding every call to a client's authorization webhook. See [advanced.authorization-webhook](#advanced-authorization-webhook). | NO                         |
+| ```cleanup```                  | object | Bounds one run of each of the scheduled cleanups. See [advanced.cleanup](#advanced-cleanup).                                    | YES                        |
 | ```hash```                     | object | Scrypt parameters used when hashing secrets. See [advanced.hash](#advanced-hash).                                               | YES                        |
 | ```invitation```               | object | [Invitation](/functional/invitation) token settings. See [advanced.invitation](#advanced-invitation).                           | YES                        |
 | ```jwt```                      | object |                                                                                                                                 | YES                        |
@@ -22,13 +23,26 @@ This section holds configuration that will change the general behavior of the se
 |---------------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
 | ```timeout``` | duration | Time a client's authorization webhook has to answer before the call is abandoned and the webhook treated as failed. Applies to every call, whichever client made it. | NO<br>```5s```      |
 
-Unlike the two keys of [`advanced.pagination`](#advanced-pagination), this one has a fallback in code: the server uses
-five seconds when it is absent rather than reporting itself unready. The `default`
-[environment](/technical/configuration/environments) supplies `5s` as well.
-
 The webhook itself — the URL called and the secret the request is signed with — is configured per client under
 [`clients.<id>.authorization-webhook`](/technical/configuration/client#clients-id-authorization-webhook), a different
 key. This one only bounds how long the server waits for it.
+
+### ```advanced.cleanup```
+
+Bounds one run of each of the two cleanups the server runs every fifteen minutes: the one removing expired
+[interactive flow](/functional/interactive_flow) sessions, the other collecting the accounts an abandoned sign-up left
+behind.
+
+| Key              | Type | Description                                                                                                                                                                                         | Required<br>Default |
+|------------------|------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
+| ```batch-size``` | int  | Largest number of rows one run of a cleanup takes, each cleanup bounded on its own. Must be greater than 0. Nothing is lost by the bound: whatever a run leaves behind, the next one takes.        | YES<br>```1000```   |
+
+A run holds locks on the tables it deletes from, which are the tables a sign-in is writing, for as long as it takes.
+That is what the bound keeps short.
+
+Both cleanups log at `WARN` when a run stops at `batch-size` with rows left to remove. Once after an outage, that is
+the cleanup catching up. At every run, `batch-size` is too low for the cleanup to ever drain what it has to remove and
+must be increased.
 
 ### ```advanced.hash```
 
@@ -83,10 +97,6 @@ the [Admin API](/technical/api/admin#pagination) and the [Client API](/technical
 Without a maximum, `?size=100000` is a request to serialize a whole collection into a single response, and the
 endpoints that page in memory will do it. Where the ceiling belongs depends on how large the collections a deployment
 holds, which is why it is configuration rather than a fixed value.
-
-Both keys are required and have no fallback in code. The `default` [environment](/technical/configuration/environments)
-supplies them; a deployment that declares its own `advanced:` block without enabling `default` must set both, or the
-server reports itself unready with a `config.missing` error for each.
 
 ### ```advanced.validation-code```
 
