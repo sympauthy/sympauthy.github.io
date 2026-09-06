@@ -23,10 +23,18 @@ For a detailed walkthrough of each step from the user's perspective, see [How an
 SympAuthy supports two primary ways for an end-user to prove their identity, plus an optional multi-factor
 authentication step:
 
-#### Email and password
+#### Identifier and password
 
-The user enters the email address and password they registered with. This method must be explicitly enabled in the
-configuration using the `by-mail` environment.
+The user proves who they are with a password, preceded by an **identifier** that says which account the password
+belongs to. The identifier is not necessarily an email address: it is whichever [claims](/functional/claims) the
+deployment lists in [`auth.identifier-claims`](/technical/configuration/authorization#auth) — an email address in most
+deployments, but a username, an employee number or any other claim that singles out one person will do just as well.
+Whatever they are, the same claims are collected at sign-up, so the user signs in with what they registered with.
+
+Password authentication is off unless a deployment turns it on with
+[`auth.by-password.enabled`](/technical/configuration/authorization#auth-by-password). The
+[`by-mail` environment](/technical/configuration/environments) is a shortcut for the common case: it enables password
+authentication and makes the email address the identifier.
 
 #### Third-party providers
 
