@@ -84,4 +84,4 @@ entirely by the consent flow and are never affected by the webhook.
 
 See the [Authorization Webhook](/technical/authorization_webhook) documentation for the full protocol specification
 (request/response format, signature verification, failure behaviour) and
-[Configuration](/technical/configuration/client#clients-id-authorization-webhook) for how to configure it.
+[Configuration](/technical/configuration/client#clients-id-webhooks-authorization) for how to configure it.

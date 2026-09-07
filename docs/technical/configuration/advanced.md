@@ -8,7 +8,6 @@ This section holds configuration that will change the general behavior of the se
 
 | Key                            | Type   | Description                                                                                                                     | Required<br>Default        |
 |--------------------------------|--------|---------------------------------------------------------------------------------------------------------------------------------|----------------------------|
-| ```authorization-webhook```    | object | Timeout bounding every call to a client's authorization webhook. See [advanced.authorization-webhook](#advanced-authorization-webhook). | NO                         |
 | ```cleanup```                  | object | Bounds one run of each of the scheduled cleanups. See [advanced.cleanup](#advanced-cleanup).                                    | YES                        |
 | ```hash```                     | object | Scrypt parameters used when hashing secrets. See [advanced.hash](#advanced-hash).                                               | YES                        |
 | ```invitation```               | object | [Invitation](/functional/invitation) token settings. See [advanced.invitation](#advanced-invitation).                           | YES                        |
@@ -16,16 +15,7 @@ This section holds configuration that will change the general behavior of the se
 | ```keys-generation-strategy``` | string | How the instances of a deployment agree on the cryptographic keys they share. `auto-increment`, the only strategy published, negotiates through the database: an instance needing a key looks for an existing one, inserts a newly generated key if there is none, and every instance then settles on the row with the lowest auto-increment index. | YES<br>```auto-increment``` |
 | ```pagination```               | object | Bounds every paged endpoint applies to the `page` and `size` query parameters. See [advanced.pagination](#advanced-pagination). | YES                        |
 | ```validation-code```          | object | See [advanced.validation-code](#advanced-validation-code).                                                                      | YES                        |
-
-### ```advanced.authorization-webhook```
-
-| Key           | Type     | Description                                                                                                                                                            | Required<br>Default |
-|---------------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```timeout``` | duration | Time a client's authorization webhook has to answer before the call is abandoned and the webhook treated as failed. Applies to every call, whichever client made it. | NO<br>```5s```      |
-
-The webhook itself — the URL called and the secret the request is signed with — is configured per client under
-[`clients.<id>.authorization-webhook`](/technical/configuration/client#clients-id-authorization-webhook), a different
-key. This one only bounds how long the server waits for it.
+| ```webhooks```                 | object | Timeout bounding every call to a client's authorization webhook. See [advanced.webhooks.authorization](#advanced-webhooks-authorization). | NO                         |
 
 ### ```advanced.cleanup```
 
@@ -106,3 +96,12 @@ holds, which is why it is configuration rather than a fixed value.
 | ```length```       | int      | Number of digit expected in validation code generate by this authorization server.               | YES<br>```6```      |
 | ```resend-delay``` | duration | Duration the end-user has to wait before being able to request a new validation code to be sent. | YES<br>```1m```     |
 
+### ```advanced.webhooks.authorization```
+
+| Key           | Type     | Description                                                                                                                                                            | Required<br>Default |
+|---------------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
+| ```timeout``` | duration | Time a client's authorization webhook has to answer before the call is abandoned and the webhook treated as failed. Applies to every call, whichever client made it. | NO<br>```5s```      |
+
+The webhook itself — the URL called and the secret the request is signed with — is configured per client under
+[`clients.<id>.webhooks.authorization`](/technical/configuration/client#clients-id-webhooks-authorization), a different
+key. This one only bounds how long the server waits for it.

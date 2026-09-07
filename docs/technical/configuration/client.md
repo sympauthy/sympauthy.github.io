@@ -15,10 +15,10 @@ authorization server.
 | ```allowed-grant-types```              | array of string | List of OAuth2 grant types this client is allowed to use. Supported values: `authorization_code`, `refresh_token`, `client_credentials`. See [this section](#clients-id-allowed-grant-types) for more details.                                                      | **YES**              |
 | ```allowed-scopes```                   | array of string | List of scopes the client is allowed to request. Any scope outside this list will be filtered out by this authorization server and will not be granted. <br>If not set or empty, **all scopes** are **allowed**.                                                    | NO                   |
 | ```audience```                         | string          | The [audience](/functional/audience) this client belongs to. Determines the consent grouping boundary and the `aud` claim in access tokens. Can be inherited from a [client template](#templates-clients-id).                                                       | **YES**              |
-| ```authorization-webhook```            | object          | Delegates grantable scope decisions to an external HTTP server. See [this section](#clients-id-authorization-webhook) for details.                                                                                                                                   | NO                   |
 | ```default-scopes```                   | array of string | List of scopes that will be requested if the ```scope``` parameter is left when calling the authorize endpoint.                                                                                                                                                     | NO                   |
 | ```uris```                             | map of string   | Named URIs for this client, usable as `${client.uris.<key>}` templates in `allowed-redirect-uris`. Useful for defining base URLs once and referencing them in multiple redirect URIs.                                                                               | NO                   |
 | ```allowed-redirect-uris```            | array of string | A list of URIs where the client is allowed to ask the redirection of the end-user at the end of the OAuth2 authorize grant flow. See [this section](#clients-id-allowed-redirect-uris) for more details.                                                            | Conditional          |
+| ```webhooks```                         | object          | Webhooks this client delegates decisions to. See [this section](#clients-id-webhooks-authorization) for details.                                                                                                                                                    | NO                   |
 
 ### ```clients.<id>.allowed-grant-types```
 
@@ -84,7 +84,7 @@ clients:
       - "${client.uris.app}callback"
 ```
 
-### ```clients.<id>.authorization-webhook```
+### ```clients.<id>.webhooks.authorization```
 
 When configured, SympAuthy delegates grantable scope decisions for this client to an external HTTP server instead of
 evaluating scope granting rules.
@@ -103,10 +103,11 @@ Example:
 ```yaml
 clients:
   my-app:
-    authorization-webhook:
-      url: https://my-app.example.com/sympauthy/authorize
-      secret: "a3f1b9c7e2d84f6a9b0c1d2e3f4a5b6c"
-      on-failure: deny_all
+    webhooks:
+      authorization:
+        url: https://my-app.example.com/sympauthy/authorize
+        secret: "a3f1b9c7e2d84f6a9b0c1d2e3f4a5b6c"
+        on-failure: deny_all
 ```
 
 ## ```templates.clients.<id>```
@@ -128,7 +129,7 @@ Fields set directly on a client always override the corresponding template value
 | ```allowed-redirect-uris``` | array of string | Default list of allowed redirect URIs.                                | NO                  |
 | ```allowed-scopes```        | array of string | Default list of allowed scopes.                                       | NO                  |
 | ```default-scopes```        | array of string | Default list of scopes requested when `scope` parameter is omitted.   | NO                  |
-| ```authorization-webhook``` | object          | Default [authorization webhook](#clients-id-authorization-webhook) for clients using this template. | NO                  |
+| ```webhooks```              | object          | Default [webhooks](#clients-id-webhooks-authorization) for clients using this template.             | NO                  |
 
 **Constraints:**
 
