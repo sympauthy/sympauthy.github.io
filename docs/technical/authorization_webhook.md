@@ -13,7 +13,7 @@ configuration. Any scope outside `allowed-scopes` is ignored. This is consistent
 server to issue a scope different from the one requested by the client.
 
 See [User Authorization](/functional/user_authorization#delegating-to-a-third-party-through-webhook) for how the
-webhook fits into the authorization flow and [Configuration](/technical/configuration/client#clients-id-authorization-webhook)
+webhook fits into the authorization flow and [Configuration](/technical/configuration/client#clients-id-webhooks-authorization)
 for how to configure it.
 
 ## Request
@@ -55,7 +55,7 @@ X-SympAuthy-Signature: sha256=<hmac-hex>
 ### Signature
 
 The `X-SympAuthy-Signature` header contains the HMAC-SHA256 of the raw request body, formatted as
-`sha256=<hex-digest>`. The shared secret configured under `authorization-webhook.secret` is used as the HMAC key.
+`sha256=<hex-digest>`. The shared secret configured under `webhooks.authorization.secret` is used as the HMAC key.
 
 The external server **should** verify this signature before processing the request, to ensure it originates from
 SympAuthy and the payload has not been tampered with.

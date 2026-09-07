@@ -63,9 +63,9 @@ ERROR - One or more errors detected in the configuration. This application will 
   spelling or remove it. Read from application.yml.
 ```
 
-The message names the nearest key the server knows when it has one to offer: your own key with a
-single segment corrected, offered only where that correction makes the key bind. A key carrying more
-than one mistake is named alone.
+The message names the nearest key the server knows when it has one to offer: your own key with one
+segment replaced by the one or more the server declares in its place, offered only where that
+replacement makes the key bind. A key carrying more than one mistake is named alone.
 
 A misspelt *section* is caught the same way. Writing `scope:` where the key is `scopes:` used to drop
 the whole section without a word; every key under it is now reported with its correction.
@@ -86,7 +86,8 @@ key a past version removed. From the version introducing this check onwards, tha
 down on the next restart.
 
 Read the startup log or `/health`, then delete or correct every key either one names, and restart.
-Everything they report was already having no effect.
+Most of what they report was already having no effect; the rest are keys a version moved, and the
+message names the key that replaced them.
 :::
 
 ## ```urls```
