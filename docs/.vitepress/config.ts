@@ -104,6 +104,7 @@ export default defineConfig({
                 { text: 'Claim', link: '/technical/configuration/claim' },
                 { text: 'Scope', link: '/technical/configuration/scope' },
                 { text: 'CORS', link: '/technical/configuration/cors' },
+                { text: 'Security Context', link: '/technical/configuration/security-context' },
                 { text: 'Advanced', link: '/technical/configuration/advanced' },
               ]
             },

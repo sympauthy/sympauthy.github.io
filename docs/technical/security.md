@@ -13,6 +13,34 @@ turns them on.
 Configuration keys that have security implications are documented with warnings in the [Configuration](configuration/)
 reference.
 
+## What the server knows about a request
+
+SympAuthy reads the address a request came from, the user agent it declares, and the location the
+deployment's edge attributes to that address, and keeps where a signed-in person is seen from as one place
+per person. By default it trusts nothing: the address is the peer of the socket the request arrived on, no
+forwarded header is read, and no location is recorded.
+
+A header is consulted only because an operator named the proxy that sets it, under
+[`advanced.security-context`](configuration/security-context). Naming one promises the server is only
+reachable through it — there is no proxy allow-list, and nothing checks that a request carrying
+`CF-Connecting-IP` came from Cloudflare. **If the origin is reachable directly while a proxy is named,
+anyone can set that header and choose what gets recorded about them.** A deployment that cannot close its
+origin names none — and keeps a record naming its own ingress rather than anybody's whereabouts, since the
+socket peer behind a proxy is that proxy's own address, the same one for every end-user.
+
+The address and the location are configured apart, and only the location may be detected. Only the proxy
+nearest the server knows the address, as the peer it accepted a connection from rather than a value it was
+handed, so exactly one is named and none is guessed: an edge reading an entry of `X-Forwarded-For` reads it
+at a position only its own hop count explains, and guessing wrong reaches an entry the caller wrote — a
+forgery travelling through a *legitimate* proxy, which a closed origin does not stop. A location is
+published by each edge under a header of its own, never at a position in a shared header, so several may be
+read and `auto-detect` is safe; a wrong answer there is a wrong location on a record, not a request
+attributed to whoever asked for it.
+
+No anomaly is derived from any of this: no device fingerprint, no impossible-travel check, no risk score,
+and no geolocation from an IP database. Only what an edge said. The server records where a person signs in
+from and draws no conclusion from it.
+
 ## Password hashing
 
 SympAuthy never stores passwords in plaintext. Every password is hashed using **scrypt** — a memory-hard function that
