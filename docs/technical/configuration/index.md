@@ -119,4 +119,5 @@ urls:
 - [Claim](/technical/configuration/claim) — Claim collection configuration.
 - [Scope](/technical/configuration/scope) — Scope configuration.
 - [CORS](/technical/configuration/cors) — Cross-origin request policy and configurable allowed headers.
+- [Security Context](/technical/configuration/security-context) — Which proxy the address, user agent and location of a request are read from.
 - [Advanced](/technical/configuration/advanced) — JWT, hashing, pagination bounds, and other advanced settings.

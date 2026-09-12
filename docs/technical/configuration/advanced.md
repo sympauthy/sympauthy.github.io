@@ -14,6 +14,7 @@ This section holds configuration that will change the general behavior of the se
 | ```jwt```                      | object |                                                                                                                                 | YES                        |
 | ```keys-generation-strategy``` | string | How the instances of a deployment agree on the cryptographic keys they share. `auto-increment`, the only strategy published, negotiates through the database: an instance needing a key looks for an existing one, inserts a newly generated key if there is none, and every instance then settles on the row with the lowest auto-increment index. | YES<br>```auto-increment``` |
 | ```pagination```               | object | Bounds every paged endpoint applies to the `page` and `size` query parameters. See [advanced.pagination](#advanced-pagination). | YES                        |
+| ```security-context```         | object | What the server reads off a request about where it came from, and how long a place a person signs in from is kept. See [advanced.security-context](#advanced-security-context). | NO                         |
 | ```validation-code```          | object | See [advanced.validation-code](#advanced-validation-code).                                                                      | YES                        |
 | ```webhooks```                 | object | Timeout bounding every call to a client's authorization webhook. See [advanced.webhooks.authorization](#advanced-webhooks-authorization). | NO                         |
 
@@ -87,6 +88,46 @@ the [Admin API](/technical/api/admin#pagination) and the [Client API](/technical
 Without a maximum, `?size=100000` is a request to serialize a whole collection into a single response, and the
 endpoints that page in memory will do it. Where the ceiling belongs depends on how large the collections a deployment
 holds, which is why it is configuration rather than a fixed value.
+
+### ```advanced.security-context```
+
+What the server reads off a request about where it came from, and how long a place a person signs in from
+is kept. The trust model behind these keys, the edges that may be named and what each of them publishes
+are on the [Security Context](/technical/configuration/security-context) page.
+
+| Key                          | Type     | Description                                                                                                                               | Required<br>Default |
+|------------------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
+| ```geo```                    | object   | Where that address is. See [advanced.security-context.geo](#advanced-security-context-geo).                                                | NO                  |
+| ```ip```                     | object   | Where the address comes from. See [advanced.security-context.ip](#advanced-security-context-ip).                                           | NO                  |
+| ```known-user-retention```   | duration | How long a place a person signs in from is kept, measured from the last time they were seen there rather than the first. Must be positive. | NO<br>```180d```    |
+
+### ```advanced.security-context.geo```
+
+| Key                 | Type        | Description                                                                                                                                                                    | Required<br>Default |
+|---------------------|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
+| ```auto-detect```   | boolean     | Read every edge that publishes a location, sorted by name, instead of the ones `providers` lists.                                                                               | NO<br>```false```   |
+| ```headers```       | object      | Header each location field is read from, overriding every edge for that field. See [advanced.security-context.geo.headers](#advanced-security-context-geo-headers).             | NO                  |
+| ```providers```     | string list | Edges whose location headers are read, applied in order; each overrides the fields the ones before it answered. Only an edge publishing a location may be named, and only once. | NO<br>```[]```      |
+
+### ```advanced.security-context.geo.headers```
+
+Every key is a header name, read as it stands.
+
+| Key                   | Type   | Description                        | Required<br>Default |
+|-----------------------|--------|------------------------------------|---------------------|
+| ```city```            | string | Header holding the city.           | NO                  |
+| ```country-code```    | string | Header holding the country code.   | NO                  |
+| ```postal-code```     | string | Header holding the postal code.    | NO                  |
+| ```region```          | string | Header holding the region name.    | NO                  |
+| ```region-code```     | string | Header holding the region code.    | NO                  |
+| ```time-zone```       | string | Header holding the time zone.      | NO                  |
+
+### ```advanced.security-context.ip```
+
+| Key            | Type   | Description                                                                    | Required<br>Default |
+|----------------|--------|----------------------------------------------------------------------------------|---------------------|
+| ```header```   | string | Header holding the address, read as it stands. Wins over `provider`.             | NO                  |
+| ```provider``` | string | The one proxy nearest this server whose header says where a request came from.   | NO                  |
 
 ### ```advanced.validation-code```
 
