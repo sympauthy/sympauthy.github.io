@@ -8,7 +8,6 @@ This section holds configuration that will change the general behavior of the se
 
 | Key                            | Type   | Description                                                                                                                     | Required<br>Default        |
 |--------------------------------|--------|---------------------------------------------------------------------------------------------------------------------------------|----------------------------|
-| ```cleanup```                  | object | Bounds one run of each of the scheduled cleanups. See [advanced.cleanup](#advanced-cleanup).                                    | YES                        |
 | ```hash```                     | object | Scrypt parameters used when hashing secrets. See [advanced.hash](#advanced-hash).                                               | YES                        |
 | ```invitation```               | object | [Invitation](/functional/invitation) token settings. See [advanced.invitation](#advanced-invitation).                           | YES                        |
 | ```jwt```                      | object |                                                                                                                                 | YES                        |
@@ -17,23 +16,6 @@ This section holds configuration that will change the general behavior of the se
 | ```security-context```         | object | What the server reads off a request about where it came from, and how long a place a person signs in from is kept. See [advanced.security-context](#advanced-security-context). | NO                         |
 | ```validation-code```          | object | See [advanced.validation-code](#advanced-validation-code).                                                                      | YES                        |
 | ```webhooks```                 | object | Timeout bounding every call to a client's authorization webhook. See [advanced.webhooks.authorization](#advanced-webhooks-authorization). | NO                         |
-
-### ```advanced.cleanup```
-
-Bounds one run of each of the two cleanups the server runs every fifteen minutes: the one removing expired
-[interactive flow](/functional/interactive_flow) sessions, the other collecting the accounts an abandoned sign-up left
-behind.
-
-| Key              | Type | Description                                                                                                                                                                                         | Required<br>Default |
-|------------------|------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```batch-size``` | int  | Largest number of rows one run of a cleanup takes, each cleanup bounded on its own. Must be greater than 0. Nothing is lost by the bound: whatever a run leaves behind, the next one takes.        | YES<br>```1000```   |
-
-A run holds locks on the tables it deletes from, which are the tables a sign-in is writing, for as long as it takes.
-That is what the bound keeps short.
-
-Both cleanups log at `WARN` when a run stops at `batch-size` with rows left to remove. Once after an outage, that is
-the cleanup catching up. At every run, `batch-size` is too low for the cleanup to ever drain what it has to remove and
-must be increased.
 
 ### ```advanced.hash```
 
@@ -146,3 +128,18 @@ Every key is a header name, read as it stands.
 The webhook itself — the URL called and the secret the request is signed with — is configured per client under
 [`clients.<id>.webhooks.authorization`](/technical/configuration/client#clients-id-webhooks-authorization), a different
 key. This one only bounds how long the server waits for it.
+
+## Scheduled cleanups
+
+Three sweeps run every fifteen minutes, each on a schedule of its own: the one expiring
+[interactive flow](/functional/interactive_flow) sessions and the records attached to them, the one collecting
+the accounts an abandoned sign-up left half-created, and the one removing the places people sign in from once
+nobody has signed in from one for [`known-user-retention`](#advanced-security-context).
+
+How much a run takes is fixed in the server rather than configured, and nothing is lost by it: whatever a run
+leaves behind, the next one takes. The only key touching any of this is the retention above, which says when a
+place becomes expired, not how it is removed.
+
+In a deployment of several instances, a sweep is run by one instance rather than by every one of them: an
+instance takes a lease on the sweep before running it, and the instances that do not hold it skip that round.
+Each sweep has a lease of its own, so the three may well be taken by three different instances.
