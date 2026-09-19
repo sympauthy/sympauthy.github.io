@@ -42,6 +42,7 @@ grant only the minimum necessary privileges.
 | `admin:config:read`         | List and view configuration resources (audiences, clients, claims, scopes) |
 | `admin:consent:read`        | View consents                                                              |
 | `admin:consent:write`       | Revoke consents, force logout                                              |
+| `admin:interactive-flow-sessions:read` | Read the [interactive flow](/functional/interactive_flow) sessions currently in flight, and the places each one was driven from |
 | `admin:invitations:read`    | List and view [invitations](/functional/invitation)                        |
 | `admin:invitations:write`   | Create and revoke [invitations](/functional/invitation)                    |
 | `admin:users:read`          | List and view users and their MFA methods                                  |
@@ -169,7 +170,8 @@ the actual number.
 ## Endpoints
 
 > **Work in progress** — [Client Management](#client-management), [Claim Management](#claim-management),
-> [Scope Management](#scope-management), and [Audience Management](#audience-management) endpoints are implemented.
+> [Scope Management](#scope-management), [Audience Management](#audience-management), and
+> [Interactive Flow Session Management](#interactive-flow-session-management) endpoints are implemented.
 > The remaining endpoints below are planned but not yet implemented. The paths and response formats shown are
 > preliminary and may change. See [GitHub issue #109](https://github.com/sympauthy/sympauthy/issues/109) for progress.
 
@@ -1927,3 +1929,383 @@ and permanent.
 - Cancel an invitation after an employee's offer is rescinded
 - Clean up unused invitations as part of a security audit
 
+
+### Interactive Flow Session Management
+
+Endpoints for reading the [interactive flow](/functional/interactive_flow) sessions this server is currently
+holding: what each one is for, which purpose it is stopped at, and the places it was driven from. Requires the
+`admin:interactive-flow-sessions:read` scope.
+
+::: warning This is not a history
+These endpoints answer from the session table as it stands. Expired sessions are
+[collected every fifteen minutes](/technical/configuration/advanced#scheduled-cleanups), so the window they can show
+is the session's own lifetime — [`auth.authorization-code.expiration`](/technical/configuration/authorization#auth-authorization-code) —
+plus up to a quarter of an hour.
+
+An empty listing therefore means **nothing in flight**, not *nothing ever happened*, and a **404** on a session
+identifier means that session is gone rather than that it never existed. Neither is evidence about an incident that
+has already ended.
+:::
+
+#### List Interactive Flow Sessions
+
+**Path**: `/api/v1/admin/interactive-flow-sessions`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:interactive-flow-sessions:read` scope
+
+**Purpose**: Retrieves a paginated list of the interactive flow sessions the server holds, with filters for the
+client, the user, the purpose that started the session and what became of it.
+
+**Query Parameters**:
+
+- `page` (optional): Zero-indexed page number (default: `0`)
+- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
+- `q` (optional): Partial, case-insensitive search across the address and user agent of **every** place the session
+  was driven from, and the initiating client identifier
+- `client` (optional): Exact identifier of the client the session was started for
+- `user` (optional): Exact identifier of the user the session identified. A session still signing that account up
+  does match — it holds the identifier from the moment the person is identified — but publishes no `user` beside it
+  until it completes.
+- `purpose` (optional): Filter on the purpose that **started** the session, not on every purpose it carries:
+  `oauth2_authorize`, `mfa_enrollment`, `mfa_challenge`, `reauthentication` or `link_provider`. `confirm` is
+  accepted and matches nothing, since a confirmation gate is only ever prepended to another purpose.
+- `status` (optional): Filter by what became of the session — `ongoing`, `completed`, `cancelled`, `failed` or
+  `expired`
+- `order` (optional): Sort direction — `asc` or `desc` (default: `asc`)
+
+A `client` this deployment does not declare, or a `purpose`, `status` or `order` this server does not know, is
+refused with a **400 Bad Request** rather than answered with an empty page, so a caller asking for something
+impossible is told so.
+
+Sessions are ordered by the date they started, and `order` reverses only that: the identifier that breaks a tie
+stays ascending, since it is not what the caller asked to sort by.
+
+**Response Format**:
+
+```json
+{
+  "sessions": [
+    {
+      "id": "3f2a91c4-5e7b-4d18-9a03-7c6e1b8f2d45",
+      "status": "ongoing",
+      "initiating_purpose": {
+        "value": "oauth2_authorize",
+        "display_name": "Signing in at a client's request"
+      },
+      "current_purpose": {
+        "value": "mfa_challenge",
+        "display_name": "Checking a second factor"
+      },
+      "client_id": "my-web-app",
+      "signed_up": false,
+      "user": {
+        "user_id": "550e8400-e29b-41d4-a716-446655440000",
+        "status": "enabled",
+        "created_at": "2026-01-15T14:30:00Z",
+        "claims": {
+          "email": "jane@example.com"
+        }
+      },
+      "ip": "203.0.113.42",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15",
+      "session_date": "2026-03-28T10:00:00Z",
+      "expiration_date": "2026-03-28T10:30:00Z"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "total": 1
+}
+```
+
+**Properties**:
+
+- `sessions`: Array of sessions
+    - `id`: Unique identifier of the session
+    - `status`: What became of it. Possible values: `"ongoing"` | `"completed"` | `"cancelled"` | `"failed"` |
+      `"expired"`. `expired` means the session was still ongoing when its expiration passed — nobody finished it —
+      and never relabels a session that completed, cancelled or failed first.
+    - `initiating_purpose`: The purpose that started the session, as a `value` to branch on and a `display_name`
+      written for a person to read. A `display_name` may be reworded in any release, so nothing may branch on one.
+    - `current_purpose`: The purpose the session is stopped at, in the same shape. Absent once every purpose has
+      resolved, and for a session that completed, cancelled or failed.
+    - `client_id`: Identifier of the client the session was started for. Absent where an administrator started it
+      and where nothing named a client. It may name a client this deployment no longer declares — editing the
+      configuration does not rewrite sessions already in flight.
+    - `signed_up`: Whether the account was created during this session. A session signing an account up publishes no
+      `user` until it completes, so this is what tells a sign-up in progress apart from a person who has not
+      identified themselves at all.
+    - `user`: The account the session identified, carrying the deployment's
+      [identifier claims](/technical/configuration/authorization#auth). Absent where it identified nobody, and where
+      the account it identified is one this session is still signing up.
+    - `ip`: Address the session was **last** driven from, or `null` where nothing was recorded against it
+    - `user_agent`: User agent observed alongside that address, or `null`
+    - `session_date`: ISO 8601 timestamp (UTC) at which the session started
+    - `expiration_date`: ISO 8601 timestamp (UTC) at which the session expires
+- `page`: Current page number
+- `size`: Number of results per page
+- `total`: Total number of sessions the criteria kept
+
+`ip` and `user_agent` are the place the session was **last** driven from, not the only place it holds, while `q`
+matches any of them. A row whose address does not match what the operator searched for is therefore not a bug — the
+match was on an earlier place. Every place a session holds is on
+[List Session Security Contexts](#list-session-security-contexts).
+
+**Errors**:
+
+Returns **400 Bad Request** with:
+
+| Error code | Description |
+|------------|-------------|
+| `filter.value.unsupported` | The value "{value}" is not one this server knows for the "{parameter}" filter. Supported values are: {supportedValues}. |
+| `order.value.unsupported` | The sort direction "{value}" is not one this server knows for the "{parameter}" parameter. Supported values are: {supportedValues}. |
+
+See [Pagination](#pagination) for the errors `page` and `size` may return.
+
+**Use Cases**:
+
+- Answer a user who says they clicked sign in and nothing happened, by finding the session they are stuck in
+- Watch what is in flight for one client, or for one person, while a release is rolling out
+- Find the sessions driven from an address or a user agent an incident named
+
+---
+
+#### Get Interactive Flow Session
+
+**Path**: `/api/v1/admin/interactive-flow-sessions/{session_id}`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:interactive-flow-sessions:read` scope
+
+**Purpose**: Retrieves one session: every purpose it carries, where each one stands, and what the handler that owns
+each purpose has to say about it.
+
+**Path Parameters**:
+
+- `session_id`: Unique identifier of the interactive flow session
+
+**Response Format**:
+
+`200 OK`:
+
+```json
+{
+  "id": "3f2a91c4-5e7b-4d18-9a03-7c6e1b8f2d45",
+  "status": "ongoing",
+  "initiating_purpose": {
+    "value": "oauth2_authorize",
+    "display_name": "Signing in at a client's request"
+  },
+  "client_id": "my-web-app",
+  "flow_id": "default",
+  "user": {
+    "user_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "enabled",
+    "created_at": "2026-01-15T14:30:00Z",
+    "claims": {
+      "email": "jane@example.com"
+    }
+  },
+  "signed_up": false,
+  "session_date": "2026-03-28T10:00:00Z",
+  "expiration_date": "2026-03-28T10:30:00Z",
+  "purposes": [
+    {
+      "purpose": {
+        "value": "oauth2_authorize",
+        "display_name": "Signing in at a client's request"
+      },
+      "status": "completed",
+      "debug": [
+        { "display_name": "Client", "value": "my-web-app" },
+        { "display_name": "Redirect URI", "value": "https://app.example.com/callback" },
+        { "display_name": "Requested scopes", "value": "openid email" },
+        { "display_name": "Consented scopes", "value": "openid email" },
+        { "display_name": "Consented at", "value": "2026-03-28T10:00:12" },
+        { "display_name": "Consented by", "value": "user" },
+        { "display_name": "Granted scopes", "value": null },
+        { "display_name": "Granted at", "value": null },
+        { "display_name": "Granted by", "value": null },
+        { "display_name": "Invitation", "value": null },
+        { "display_name": "State", "value": "present" },
+        { "display_name": "Nonce", "value": "absent" },
+        { "display_name": "Code challenge", "value": "present (S256)" }
+      ]
+    },
+    {
+      "purpose": {
+        "value": "mfa_challenge",
+        "display_name": "Checking a second factor"
+      },
+      "status": "current",
+      "debug": [
+        { "display_name": "MFA passed date", "value": null },
+        { "display_name": "Methods available to challenge", "value": "totp" }
+      ]
+    }
+  ]
+}
+```
+
+**Properties**:
+
+- `id`, `status`, `initiating_purpose`, `client_id`, `user`, `signed_up`, `session_date`, `expiration_date`: as in
+  [List Interactive Flow Sessions](#list-interactive-flow-sessions)
+- `flow_id`: Identifier of the [flow](/technical/configuration/authorization#flows-id) the person is going through
+- `error_details_id`: Identifier of the message detailing, technically, what the session failed with. Published as
+  the key it is rather than as a rendered sentence, so it can be searched for. Absent unless the session failed.
+- `error_description_id`: Identifier of the message the end-user was shown. Absent unless the session failed.
+- `error_values`: Values interpolated into those two messages. Absent unless the session failed.
+- `purposes`: Every purpose the session carries, in the order it drives them
+    - `purpose`: The purpose this entry is about
+    - `status`: Where it stands. Possible values: `"completed"` | `"current"` | `"pending"`. A terminal session has
+      no `current` purpose; a session that was ongoing when it expired still has one — which purpose it stalled on
+      is usually the question the page was opened with.
+    - `debug`: What the purpose's handler has to say about the session, in the order it is meant to be read. Each
+      entry is a `display_name` and a `value`, and a `value` of `null` means the field exists and holds nothing —
+      the entry itself is never omitted.
+
+A credential is never published here: a value an operator may need to know the existence of but not the content of
+is reported as `present` or `absent`.
+
+`debug` display names are labels written for a person, not keys. They may be reworded in any release, and which
+entries a purpose emits is the handler's to change, so nothing may branch on either.
+
+**Errors**:
+
+| Error code | Description |
+|------------|-------------|
+| `not_found` | The resource you are looking for is not available on this authorization server. |
+
+A `404` is also the answer for a session that existed and has since been collected — see the warning at the top of
+this section.
+
+**Use Cases**:
+
+- See which step a stalled session is stopped at, and what the handler driving it is looking at
+- Read the message identifiers a failed session carries, to find the failure in the logs
+- Confirm what a client actually asked for — scopes, redirect URI, PKCE — on the session it asked with
+
+---
+
+#### List Session Security Contexts
+
+**Path**: `/api/v1/admin/interactive-flow-sessions/{session_id}/security-contexts`
+
+**Method**: GET
+
+**Authentication**: Bearer token with `admin:interactive-flow-sessions:read` scope
+
+**Purpose**: Retrieves a paginated list of the places one session was driven from — one entry per distinct address
+and user agent, counting the requests that came from it rather than repeating them.
+
+A place is one address and one user agent: `observation_count` counts the requests that came from it,
+`first_seen_date` and `last_seen_date` bound them. A session driven from one place for eleven requests is one entry
+saying eleven, not eleven entries.
+
+**Path Parameters**:
+
+- `session_id`: Unique identifier of the interactive flow session
+
+**Query Parameters**:
+
+- `page` (optional): Zero-indexed page number (default: `0`)
+- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
+
+**Response Format**:
+
+`200 OK`:
+
+```json
+{
+  "security_contexts": [
+    {
+      "ip": "203.0.113.42",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15",
+      "country_code": "FR",
+      "region_code": "IDF",
+      "region": "Île-de-France",
+      "city": "Paris",
+      "time_zone": "Europe/Paris",
+      "first_seen_date": "2026-03-28T10:00:00Z",
+      "last_seen_date": "2026-03-28T10:04:37Z",
+      "observation_count": 11,
+      "proven_date": "2026-03-28T10:01:08Z"
+    },
+    {
+      "ip": "198.51.100.7",
+      "user_agent": "curl/8.7.1",
+      "country_code": null,
+      "region_code": null,
+      "region": null,
+      "city": null,
+      "time_zone": null,
+      "first_seen_date": "2026-03-28T10:03:02Z",
+      "last_seen_date": "2026-03-28T10:03:02Z",
+      "observation_count": 1,
+      "proven_date": null
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "total": 2
+}
+```
+
+**Properties**:
+
+- `security_contexts`: Array of places, the one seen most recently first
+    - `ip`: Address the requests were observed coming from
+    - `user_agent`: User agent the requests announced themselves with, or `null` when none arrived
+    - `country_code`, `region_code`, `region`, `city`, `time_zone`: What the edge in front of this server said about
+      the address, unaltered. Each is present only where that edge sent it — see
+      [Security Context](/technical/configuration/security-context).
+    - `first_seen_date`: ISO 8601 timestamp (UTC) at which this place was first seen driving the session
+    - `last_seen_date`: ISO 8601 timestamp (UTC) at which it was last seen driving the session
+    - `observation_count`: How many requests of this session came from here
+    - `proven_date`: ISO 8601 timestamp (UTC) at which a credential was last proven from here, or `null`
+- `page`: Current page number
+- `size`: Number of results per page
+- `total`: Total number of places the session holds
+
+::: warning `proven_date` separates two very different rows
+Every request against a session writes a place, and the signed state a flow travels under carries no identity — so
+anybody holding a state URL can have an entry recorded. An entry **with** a `proven_date` is one where a credential
+verified *and* resolved that session's user; an entry **without** one says a request arrived and nothing more. Only
+a proven place is ever folded into the person's own record.
+
+Reading an entry with no `proven_date` as the person's own is reading an attacker's user agent as theirs.
+:::
+
+**The collection is bounded and rolls over.** A session holds at most ten places — fixed in the server rather than
+configured — and a request from a new one beyond that drops the place seen least recently, never the place a
+credential was proven at. Two consequences a caller sees: a place read earlier may be gone on the next call, and a
+place rolled out and seen again returns counting from one.
+
+**The order is the last sighting, most recent first**, and that key is rewritten by every request the session makes.
+Two calls agree on a snapshot; a walk in progress may see an entry twice or skip one. This is the only paged admin
+collection whose sort key moves under the caller, so a console paging through a live session should re-read the
+first page rather than trust an offset it held.
+
+**Nothing here is a person's history.** These rows die with their session, on the same sweep. Where a *person* signs
+in from is a separate record with a
+[retention of its own](/technical/configuration/security-context#what-is-kept), fed only by the proven places above.
+What the server believes about an address in the first place, and what naming a proxy promises, is on
+[Security](/technical/security#what-the-server-knows-about-a-request).
+
+**Errors**:
+
+| Error code | Description |
+|------------|-------------|
+| `not_found` | The resource you are looking for is not available on this authorization server. |
+
+See [Pagination](#pagination) for the errors `page` and `size` may return.
+
+**Use Cases**:
+
+- Tell a session driven from one browser apart from one being driven from two places at once
+- Check whether the request that proved a credential came from the same place as the rest of the flow
+- Read the addresses a stalled sign-in was attempted from, before the session is collected
