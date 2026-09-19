@@ -506,7 +506,7 @@ When validation is needed:
     "reasons": [
       "EMAIL_CLAIM"
     ],
-    "resendDate": "2026-02-14T10:43:30Z"
+    "resendDate": "2026-02-14T10:43:30"
   }
 }
 ```
@@ -524,7 +524,7 @@ When no validation needed (auto-skip):
 - `id`: Unique identifier for this validation code
 - `media`: Media through which code was sent
 - `reasons`: Why validation is required (e.g., `EMAIL_CLAIM`, `PHONE_CLAIM`)
-- `resendDate`: ISO 8601 timestamp (UTC) when code can be resent
+- `resendDate`: ISO 8601 timestamp when the code can be resent. UTC, written with no zone offset
 
 **Behavior**:
 
@@ -594,7 +594,7 @@ When code was resent:
     "reasons": [
       "EMAIL_CLAIM"
     ],
-    "resendDate": "2026-02-14T10:48:30Z"
+    "resendDate": "2026-02-14T10:48:30"
   }
 }
 ```

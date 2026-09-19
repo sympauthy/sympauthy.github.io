@@ -91,36 +91,24 @@ The following errors may be returned by any endpoint:
 | `unauthorized` | The access to this resource is protected. Please authenticate before retrying. |
 | `forbidden`    | The access token does not include the required scope to access this resource.  |
 
-Endpoints returning a paginated collection may return additional errors. See [Pagination](#pagination).
+Endpoints returning a collection may return additional errors. See [Collections](#collections).
 
-## Pagination
+### Date and time format
 
-Endpoints of the Client API that return a collection return it one page at a time, and all accept the same two query
-parameters:
+Every date and time this API publishes is ISO-8601 with no zone, because the server runs in UTC and every timestamp it
+holds is UTC — `2026-01-15T14:30:00`, never `2026-01-15T14:30:00Z`. A field holding no value is absent from the
+response rather than published as `null`.
 
-- `page` (optional): Zero-indexed page number — the first page is `0` (default: `0`)
-- `size` (optional): Number of results per page. When omitted, the server uses the page size the deployment configured
-  in [`advanced.pagination.default-size`](/technical/configuration/advanced#advanced-pagination).
+## Collections
 
-The largest `size` a caller may ask for is
-[`advanced.pagination.max-size`](/technical/configuration/advanced#advanced-pagination), which each deployment sets
-according to how large its collections are. A `size` above that maximum is refused with a **400 Bad Request** rather
-than reduced, so a response never reports a page size other than the one requested.
+**Every endpoint of the Client API that returns a collection follows the
+[collection grammar](/technical/api/collections)**: `page` and `size` to read a page, and `{field}` or
+`{field}.{operator}` to filter it; a listing that orders on something also accepts `sort`, and one that searches
+something also accepts `q`. That page holds the operators, the paging bounds and the
+[error codes](/technical/api/collections#errors).
 
-**Errors**:
-
-The bounds are checked in one place, so every paged endpoint answers the same way. Any of them may return
-**400 Bad Request** with:
-
-| Error code                  | Description                                                                                                                                     |
-|-----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
-| `pagination.page.negative`  | The page number must be 0 or greater. The first page is 0.                                                                                      |
-| `pagination.page.too_large` | The requested page is beyond the last page that can be addressed with this page size. Request a lower page number.                              |
-| `pagination.size.too_small` | The number of results per page must be 1 or greater.                                                                                            |
-| `pagination.size.too_large` | The number of results per page must not exceed the server's configured maximum. Request fewer results per page and page through the collection. |
-
-The description of `pagination.size.too_large` names the configured maximum, so the message a caller receives states
-the actual number.
+This API publishes no `capabilities` endpoint — what reads it is generated from the published OpenAPI specification.
+The fields each listing offers are named with it below.
 
 ## Endpoints
 
@@ -140,11 +128,29 @@ Endpoints for listing users and viewing their authorization status. Requires the
 
 **Query Parameters**:
 
-- `page` (optional): Zero-indexed page number (default: `0`)
-- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
-- `provider_id` (optional): Filter users linked to a specific provider (e.g. `?provider_id=discord`)
-- `subject` (optional): Filter by provider subject ID. Must be used together with `provider_id`
-  (e.g. `?provider_id=discord&subject=123456789012345678`)
+- `page` and `size` — see [Collections](#collections)
+
+**Fields**:
+
+| Field | Type | Sortable | Searchable |
+|---|---|---|---|
+| `provider_id` | `string` — exact match only | — | — |
+| `subject` | `string` — exact match only | — | — |
+
+Both fields accept an exact match and nothing else. `provider_id` restricts the page to users linked to that
+provider, and `subject` narrows it further to the account bearing it.
+
+```
+GET /api/v1/client/users?provider_id=discord&subject=123456789012345678
+```
+
+A `subject` sent without a `provider_id` identifies nobody — a subject is a provider's own word for a person —
+and is refused with `client.subject_without_provider`.
+
+It orders on nothing and searches nothing, so a `sort` or a `q` sent to it is refused with
+`collection.sort.unknown_field` or `collection.search.unsupported`.
+
+**Default order**: oldest consent first.
 
 **Response Format**:
 
@@ -162,7 +168,7 @@ Endpoints for listing users and viewing their authorization status. Requires the
         {
           "provider_id": "discord",
           "subject": "123456789012345678",
-          "linked_at": "2026-01-15T14:30:00Z"
+          "linked_at": "2026-01-15T14:30:00"
         }
       ],
       "consented_scopes": [
@@ -170,7 +176,7 @@ Endpoints for listing users and viewing their authorization status. Requires the
         "profile",
         "email"
       ],
-      "consented_at": "2026-01-15T14:30:00Z"
+      "consented_at": "2026-01-15T14:30:00"
     },
     {
       "user_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
@@ -181,14 +187,14 @@ Endpoints for listing users and viewing their authorization status. Requires the
         {
           "provider_id": "google",
           "subject": "109876543210",
-          "linked_at": "2026-02-20T09:15:30Z"
+          "linked_at": "2026-02-20T09:15:30"
         }
       ],
       "consented_scopes": [
         "openid",
         "email"
       ],
-      "consented_at": "2026-02-20T09:15:30Z"
+      "consented_at": "2026-02-20T09:15:30"
     }
   ],
   "page": 0,
@@ -211,9 +217,9 @@ Endpoints for listing users and viewing their authorization status. Requires the
     - `providers`: Array of linked provider identity records
         - `provider_id`: Identifier of the external provider (e.g. `"discord"`, `"google"`)
         - `subject`: The user's unique identifier at the provider
-        - `linked_at`: ISO 8601 timestamp (UTC) when the provider was linked
+        - `linked_at`: When the provider was linked
     - `consented_scopes`: List of OAuth scopes the user has consented to share with this audience
-    - `consented_at`: ISO 8601 timestamp (UTC) when consent was given
+    - `consented_at`: When consent was given
 - `page`: Current page number
 - `size`: Number of results per page
 - `total`: Total number of users with consented scopes
@@ -255,16 +261,16 @@ Endpoints for listing users and viewing their authorization status. Requires the
     {
       "provider_id": "discord",
       "subject": "123456789012345678",
-      "linked_at": "2026-01-15T14:30:00Z"
+      "linked_at": "2026-01-15T14:30:00"
     },
     {
       "provider_id": "google",
       "subject": "109876543210",
-      "linked_at": "2026-02-01T10:00:00Z"
+      "linked_at": "2026-02-01T10:00:00"
     }
   ],
   "consented_scopes": ["openid", "profile", "email"],
-  "consented_at": "2026-01-15T14:30:00Z"
+  "consented_at": "2026-01-15T14:30:00"
 }
 ```
 
@@ -281,9 +287,9 @@ Endpoints for listing users and viewing their authorization status. Requires the
 - `providers`: Array of linked provider identity records
     - `provider_id`: Identifier of the external provider (e.g. `"discord"`, `"google"`)
     - `subject`: The user's unique identifier at the provider
-    - `linked_at`: ISO 8601 timestamp (UTC) when the provider was linked
+    - `linked_at`: When the provider was linked
 - `consented_scopes`: List of OAuth scopes the user has consented to share with this audience
-- `consented_at`: ISO 8601 timestamp (UTC) when consent was given
+- `consented_at`: When consent was given
 
 **Use Cases**:
 
@@ -678,14 +684,14 @@ can manage all invitations regardless of creator.
 **Authentication**: Bearer token with `invitations:write` scope
 
 **Purpose**: Creates a single-use invitation for the client's [audience](/functional/audience). The audience is
-automatically set to the requesting client's audience — there is no `audience` field in the request. The invitation
-token is returned only in this response — it cannot be retrieved later.
+always the requesting client's own, so this API neither accepts nor publishes an audience field anywhere. The
+invitation token is returned only in this response — it cannot be retrieved later.
 
 **Request Format**:
 
 ```json
 {
-  "expires_at": "2026-04-15T00:00:00Z",
+  "expires_at": "2026-04-15T00:00:00",
   "claims": {
     "custom_department": "Engineering"
   },
@@ -695,7 +701,7 @@ token is returned only in this response — it cannot be retrieved later.
 
 **Properties**:
 
-- `expires_at` (optional): Expiration date as an ISO 8601 timestamp (UTC). Defaults to
+- `expires_at` (optional): Expiration date as an ISO 8601 date-time with no zone, in UTC. Defaults to
   `now + default-expiration`. Capped at `now + max-expiration`. See
   [advanced configuration](/technical/configuration/advanced#advanced-invitation) for these values.
 - `claims` (optional): Custom [claim](/functional/claims) values to pre-set on the user's account upon
@@ -712,14 +718,13 @@ token is returned only in this response — it cannot be retrieved later.
 {
   "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "token": "dGhpcyBpcyBhIHNlY3VyZSByYW5kb20gdG9rZW4",
-  "audience": "default",
   "status": "pending",
   "claims": {
     "custom_department": "Engineering"
   },
   "note": "Onboarding Jane",
-  "created_at": "2026-03-28T10:00:00Z",
-  "expires_at": "2026-04-04T10:00:00Z"
+  "created_at": "2026-03-28T10:00:00",
+  "expires_at": "2026-04-04T10:00:00"
 }
 ```
 
@@ -728,12 +733,11 @@ token is returned only in this response — it cannot be retrieved later.
 - `invitation_id`: Unique identifier of the invitation
 - `token`: The invitation token. **Returned only at creation** — subsequent reads show `token_prefix` instead.
   The client application is responsible for building the authorize URL with the `invitation_token` parameter.
-- `audience`: Audience identifier (automatically set to the client's audience)
 - `status`: Invitation status (`pending`)
-- `claims`: Pre-assigned custom claims, or `null` if none
-- `note`: Note, or `null` if none
-- `created_at`: ISO 8601 timestamp (UTC) when the invitation was created
-- `expires_at`: ISO 8601 timestamp (UTC) when the invitation expires
+- `claims`: Pre-assigned custom claims. Absent when none were set
+- `note`: Note. Absent when none was set
+- `created_at`: When the invitation was created
+- `expires_at`: When the invitation expires
 
 **Errors**:
 
@@ -763,9 +767,28 @@ other clients or by administrators are not returned.
 
 **Query Parameters**:
 
-- `page` (optional): Zero-indexed page number (default: `0`)
-- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
-- `status` (optional): Filter by invitation status (`pending`, `used`, `revoked`, `expired`)
+- `page`, `size`, `sort`, `q` and every filter criterion — see [Collections](#collections)
+
+**Fields**:
+
+| Field | Type | Sortable | Searchable |
+|---|---|---|---|
+| `consumed_at` | `date_time` | Yes | — |
+| `consumed_by_user_id` | `uuid` | — | — |
+| `created_at` | `date_time` | Yes | — |
+| `expires_at` | `date_time` | Yes | — |
+| `id` | `uuid` | — | — |
+| `note` | `string` | — | Yes |
+| `revoked_at` | `date_time` | Yes | — |
+| `status` | `enum` — `pending`, `consumed`, `revoked`, `expired` | Yes | — |
+| `token_prefix` | `string` | — | Yes |
+
+`consumed_at`, `consumed_by_user_id`, `note` and `revoked_at` may be absent, so each also admits `is_null`.
+
+This listing carries no field naming its creator: it returns only the invitations the requesting client created,
+so there is nothing to filter on.
+
+**Default order**: `created_at`, ascending.
 
 **Response Format**:
 
@@ -775,14 +798,13 @@ other clients or by administrators are not returned.
     {
       "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "token_prefix": "dGhpcyBp",
-      "audience": "default",
       "status": "pending",
       "claims": {
         "custom_department": "Engineering"
       },
       "note": "Onboarding Jane",
-      "created_at": "2026-03-28T10:00:00Z",
-      "expires_at": "2026-04-04T10:00:00Z"
+      "created_at": "2026-03-28T10:00:00",
+      "expires_at": "2026-04-04T10:00:00"
     }
   ],
   "page": 0,
@@ -796,12 +818,11 @@ other clients or by administrators are not returned.
 - `invitations`: Array of invitation records
     - `invitation_id`: Unique identifier of the invitation
     - `token_prefix`: First 8 characters of the token, for identification purposes
-    - `audience`: Audience identifier
-    - `status`: Invitation status. Possible values: `"pending"` | `"used"` | `"revoked"` | `"expired"`
-    - `claims`: Pre-assigned custom claims, or `null`
-    - `note`: Note, or `null`
-    - `created_at`: ISO 8601 timestamp (UTC) when the invitation was created
-    - `expires_at`: ISO 8601 timestamp (UTC) when the invitation expires
+    - `status`: Invitation status. Possible values: `"pending"` | `"consumed"` | `"revoked"` | `"expired"`
+    - `claims`: Pre-assigned custom claims. Absent when none were set
+    - `note`: Note. Absent when none was set
+    - `created_at`: When the invitation was created
+    - `expires_at`: When the invitation expires
 - `page`: Current page number
 - `size`: Number of results per page
 - `total`: Total number of invitations matching the filters
@@ -837,14 +858,13 @@ invitation was not created by this client.
 {
   "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "token_prefix": "dGhpcyBp",
-  "audience": "default",
   "status": "pending",
   "claims": {
     "custom_department": "Engineering"
   },
   "note": "Onboarding Jane",
-  "created_at": "2026-03-28T10:00:00Z",
-  "expires_at": "2026-04-04T10:00:00Z"
+  "created_at": "2026-03-28T10:00:00",
+  "expires_at": "2026-04-04T10:00:00"
 }
 ```
 
@@ -854,16 +874,15 @@ invitation was not created by this client.
 {
   "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "token_prefix": "dGhpcyBp",
-  "audience": "default",
-  "status": "used",
+  "status": "consumed",
   "claims": {
     "custom_department": "Engineering"
   },
   "note": "Onboarding Jane",
-  "created_at": "2026-03-28T10:00:00Z",
-  "expires_at": "2026-04-04T10:00:00Z",
+  "created_at": "2026-03-28T10:00:00",
+  "expires_at": "2026-04-04T10:00:00",
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "used_at": "2026-03-29T09:15:00Z"
+  "consumed_at": "2026-03-29T09:15:00"
 }
 ```
 
@@ -877,14 +896,13 @@ invitation was not created by this client.
 
 - `invitation_id`: Unique identifier of the invitation
 - `token_prefix`: First 8 characters of the token
-- `audience`: Audience identifier
-- `status`: Invitation status (`pending`, `used`, `revoked`, `expired`)
-- `claims`: Pre-assigned custom claims, or `null`
-- `note`: Note, or `null`
-- `created_at`: ISO 8601 timestamp (UTC) when the invitation was created
-- `expires_at`: ISO 8601 timestamp (UTC) when the invitation expires
-- `user_id`: Identifier of the user who redeemed the invitation (only present when `status` is `used`)
-- `used_at`: ISO 8601 timestamp (UTC) when the invitation was redeemed (only present when `status` is `used`)
+- `status`: Invitation status (`pending`, `consumed`, `revoked`, `expired`)
+- `claims`: Pre-assigned custom claims. Absent when none were set
+- `note`: Note. Absent when none was set
+- `created_at`: When the invitation was created
+- `expires_at`: When the invitation expires
+- `user_id`: Identifier of the user who redeemed the invitation (only present when `status` is `consumed`)
+- `consumed_at`: When the invitation was redeemed (only present when `status` is `consumed`)
 
 **Use Cases**:
 
@@ -904,6 +922,7 @@ invitation was not created by this client.
 
 **Purpose**: Revokes a pending invitation created by the requesting client. The invitation can no longer be
 redeemed. Returns 404 if the invitation was not created by this client. This operation is immediate and permanent.
+The response is the full invitation, with `status` now `revoked`.
 
 **Path Parameters**:
 
@@ -916,7 +935,14 @@ redeemed. Returns 404 if the invitation was not created by this client. This ope
 ```json
 {
   "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "status": "revoked"
+  "token_prefix": "dGhpcyBp",
+  "status": "revoked",
+  "claims": {
+    "custom_department": "Engineering"
+  },
+  "note": "Onboarding Jane",
+  "created_at": "2026-03-28T10:00:00",
+  "expires_at": "2026-04-04T10:00:00"
 }
 ```
 

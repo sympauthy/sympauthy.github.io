@@ -117,6 +117,7 @@ export default defineConfig({
                 { text: 'Flow API', link: '/technical/api/flow' },
                 { text: 'Client API', link: '/technical/api/client' },
                 { text: 'Admin API', link: '/technical/api/admin' },
+                { text: 'Collections', link: '/technical/api/collections' },
               ]
             },
             { text: 'Authorization Webhook', link: '/technical/authorization_webhook' },

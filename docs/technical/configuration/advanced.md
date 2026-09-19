@@ -60,7 +60,8 @@ Scrypt parameters for hashing invitation tokens. Follows the same structure as [
 ### ```advanced.pagination```
 
 Bounds applied to the `page` and `size` query parameters of every paged endpoint of
-the [Admin API](/technical/api/admin#pagination) and the [Client API](/technical/api/client#pagination).
+the [Admin API](/technical/api/admin#collections) and the [Client API](/technical/api/client#collections). See
+[Collections](/technical/api/collections#paging) for how a caller pages through one.
 
 | Key                | Type | Description                                                                                                      | Required<br>Default |
 |--------------------|------|------------------------------------------------------------------------------------------------------------------|---------------------|

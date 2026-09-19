@@ -136,36 +136,24 @@ The following errors may be returned by any endpoint:
 | `unauthorized` | The access to this resource is protected. Please authenticate before retrying. |
 | `forbidden`    | The access token does not include the required scope to access this resource.  |
 
-Endpoints returning a paginated collection may return additional errors. See [Pagination](#pagination).
+Endpoints returning a collection may return additional errors. See [Collections](#collections).
 
-## Pagination
+### Date and time format
 
-Endpoints of the Admin API that return a collection return it one page at a time, and all accept the same two query
-parameters:
+Every date and time this API publishes is ISO-8601 with no zone, because the server runs in UTC and every timestamp it
+holds is UTC — `2026-01-15T14:30:00`, never `2026-01-15T14:30:00Z`. A field holding no value is absent from the
+response rather than published as `null`.
 
-- `page` (optional): Zero-indexed page number — the first page is `0` (default: `0`)
-- `size` (optional): Number of results per page. When omitted, the server uses the page size the deployment configured
-  in [`advanced.pagination.default-size`](/technical/configuration/advanced#advanced-pagination).
+## Collections
 
-The largest `size` a caller may ask for is
-[`advanced.pagination.max-size`](/technical/configuration/advanced#advanced-pagination), which each deployment sets
-according to how large its collections are. A `size` above that maximum is refused with a **400 Bad Request** rather
-than reduced, so a response never reports a page size other than the one requested.
+**Every endpoint of the Admin API that returns a collection follows the
+[collection grammar](/technical/api/collections)**: `page` and `size` to read a page, `sort` to order it, `q` to search
+it, and `{field}` or `{field}.{operator}` to filter it. That page holds the operators, the paging bounds, the
+[error codes](/technical/api/collections#errors) and the format of the capability document.
 
-**Errors**:
-
-The bounds are checked in one place, so every paged endpoint answers the same way. Any of them may return
-**400 Bad Request** with:
-
-| Error code                  | Description                                                                                                                                     |
-|-----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
-| `pagination.page.negative`  | The page number must be 0 or greater. The first page is 0.                                                                                      |
-| `pagination.page.too_large` | The requested page is beyond the last page that can be addressed with this page size. Request a lower page number.                              |
-| `pagination.size.too_small` | The number of results per page must be 1 or greater.                                                                                            |
-| `pagination.size.too_large` | The number of results per page must not exceed the server's configured maximum. Request fewer results per page and page through the collection. |
-
-The description of `pagination.size.too_large` names the configured maximum, so the message a caller receives states
-the actual number.
+Each listing publishes what it accepts at `capabilities` under its own path — for instance
+`/api/v1/admin/users/capabilities` — gated by the same scope as the listing, and built from this deployment's own
+configuration. The fields each listing offers are named with it below.
 
 ## Endpoints
 
@@ -193,8 +181,18 @@ in responses. Requires the `admin:config:read` scope.
 
 **Query Parameters**:
 
-- `page` (optional): Zero-indexed page number (default: `0`)
-- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
+- `page`, `size`, `sort`, `q` and every filter criterion — see [Collections](#collections)
+
+**Fields**:
+
+| Field | Type | Sortable | Searchable |
+|---|---|---|---|
+| `audience_id` | `enum` — the audiences this deployment configures | Yes | — |
+| `id` | `string` | — | Yes |
+| `public` | `boolean` | Yes | — |
+
+
+**Default order**: by client identifier, ascending.
 
 **Response Format**:
 
@@ -322,11 +320,25 @@ Requires the `admin:config:read` scope.
 
 **Query Parameters**:
 
-- `page` (optional): Zero-indexed page number (default: `0`)
-- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
-- `enabled` (optional): Filter by enabled status (`true`, `false`)
-- `required` (optional): Filter by required status (`true`, `false`)
-- `origin` (optional): Filter by origin (`openid` for OpenID Connect claims, `custom` for operator-defined claims)
+- `page`, `size`, `sort`, `q` and every filter criterion — see [Collections](#collections)
+
+**Fields**:
+
+| Field | Type | Sortable | Searchable |
+|---|---|---|---|
+| `audience_id` | `enum` — the audiences this deployment configures | Yes | — |
+| `data_type` | `enum` — `boolean`, `date`, `email`, `number`, `phone_number`, `string`, `timezone` | Yes | — |
+| `enabled` | `boolean` | Yes | — |
+| `generated` | `boolean` | Yes | — |
+| `group` | `enum` — `identity`, `address` | Yes | — |
+| `id` | `string` | — | Yes |
+| `origin` | `enum` — `openid`, `custom` | Yes | — |
+| `required` | `boolean` | Yes | — |
+
+
+`audience_id` and `group` may be absent from a claim, so both also admit `is_null`.
+
+**Default order**: `-enabled` — enabled claims first.
 
 **Response Format**:
 
@@ -339,9 +351,7 @@ Requires the `admin:config:read` scope.
       "origin": "openid",
       "enabled": true,
       "required": true,
-      "identifier": true,
-      "allowed_values": null,
-      "group": null
+      "identifier": true
     },
     {
       "id": "name",
@@ -350,7 +360,6 @@ Requires the `admin:config:read` scope.
       "enabled": true,
       "required": false,
       "identifier": false,
-      "allowed_values": null,
       "group": "profile"
     },
     {
@@ -364,8 +373,7 @@ Requires the `admin:config:read` scope.
         "Engineering",
         "Marketing",
         "Sales"
-      ],
-      "group": null
+      ]
     }
   ],
   "page": 0,
@@ -383,8 +391,8 @@ Requires the `admin:config:read` scope.
     - `enabled`: Whether collection is enabled for this claim
     - `required`: Whether the end-user must provide this claim to complete an authorization flow
     - `identifier`: Whether this claim is configured as an [identifier claim](/technical/configuration/authorization#auth), used for password login and cross-provider account merging
-    - `allowed_values`: Array of accepted values, or `null` if any value is accepted (no restriction)
-    - `group`: Grouping identifier (e.g., `"profile"`, `"address"`), or `null` if the claim belongs to no group
+    - `allowed_values`: Array of accepted values. Absent when the claim accepts any value
+    - `group`: Grouping identifier (e.g., `"profile"`, `"address"`). Absent when the claim belongs to no group
 - `page`: Current page number
 - `size`: Number of results per page
 - `total`: Total number of claims
@@ -416,10 +424,21 @@ Endpoints for viewing configured scopes. Since scopes are defined in configurati
 
 **Query Parameters**:
 
-- `page` (optional): Zero-indexed page number (default: `0`)
-- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
-- `type` (optional): Filter by scope type (`consentable`, `grantable`, `client`)
-- `enabled` (optional): Filter by enabled status (`true`, `false`)
+- `page`, `size`, `sort`, `q` and every filter criterion — see [Collections](#collections)
+
+**Fields**:
+
+| Field | Type | Sortable | Searchable |
+|---|---|---|---|
+| `audience_id` | `enum` — the audiences this deployment configures | Yes | — |
+| `enabled` | `boolean` | Yes | — |
+| `scope` | `string` | — | Yes |
+| `type` | `enum` — `consentable`, `grantable`, `client` | Yes | — |
+
+
+`audience_id` may be absent from a scope, so it also admits `is_null`.
+
+**Default order**: by scope, ascending.
 
 **Response Format**:
 
@@ -516,8 +535,20 @@ Endpoints for viewing configured [audiences](/functional/audience). Since audien
 
 **Query Parameters**:
 
-- `page` (optional): Zero-indexed page number (default: `0`)
-- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
+- `page`, `size`, `sort`, `q` and every filter criterion — see [Collections](#collections)
+
+**Fields**:
+
+| Field | Type | Sortable | Searchable |
+|---|---|---|---|
+| `client_count` | `number` — how many clients belong to the audience | Yes | — |
+| `id` | `string` | — | Yes |
+| `invitation_enabled` | `boolean` | Yes | — |
+| `sign_up_enabled` | `boolean` | Yes | — |
+| `token_audience` | `string` | Yes | — |
+
+
+**Default order**: by audience identifier, ascending.
 
 **Response Format**:
 
@@ -637,7 +668,7 @@ read operations, `admin:users:write` for modifications, and `admin:users:delete`
     "family_name": "Doe"
   },
   "status": "enabled",
-  "created_at": "2026-03-06T10:00:00Z"
+  "created_at": "2026-03-06T10:00:00"
 }
 ```
 
@@ -646,7 +677,7 @@ read operations, `admin:users:write` for modifications, and `admin:users:delete`
 - `user_id`: Unique identifier assigned to the new user
 - `claims`: Object containing the user's claims
 - `status`: Account status (`enabled`)
-- `created_at`: ISO 8601 timestamp (UTC) when the account was created
+- `created_at`: When the account was created
 
 **Use Cases**:
 
@@ -664,24 +695,38 @@ read operations, `admin:users:write` for modifications, and `admin:users:delete`
 
 **Authentication**: Bearer token with `admin:users:read` scope
 
-**Purpose**: Retrieves a paginated list of users. Supports filtering by status, searching by claim values, selecting
-which claims to include, and sorting.
+**Purpose**: Retrieves a paginated list of users. Filters on the account's own fields and on any claim this
+deployment collects, searches across claim values, orders on any of them, and selects which claims to include in the
+response.
 
 **Query Parameters**:
 
-- `page` (optional): Zero-indexed page number (default: `0`)
-- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
-- `status` (optional): Filter by account status (`enabled`, `disabled`)
-- `claims` (optional): Comma-separated claim IDs to include in the response (default: all enabled claims)
-- `q` (optional): Partial, case-insensitive search across all enabled claim values
-- `{claim_id}` (optional): Exact-match filter on a specific claim (e.g., `?email=jane@example.com`)
-- `sort` (optional): Property to sort by: `created_at`, `status`, or any enabled claim ID
-- `order` (optional): Sort direction — `asc` or `desc` (default: `asc`)
+- `page`, `size`, `sort`, `q` and every filter criterion — see [Collections](#collections)
+- `claims` (optional): Comma-separated claim IDs to include in the response (default: all enabled claims). This
+  selects what is published rather than what is kept, so it is not a filter criterion.
 
-::: info Reserved parameter names
-The names `page`, `size`, `status`, `claims`, `q`, `sort`, and `order` are reserved and cannot be used as claim IDs for
-filtering.
-:::
+**Fields**:
+
+| Field | Type | Sortable | Searchable |
+|---|---|---|---|
+| `created_at` | `date_time` | Yes | — |
+| `id` | `uuid` | — | — |
+| `status` | `enum` — `enabled`, `disabled` | Yes | — |
+
+In addition, **every enabled claim this deployment collects is a field of its own**, filterable, sortable and
+searchable. A claim field takes the type of the claim's data type — so a `date` claim admits the ordered
+operators and an `email` claim the text ones — enumerates the claim's allowed values where the configuration
+restricts them, and admits `is_null` for users who have no value for it.
+
+```
+GET /api/v1/admin/users?status=enabled&email.contains=ana&created_at.gte=2026-01-01T00:00:00
+```
+
+Generated claims are not offered as fields, and neither is a claim whose identifier would collide with one of
+`id`, `status`, `created_at`, `page`, `size`, `sort`, `q` or `claims`. Call
+`/api/v1/admin/users/capabilities` to discover the fields this deployment actually offers.
+
+**Default order**: `created_at`, ascending.
 
 **Response Format**:
 
@@ -695,7 +740,7 @@ filtering.
         "name": "Jane Doe"
       },
       "status": "enabled",
-      "created_at": "2026-01-15T14:30:00Z"
+      "created_at": "2026-01-15T14:30:00"
     }
   ],
   "page": 0,
@@ -711,7 +756,7 @@ filtering.
     - `claims`: Object containing the user's claim values. By default includes all enabled claims; use the `claims`query
       parameter to select specific claims.
     - `status`: Account status (`enabled` or `disabled`)
-    - `created_at`: ISO 8601 timestamp (UTC) when the account was created
+    - `created_at`: When the account was created
 - `page`: Current page number
 - `size`: Number of results per page
 - `total`: Total number of users matching the query
@@ -757,7 +802,7 @@ Returns **400 Bad Request** with error code `user.search.invalid_claim` when:
 {
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
   "status": "enabled",
-  "created_at": "2026-01-15T14:30:00Z",
+  "created_at": "2026-01-15T14:30:00",
   "identifier_claims": {
     "email": "jane@example.com"
   }
@@ -768,7 +813,7 @@ Returns **400 Bad Request** with error code `user.search.invalid_claim` when:
 
 - `user_id`: Unique identifier of the user
 - `status`: Account status (`enabled` or `disabled`)
-- `created_at`: ISO 8601 timestamp (UTC) when the account was created
+- `created_at`: When the account was created
 - `identifier_claims`: Object containing the user's identifier claim values as key/value pairs. Only claims configured as identifiers are included.
 
 **Use Cases**:
@@ -797,14 +842,25 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 **Query Parameters**:
 
-- `page` (optional): Zero-indexed page number (default: `0`)
-- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
-- `claim_id` (optional): Filter by specific claim ID (e.g., `?claim_id=email`)
-- `identifier` (optional): Filter by identifier status (`true`, `false`)
-- `required` (optional): Filter by required status (`true`, `false`)
-- `collected` (optional): Filter by whether a value has been collected (`true`, `false`)
-- `verified` (optional): Filter by whether the claim has been verified (`true`, `false`)
-- `origin` (optional): Filter by origin (`openid` for OpenID Connect claims, `custom` for operator-defined claims)
+- `page`, `size`, `sort`, `q` and every filter criterion — see [Collections](#collections)
+
+**Fields**:
+
+| Field | Type | Sortable | Searchable |
+|---|---|---|---|
+| `claim_id` | `enum` — the claims this deployment configures | — | Yes |
+| `collected` | `boolean` — whether a value has been collected | Yes | — |
+| `data_type` | `enum` — `boolean`, `date`, `email`, `number`, `phone_number`, `string`, `timezone` | Yes | — |
+| `generated` | `boolean` | Yes | — |
+| `identifier` | `boolean` | Yes | — |
+| `origin` | `enum` — `openid`, `custom` | Yes | — |
+| `required` | `boolean` | Yes | — |
+| `value` | `string` — the collected value | — | Yes |
+| `verified` | `boolean` — whether the claim has been verified | Yes | — |
+
+`value` is absent for a claim that has not been collected, so it also admits `is_null`.
+
+**Default order**: by claim identifier, ascending.
 
 **Response Format**:
 
@@ -818,9 +874,8 @@ are excluded — their status is represented by the `verified_at` field on the p
       "origin": "openid",
       "required": true,
       "identifier": true,
-      "group": null,
-      "collected_at": "2026-01-15T14:30:00Z",
-      "verified_at": "2026-01-15T14:35:00Z"
+      "collected_at": "2026-01-15T14:30:00",
+      "verified_at": "2026-01-15T14:35:00"
     },
     {
       "claim_id": "name",
@@ -830,19 +885,14 @@ are excluded — their status is represented by the `verified_at` field on the p
       "required": false,
       "identifier": false,
       "group": "profile",
-      "collected_at": "2026-01-15T14:30:00Z",
-      "verified_at": null
+      "collected_at": "2026-01-15T14:30:00"
     },
     {
       "claim_id": "custom_department",
-      "value": null,
       "type": "string",
       "origin": "custom",
       "required": false,
-      "identifier": false,
-      "group": null,
-      "collected_at": null,
-      "verified_at": null
+      "identifier": false
     }
   ],
   "page": 0,
@@ -855,14 +905,14 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 - `claims`: Array of claim records
     - `claim_id`: Unique claim identifier, as defined in configuration
-    - `value`: The user's value for this claim, or `null` if not yet provided
+    - `value`: The user's value for this claim. Absent when it has not been collected
     - `type`: Data type (`string`, `number`, or `date`)
     - `origin`: Where the claim is defined. Possible values: `"openid"` (OpenID Connect specification) | `"custom"` (defined by the operator in configuration)
     - `required`: Whether the end-user must provide this claim
     - `identifier`: Whether this claim is configured as an identifier claim
-    - `group`: Optional grouping identifier (e.g., `"profile"`, `"address"`), or `null`
-    - `collected_at`: ISO 8601 timestamp (UTC) when the value was collected, or `null`
-    - `verified_at`: ISO 8601 timestamp (UTC) when the value was verified, or `null`
+    - `group`: Grouping identifier (e.g., `"profile"`, `"address"`). Absent when the claim belongs to no group
+    - `collected_at`: When the value was collected. Absent when no value has been collected
+    - `verified_at`: When the value was verified. Absent when the claim has not been verified
 - `page`: Current page number
 - `size`: Number of results per page
 - `total`: Total number of claims matching the filters
@@ -917,7 +967,7 @@ are excluded — their status is represented by the `verified_at` field on the p
     "custom_department": "Engineering"
   },
   "status": "enabled",
-  "created_at": "2026-01-15T14:30:00Z"
+  "created_at": "2026-01-15T14:30:00"
 }
 ```
 
@@ -926,7 +976,7 @@ are excluded — their status is represented by the `verified_at` field on the p
 - `user_id`: Unique identifier of the user
 - `claims`: Object containing all of the user's claims after the update
 - `status`: Account status
-- `created_at`: ISO 8601 timestamp (UTC) when the account was created
+- `created_at`: When the account was created
 
 **Use Cases**:
 
@@ -1168,8 +1218,20 @@ admin-initiated MFA enrollment on a user's behalf. Requires `admin:users:read` f
 
 **Query Parameters**:
 
-- `page` (optional): Zero-indexed page number (default: `0`)
-- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
+- `page`, `size`, `sort` and every filter criterion — see [Collections](#collections)
+
+**Fields**:
+
+| Field | Type | Sortable | Searchable |
+|---|---|---|---|
+| `confirmed_date` | `date_time` | Yes | — |
+| `creation_date` | `date_time` | Yes | — |
+| `id` | `uuid` | — | — |
+
+This listing names no searchable field, so it accepts no `q`, and one sent to it is refused with
+`collection.search.unsupported`.
+
+**Default order**: `confirmed_date`, ascending.
 
 **Response Format**:
 
@@ -1181,7 +1243,7 @@ admin-initiated MFA enrollment on a user's behalf. Requires `admin:users:read` f
     {
       "mfa_id": "6f2a1b7c-9d3e-4a5f-8b21-0c4d5e6f7a8b",
       "type": "totp",
-      "registered_at": "2026-01-15T14:30:00Z"
+      "registered_at": "2026-01-15T14:30:00"
     }
   ],
   "page": 0,
@@ -1201,7 +1263,7 @@ admin-initiated MFA enrollment on a user's behalf. Requires `admin:users:read` f
 - `mfa_methods`: Array of registered MFA method records
     - `mfa_id`: Unique identifier of the MFA registration
     - `type`: Type of MFA method. Possible values: `"totp"`
-    - `registered_at`: ISO 8601 timestamp (UTC) when the MFA method was registered
+    - `registered_at`: When the MFA method was registered
 - `page`: Current page number
 - `size`: Number of results per page
 - `total`: Total number of MFA methods registered by the user
@@ -1356,8 +1418,18 @@ Endpoints for viewing and managing the links between end-user accounts and exter
 
 **Query Parameters**:
 
-- `page` (optional): Zero-indexed page number (default: `0`)
-- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
+- `page`, `size`, `sort`, `q` and every filter criterion — see [Collections](#collections)
+
+**Fields**:
+
+| Field | Type | Sortable | Searchable |
+|---|---|---|---|
+| `change_date` | `date_time` | Yes | — |
+| `fetch_date` | `date_time` | Yes | — |
+| `link_date` | `date_time` | Yes | — |
+| `provider_id` | `enum` — the providers this deployment configures | — | Yes |
+
+**Default order**: `link_date`, ascending.
 
 **Response Format**:
 
@@ -1369,12 +1441,12 @@ Endpoints for viewing and managing the links between end-user accounts and exter
     {
       "provider_id": "discord",
       "subject": "123456789012345678",
-      "linked_at": "2026-01-15T14:30:00Z"
+      "linked_at": "2026-01-15T14:30:00"
     },
     {
       "provider_id": "google",
       "subject": "109876543210",
-      "linked_at": "2026-02-01T10:00:00Z"
+      "linked_at": "2026-02-01T10:00:00"
     }
   ],
   "page": 0,
@@ -1394,7 +1466,7 @@ Endpoints for viewing and managing the links between end-user accounts and exter
 - `providers`: Array of provider link records
     - `provider_id`: Identifier of the external provider, as defined in configuration
     - `subject`: The user's unique identifier at the provider
-    - `linked_at`: ISO 8601 timestamp (UTC) when the provider was linked to this account
+    - `linked_at`: When the provider was linked to this account
 - `page`: Current page number
 - `size`: Number of results per page
 - `total`: Total number of linked providers
@@ -1565,8 +1637,22 @@ and `admin:consent:write` for modifications.
 
 **Query Parameters**:
 
-- `page` (optional): Zero-indexed page number (default: `0`)
-- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
+- `page`, `size`, `sort`, `q` and every filter criterion — see [Collections](#collections)
+
+**Fields**:
+
+| Field | Type | Sortable | Searchable |
+|---|---|---|---|
+| `audience_id` | `enum` — the audiences this deployment configures | Yes | — |
+| `consented_at` | `date_time` | Yes | — |
+| `id` | `uuid` | — | — |
+| `prompted_by_client_id` | `enum` — the clients this deployment configures | Yes | — |
+| `scope` | `string` — the scopes the consent covers | — | Yes |
+
+A consent covers several scopes, so `scope=openid` keeps a consent holding `openid` among others, and
+`scope.ne=openid` keeps only the consents that do not hold it at all.
+
+**Default order**: `consented_at`, ascending.
 
 **Response Format**:
 
@@ -1580,7 +1666,7 @@ and `admin:consent:write` for modifications.
         "profile",
         "email"
       ],
-      "consented_at": "2026-01-15T14:30:00Z"
+      "consented_at": "2026-01-15T14:30:00"
     },
     {
       "audience_id": "backoffice",
@@ -1588,7 +1674,7 @@ and `admin:consent:write` for modifications.
       "scopes": [
         "email"
       ],
-      "consented_at": "2026-02-20T09:15:30Z"
+      "consented_at": "2026-02-20T09:15:30"
     }
   ],
   "page": 0,
@@ -1603,7 +1689,7 @@ and `admin:consent:write` for modifications.
     - `audience_id`: Identifier of the [audience](/functional/audience) that received consent
     - `prompted_by_client_id`: Identifier of the client that originally prompted consent (kept for audit)
     - `scopes`: List of scopes the user has consented to for this audience
-    - `consented_at`: ISO 8601 timestamp (UTC) when consent was granted
+    - `consented_at`: When consent was granted
 - `page`: Current page number
 - `size`: Current page size
 - `total`: Total number of active consents for this user
@@ -1680,8 +1766,8 @@ response — it cannot be retrieved later.
 
 ```json
 {
-  "audience": "default",
-  "expires_at": "2026-04-15T00:00:00Z",
+  "audience_id": "default",
+  "expires_at": "2026-04-15T00:00:00",
   "claims": {
     "custom_department": "Engineering",
     "role": "admin"
@@ -1692,9 +1778,9 @@ response — it cannot be retrieved later.
 
 **Properties**:
 
-- `audience` (required): The [audience](/functional/audience) the invitation is bound to. When the invitation is
+- `audience_id` (required): The [audience](/functional/audience) the invitation is bound to. When the invitation is
   redeemed, the requesting client must belong to this audience.
-- `expires_at` (optional): Expiration date as an ISO 8601 timestamp (UTC). Defaults to
+- `expires_at` (optional): Expiration date as an ISO 8601 date-time with no zone, in UTC. Defaults to
   `now + default-expiration`. Capped at `now + max-expiration`. See
   [advanced configuration](/technical/configuration/advanced#advanced-invitation) for these values.
 - `claims` (optional): Custom [claim](/functional/claims) values to pre-set on the user's account upon
@@ -1711,15 +1797,15 @@ response — it cannot be retrieved later.
 {
   "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "token": "dGhpcyBpcyBhIHNlY3VyZSByYW5kb20gdG9rZW4",
-  "audience": "default",
+  "audience_id": "default",
   "status": "pending",
   "claims": {
     "custom_department": "Engineering",
     "role": "admin"
   },
   "note": "Onboarding Jane from the Engineering team",
-  "created_at": "2026-03-28T10:00:00Z",
-  "expires_at": "2026-04-04T10:00:00Z"
+  "created_at": "2026-03-28T10:00:00",
+  "expires_at": "2026-04-04T10:00:00"
 }
 ```
 
@@ -1728,12 +1814,12 @@ response — it cannot be retrieved later.
 - `invitation_id`: Unique identifier of the invitation
 - `token`: The invitation token. **Returned only at creation** — subsequent reads show `token_prefix` instead.
   The client application is responsible for building the authorize URL with the `invitation_token` parameter.
-- `audience`: Audience identifier the invitation is bound to
+- `audience_id`: Audience identifier the invitation is bound to
 - `status`: Invitation status (`pending`)
-- `claims`: Pre-assigned custom claims, or `null` if none
-- `note`: Admin note, or `null` if none
-- `created_at`: ISO 8601 timestamp (UTC) when the invitation was created
-- `expires_at`: ISO 8601 timestamp (UTC) when the invitation expires
+- `claims`: Pre-assigned custom claims. Absent when none were set
+- `note`: Admin note. Absent when none was set
+- `created_at`: When the invitation was created
+- `expires_at`: When the invitation expires
 
 **Use Cases**:
 
@@ -1755,10 +1841,29 @@ response — it cannot be retrieved later.
 
 **Query Parameters**:
 
-- `page` (optional): Zero-indexed page number (default: `0`)
-- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
-- `status` (optional): Filter by invitation status (`pending`, `used`, `revoked`, `expired`)
-- `audience` (optional): Filter by audience identifier
+- `page`, `size`, `sort`, `q` and every filter criterion — see [Collections](#collections)
+
+**Fields**:
+
+| Field | Type | Sortable | Searchable |
+|---|---|---|---|
+| `audience_id` | `enum` — the audiences this deployment configures | Yes | — |
+| `consumed_at` | `date_time` | Yes | — |
+| `consumed_by_user_id` | `uuid` | — | — |
+| `created_at` | `date_time` | Yes | — |
+| `created_by` | `enum` — `admin`, `client`, `bootstrap` | Yes | — |
+| `created_by_id` | `string` — the client that created the invitation, where a client did | — | — |
+| `expires_at` | `date_time` | Yes | — |
+| `id` | `uuid` | — | — |
+| `note` | `string` | — | Yes |
+| `revoked_at` | `date_time` | Yes | — |
+| `status` | `enum` — `pending`, `consumed`, `revoked`, `expired` | Yes | — |
+| `token_prefix` | `string` | — | Yes |
+
+`consumed_at`, `consumed_by_user_id`, `created_by_id`, `note` and `revoked_at` may be absent, so each also
+admits `is_null` — `revoked_at.is_null=false` lists the invitations that were revoked.
+
+**Default order**: `created_at`, ascending.
 
 **Response Format**:
 
@@ -1768,15 +1873,16 @@ response — it cannot be retrieved later.
     {
       "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "token_prefix": "dGhpcyBp",
-      "audience": "default",
+      "audience_id": "default",
       "status": "pending",
       "claims": {
         "custom_department": "Engineering",
         "role": "admin"
       },
       "note": "Onboarding Jane from the Engineering team",
-      "created_at": "2026-03-28T10:00:00Z",
-      "expires_at": "2026-04-04T10:00:00Z"
+      "created_by": "admin",
+      "created_at": "2026-03-28T10:00:00",
+      "expires_at": "2026-04-04T10:00:00"
     }
   ],
   "page": 0,
@@ -1791,12 +1897,14 @@ response — it cannot be retrieved later.
     - `invitation_id`: Unique identifier of the invitation
     - `token_prefix`: First 8 characters of the token, for identification purposes. The full token is never
       returned after creation.
-    - `audience`: Audience identifier
-    - `status`: Invitation status. Possible values: `"pending"` | `"used"` | `"revoked"` | `"expired"`
-    - `claims`: Pre-assigned custom claims, or `null`
-    - `note`: Admin note, or `null`
-    - `created_at`: ISO 8601 timestamp (UTC) when the invitation was created
-    - `expires_at`: ISO 8601 timestamp (UTC) when the invitation expires
+    - `audience_id`: Audience identifier
+    - `status`: Invitation status. Possible values: `"pending"` | `"consumed"` | `"revoked"` | `"expired"`
+    - `claims`: Pre-assigned custom claims
+    - `note`: Admin note
+    - `created_by`: Who created the invitation — `admin`, `client`, or `bootstrap`
+    - `created_at`: When the invitation was created
+    - `expires_at`: When the invitation expires
+    - `user_id`, `consumed_at`, `revoked_at`: Present only once the invitation has been redeemed or revoked
 - `page`: Current page number
 - `size`: Number of results per page
 - `total`: Total number of invitations matching the filters
@@ -1817,8 +1925,8 @@ response — it cannot be retrieved later.
 
 **Authentication**: Bearer token with `admin:invitations:read` scope
 
-**Purpose**: Retrieves details for a specific invitation. When the invitation has been used, the response includes
-the `user_id` and `used_at` fields.
+**Purpose**: Retrieves details for a specific invitation. When the invitation has been consumed, the response includes
+the `user_id` and `consumed_at` fields.
 
 **Path Parameters**:
 
@@ -1832,15 +1940,16 @@ the `user_id` and `used_at` fields.
 {
   "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "token_prefix": "dGhpcyBp",
-  "audience": "default",
+  "audience_id": "default",
   "status": "pending",
   "claims": {
     "custom_department": "Engineering",
     "role": "admin"
   },
   "note": "Onboarding Jane from the Engineering team",
-  "created_at": "2026-03-28T10:00:00Z",
-  "expires_at": "2026-04-04T10:00:00Z"
+  "created_by": "admin",
+  "created_at": "2026-03-28T10:00:00",
+  "expires_at": "2026-04-04T10:00:00"
 }
 ```
 
@@ -1850,17 +1959,18 @@ the `user_id` and `used_at` fields.
 {
   "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "token_prefix": "dGhpcyBp",
-  "audience": "default",
-  "status": "used",
+  "audience_id": "default",
+  "status": "consumed",
   "claims": {
     "custom_department": "Engineering",
     "role": "admin"
   },
   "note": "Onboarding Jane from the Engineering team",
-  "created_at": "2026-03-28T10:00:00Z",
-  "expires_at": "2026-04-04T10:00:00Z",
+  "created_by": "admin",
+  "created_at": "2026-03-28T10:00:00",
+  "expires_at": "2026-04-04T10:00:00",
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "used_at": "2026-03-29T09:15:00Z"
+  "consumed_at": "2026-03-29T09:15:00"
 }
 ```
 
@@ -1874,14 +1984,18 @@ the `user_id` and `used_at` fields.
 
 - `invitation_id`: Unique identifier of the invitation
 - `token_prefix`: First 8 characters of the token
-- `audience`: Audience identifier
-- `status`: Invitation status (`pending`, `used`, `revoked`, `expired`)
-- `claims`: Pre-assigned custom claims, or `null`
-- `note`: Admin note, or `null`
-- `created_at`: ISO 8601 timestamp (UTC) when the invitation was created
-- `expires_at`: ISO 8601 timestamp (UTC) when the invitation expires
-- `user_id`: Identifier of the user who redeemed the invitation (only present when `status` is `used`)
-- `used_at`: ISO 8601 timestamp (UTC) when the invitation was redeemed (only present when `status` is `used`)
+- `audience_id`: Audience identifier
+- `status`: Invitation status (`pending`, `consumed`, `revoked`, `expired`)
+- `claims`: Pre-assigned custom claims
+- `note`: Admin note
+- `created_by`: Who created the invitation — `admin`, `client`, or `bootstrap`
+- `created_at`: When the invitation was created
+- `expires_at`: When the invitation expires
+- `user_id`: Identifier of the user who redeemed the invitation (only present when `status` is `consumed`)
+- `consumed_at`: When the invitation was redeemed (only present when `status` is `consumed`)
+- `revoked_at`: When the invitation was revoked (only present when `status` is `revoked`)
+
+`claims`, `note`, `user_id`, `consumed_at` and `revoked_at` are omitted from the response when they hold no value.
 
 **Use Cases**:
 
@@ -1900,7 +2014,7 @@ the `user_id` and `used_at` fields.
 **Authentication**: Bearer token with `admin:invitations:write` scope
 
 **Purpose**: Revokes a pending invitation. The invitation can no longer be redeemed. This operation is immediate
-and permanent.
+and permanent. The response is the full invitation, with `status` now `revoked` and `revoked_at` set.
 
 **Path Parameters**:
 
@@ -1913,7 +2027,18 @@ and permanent.
 ```json
 {
   "invitation_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "status": "revoked"
+  "token_prefix": "dGhpcyBp",
+  "audience_id": "default",
+  "status": "revoked",
+  "claims": {
+    "custom_department": "Engineering",
+    "role": "admin"
+  },
+  "note": "Onboarding Jane from the Engineering team",
+  "created_by": "admin",
+  "created_at": "2026-03-28T10:00:00",
+  "expires_at": "2026-04-04T10:00:00",
+  "revoked_at": "2026-03-30T11:05:00"
 }
 ```
 
@@ -1932,19 +2057,13 @@ and permanent.
 
 ### Interactive Flow Session Management
 
-Endpoints for reading the [interactive flow](/functional/interactive_flow) sessions this server is currently
-holding: what each one is for, which purpose it is stopped at, and the places it was driven from. Requires the
-`admin:interactive-flow-sessions:read` scope.
+Endpoints for observing the [interactive flow](/functional/interactive_flow) sessions the server currently holds.
+Requires the `admin:interactive-flow-sessions:read` scope.
 
 ::: warning This is not a history
-These endpoints answer from the session table as it stands. Expired sessions are
-[collected every fifteen minutes](/technical/configuration/advanced#scheduled-cleanups), so the window they can show
-is the session's own lifetime — [`auth.authorization-code.expiration`](/technical/configuration/authorization#auth-authorization-code) —
-plus up to a quarter of an hour.
-
-An empty listing therefore means **nothing in flight**, not *nothing ever happened*, and a **404** on a session
-identifier means that session is gone rather than that it never existed. Neither is evidence about an incident that
-has already ended.
+Expired sessions are collected every fifteen minutes, so the window these endpoints see is the session lifetime plus
+up to a quarter of an hour. An empty result means *nothing in flight*, not *nothing ever happened*, and a session an
+operator read a moment ago may be gone by the time they open it.
 :::
 
 #### List Interactive Flow Sessions
@@ -1955,40 +2074,54 @@ has already ended.
 
 **Authentication**: Bearer token with `admin:interactive-flow-sessions:read` scope
 
-**Purpose**: Retrieves a paginated list of the interactive flow sessions the server holds, with filters for the
-client, the user, the purpose that started the session and what became of it.
+**Purpose**: Retrieves a paginated list of the interactive flow sessions currently in flight, each with the purpose it
+started for, the purpose it is stopped at, the account it identified, and the place it was last driven from.
 
 **Query Parameters**:
 
-- `page` (optional): Zero-indexed page number (default: `0`)
-- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
-- `q` (optional): Partial, case-insensitive search across the address and user agent of **every** place the session
-  was driven from, and the initiating client identifier
-- `client` (optional): Exact identifier of the client the session was started for
-- `user` (optional): Exact identifier of the user the session identified. A session still signing that account up
-  does match — it holds the identifier from the moment the person is identified — but publishes no `user` beside it
-  until it completes.
-- `purpose` (optional): Filter on the purpose that **started** the session, not on every purpose it carries:
-  `oauth2_authorize`, `mfa_enrollment`, `mfa_challenge`, `reauthentication` or `link_provider`. `confirm` is
-  accepted and matches nothing, since a confirmation gate is only ever prepended to another purpose.
-- `status` (optional): Filter by what became of the session — `ongoing`, `completed`, `cancelled`, `failed` or
-  `expired`
-- `order` (optional): Sort direction — `asc` or `desc` (default: `asc`)
+- `page`, `size`, `sort`, `q` and every filter criterion — see [Collections](#collections)
 
-A `client` this deployment does not declare, or a `purpose`, `status` or `order` this server does not know, is
-refused with a **400 Bad Request** rather than answered with an empty page, so a caller asking for something
-impossible is told so.
+**Fields**:
 
-Sessions are ordered by the date they started, and `order` reverses only that: the identifier that breaks a tie
-stays ascending, since it is not what the caller asked to sort by.
+| Field | Type | Sortable | Searchable |
+|---|---|---|---|
+| `client` | `enum` — the clients this deployment configures | Yes | Yes |
+| `expiration_date` | `date_time` | Yes | — |
+| `id` | `uuid` | — | — |
+| `ip` | `string` — every address the session was driven from | — | Yes |
+| `purpose` | `enum` — `confirm`, `oauth2_authorize`, `mfa_enrollment`, `mfa_challenge`, `reauthentication`, `link_provider` | Yes | — |
+| `session_date` | `date_time` | Yes | — |
+| `signed_up` | `boolean` — whether the account was created during this session | Yes | — |
+| `status` | `enum` — `ongoing`, `completed`, `cancelled`, `failed`, `expired` | Yes | — |
+| `user` | `uuid` — the account the session identified | — | — |
+| `user_agent` | `string` — every user agent the session was driven with | — | Yes |
+
+`client`, `ip`, `user`, and `user_agent` may be absent, so each also admits `is_null` —
+`user.is_null=true` lists the sessions that have identified nobody yet.
+
+`purpose` filters on the purpose that *started* the session — `initiating_purpose` in the response — and not on the
+one it is stopped at. `ip` and `user_agent` each read every place the session was driven from, so `ip=203.0.113.42`
+keeps a session driven from that address among others, and `ip.ne=203.0.113.42` keeps only the sessions never driven
+from it, while the response publishes only the most recent of them.
+
+Two filter names differ from the fields the response publishes them under: `client` filters on what the response calls
+`client_id`, and `user` takes the identifier of the account the response publishes as a `user` object.
+
+```
+GET /api/v1/admin/interactive-flow-sessions?status=ongoing&purpose=oauth2_authorize&sort=-session_date
+```
+
+**Default order**: `session_date`, ascending — the oldest session in flight first.
 
 **Response Format**:
+
+`200 OK`:
 
 ```json
 {
   "sessions": [
     {
-      "id": "3f2a91c4-5e7b-4d18-9a03-7c6e1b8f2d45",
+      "id": "3f2504e0-4f89-11d3-9a0c-0305e82c3301",
       "status": "ongoing",
       "initiating_purpose": {
         "value": "oauth2_authorize",
@@ -1998,79 +2131,65 @@ stays ascending, since it is not what the caller asked to sort by.
         "value": "mfa_challenge",
         "display_name": "Checking a second factor"
       },
-      "client_id": "my-web-app",
+      "client_id": "my-app",
       "signed_up": false,
       "user": {
         "user_id": "550e8400-e29b-41d4-a716-446655440000",
         "status": "enabled",
-        "created_at": "2026-01-15T14:30:00Z",
+        "created_at": "2026-01-15T14:30:00",
         "claims": {
           "email": "jane@example.com"
         }
       },
       "ip": "203.0.113.42",
-      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15",
-      "session_date": "2026-03-28T10:00:00Z",
-      "expiration_date": "2026-03-28T10:30:00Z"
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+      "session_date": "2026-09-19T09:12:44",
+      "expiration_date": "2026-09-19T09:27:44"
     }
   ],
   "page": 0,
   "size": 20,
-  "total": 1
+  "total": 7
 }
 ```
 
-**Properties**:
-
-- `sessions`: Array of sessions
-    - `id`: Unique identifier of the session
-    - `status`: What became of it. Possible values: `"ongoing"` | `"completed"` | `"cancelled"` | `"failed"` |
-      `"expired"`. `expired` means the session was still ongoing when its expiration passed — nobody finished it —
-      and never relabels a session that completed, cancelled or failed first.
-    - `initiating_purpose`: The purpose that started the session, as a `value` to branch on and a `display_name`
-      written for a person to read. A `display_name` may be reworded in any release, so nothing may branch on one.
-    - `current_purpose`: The purpose the session is stopped at, in the same shape. Absent once every purpose has
-      resolved, and for a session that completed, cancelled or failed.
-    - `client_id`: Identifier of the client the session was started for. Absent where an administrator started it
-      and where nothing named a client. It may name a client this deployment no longer declares — editing the
-      configuration does not rewrite sessions already in flight.
-    - `signed_up`: Whether the account was created during this session. A session signing an account up publishes no
-      `user` until it completes, so this is what tells a sign-up in progress apart from a person who has not
-      identified themselves at all.
-    - `user`: The account the session identified, carrying the deployment's
-      [identifier claims](/technical/configuration/authorization#auth). Absent where it identified nobody, and where
-      the account it identified is one this session is still signing up.
-    - `ip`: Address the session was **last** driven from, or `null` where nothing was recorded against it
-    - `user_agent`: User agent observed alongside that address, or `null`
-    - `session_date`: ISO 8601 timestamp (UTC) at which the session started
-    - `expiration_date`: ISO 8601 timestamp (UTC) at which the session expires
-- `page`: Current page number
-- `size`: Number of results per page
-- `total`: Total number of sessions the criteria kept
+| Field                | Type    | Description                                                                                                        |
+|----------------------|---------|----------------------------------------------------------------------------------------------------------------------|
+| `client_id`          | string  | The client the session was started for. Absent where an administrator started it, or where nothing named a client. It may name a client this deployment no longer declares. |
+| `current_purpose`    | object  | The purpose the session is stopped at. Absent once every purpose has resolved, and for a session that completed, cancelled or failed. |
+| `expiration_date`    | string  | When the session expires.                                                                                          |
+| `id`                 | string  | Unique identifier of the session.                                                                                  |
+| `initiating_purpose` | object  | The purpose that started the session and owns its terminal handoff.                                                |
+| `ip`                 | string  | The address the session was last driven from. The places before this one are on the session's own listing.         |
+| `session_date`       | string  | When the session started.                                                                                          |
+| `signed_up`          | boolean | Whether the account was created during this session. This is what tells a sign-up in progress apart from a person who has not identified themselves at all. |
+| `status`             | string  | `ongoing`, `completed`, `cancelled`, `failed` or `expired`.                                                        |
+| `user`               | object  | The account the session identified. Absent where it identified nobody, and where the account is one this session is still signing up. |
+| `user_agent`         | string  | The user agent observed alongside that address.                                                                    |
 
 `ip` and `user_agent` are the place the session was **last** driven from, not the only place it holds, while `q`
 matches any of them. A row whose address does not match what the operator searched for is therefore not a bug — the
 match was on an earlier place. Every place a session holds is on
 [List Session Security Contexts](#list-session-security-contexts).
 
+A purpose — `initiating_purpose` and `current_purpose` alike — is an object carrying a `value` and a `display_name`.
+The `value` is the contract: branch on it, and send it back as the `purpose` filter. The `display_name` is a label
+written for a person and may be reworded in any release, so nothing may branch on it.
+
+::: info `expired` never relabels a terminal session
+`expired` means the session was still ongoing when its expiration passed — nobody finished it. A session that
+completed, cancelled or failed first keeps the status it reached.
+:::
+
 **Errors**:
 
-Returns **400 Bad Request** with:
-
-| Error code | Description |
-|------------|-------------|
-| `filter.value.unsupported` | The value "{value}" is not one this server knows for the "{parameter}" filter. Supported values are: {supportedValues}. |
-| `order.value.unsupported` | The sort direction "{value}" is not one this server knows for the "{parameter}" parameter. Supported values are: {supportedValues}. |
-
-See [Pagination](#pagination) for the errors `page` and `size` may return.
+See [Collections](#collections) for the errors a bad page, filter, order or search returns.
 
 **Use Cases**:
 
 - Answer a user who says they clicked sign in and nothing happened, by finding the session they are stuck in
 - Watch what is in flight for one client, or for one person, while a release is rolling out
 - Find the sessions driven from an address or a user agent an incident named
-
----
 
 #### Get Interactive Flow Session
 
@@ -2080,8 +2199,8 @@ See [Pagination](#pagination) for the errors `page` and `size` may return.
 
 **Authentication**: Bearer token with `admin:interactive-flow-sessions:read` scope
 
-**Purpose**: Retrieves one session: every purpose it carries, where each one stands, and what the handler that owns
-each purpose has to say about it.
+**Purpose**: Retrieves one interactive flow session: every purpose it carries, where each one stands, and what the
+handler that owns each purpose has to say about it.
 
 **Path Parameters**:
 
@@ -2093,25 +2212,25 @@ each purpose has to say about it.
 
 ```json
 {
-  "id": "3f2a91c4-5e7b-4d18-9a03-7c6e1b8f2d45",
+  "id": "3f2504e0-4f89-11d3-9a0c-0305e82c3301",
   "status": "ongoing",
   "initiating_purpose": {
     "value": "oauth2_authorize",
     "display_name": "Signing in at a client's request"
   },
-  "client_id": "my-web-app",
+  "client_id": "my-app",
   "flow_id": "default",
   "user": {
     "user_id": "550e8400-e29b-41d4-a716-446655440000",
     "status": "enabled",
-    "created_at": "2026-01-15T14:30:00Z",
+    "created_at": "2026-01-15T14:30:00",
     "claims": {
       "email": "jane@example.com"
     }
   },
   "signed_up": false,
-  "session_date": "2026-03-28T10:00:00Z",
-  "expiration_date": "2026-03-28T10:30:00Z",
+  "session_date": "2026-09-19T09:12:44",
+  "expiration_date": "2026-09-19T09:27:44",
   "purposes": [
     {
       "purpose": {
@@ -2120,16 +2239,8 @@ each purpose has to say about it.
       },
       "status": "completed",
       "debug": [
-        { "display_name": "Client", "value": "my-web-app" },
-        { "display_name": "Redirect URI", "value": "https://app.example.com/callback" },
-        { "display_name": "Requested scopes", "value": "openid email" },
-        { "display_name": "Consented scopes", "value": "openid email" },
-        { "display_name": "Consented at", "value": "2026-03-28T10:00:12" },
-        { "display_name": "Consented by", "value": "user" },
-        { "display_name": "Granted scopes", "value": null },
-        { "display_name": "Granted at", "value": null },
-        { "display_name": "Granted by", "value": null },
-        { "display_name": "Invitation", "value": null },
+        { "display_name": "Requested scopes", "value": "openid profile email" },
+        { "display_name": "Invitation" },
         { "display_name": "State", "value": "present" },
         { "display_name": "Nonce", "value": "absent" },
         { "display_name": "Code challenge", "value": "present (S256)" }
@@ -2142,7 +2253,7 @@ each purpose has to say about it.
       },
       "status": "current",
       "debug": [
-        { "display_name": "MFA passed date", "value": null },
+        { "display_name": "MFA passed date" },
         { "display_name": "Methods available to challenge", "value": "totp" }
       ]
     }
@@ -2150,46 +2261,44 @@ each purpose has to say about it.
 }
 ```
 
-**Properties**:
+| Field                  | Type    | Description                                                                                                      |
+|------------------------|---------|--------------------------------------------------------------------------------------------------------------------|
+| `error_description_id` | string  | Identifier of the message the end-user was shown. Absent unless the session failed.                              |
+| `error_details_id`     | string  | Identifier of the message detailing, technically, what the session failed with. Absent unless the session failed. |
+| `error_values`         | object  | Values interpolated into the two messages. Absent unless the session failed.                                     |
+| `flow_id`              | string  | Identifier of the interactive flow the person is going through.                                                  |
+| `purposes`             | array   | Every purpose the session carries, in the order it drives them.                                                  |
 
-- `id`, `status`, `initiating_purpose`, `client_id`, `user`, `signed_up`, `session_date`, `expiration_date`: as in
-  [List Interactive Flow Sessions](#list-interactive-flow-sessions)
-- `flow_id`: Identifier of the [flow](/technical/configuration/authorization#flows-id) the person is going through
-- `error_details_id`: Identifier of the message detailing, technically, what the session failed with. Published as
-  the key it is rather than as a rendered sentence, so it can be searched for. Absent unless the session failed.
-- `error_description_id`: Identifier of the message the end-user was shown. Absent unless the session failed.
-- `error_values`: Values interpolated into those two messages. Absent unless the session failed.
-- `purposes`: Every purpose the session carries, in the order it drives them
-    - `purpose`: The purpose this entry is about
-    - `status`: Where it stands. Possible values: `"completed"` | `"current"` | `"pending"`. A terminal session has
-      no `current` purpose; a session that was ongoing when it expired still has one — which purpose it stalled on
-      is usually the question the page was opened with.
-    - `debug`: What the purpose's handler has to say about the session, in the order it is meant to be read. Each
-      entry is a `display_name` and a `value`, and a `value` of `null` means the field exists and holds nothing —
-      the entry itself is never omitted.
+The remaining fields are the ones the listing publishes, with the same meaning.
 
-A credential is never published here: a value an operator may need to know the existence of but not the content of
-is reported as `present` or `absent`.
+Each entry of `purposes` carries the `purpose` it is about, its `status` — `completed`, `current` or `pending` — and a
+`debug` array of what the handler that owns it has to say. A terminal session has no `current` purpose; a session that
+was ongoing when it expired still has one.
 
-`debug` display names are labels written for a person, not keys. They may be reworded in any release, and which
-entries a purpose emits is the handler's to change, so nothing may branch on either.
+**A credential is never published here.** A value an operator may need to know the existence of but not the content
+of is reported as `present` or `absent` — the `State`, `Nonce` and `Code challenge` entries above.
+
+::: info The failure messages are keys, not sentences
+`error_details_id` and `error_description_id` are published as the message identifiers they are rather than as a
+sentence rendered in a locale that may not be the reader's, so an operator can search for them. Each `debug` entry's
+`display_name`, by contrast, is a label written for a person and may be reworded in any release, and which entries a
+purpose emits is its handler's to change — so nothing may branch on either. A `debug` entry whose field holds nothing
+carries no `value`, but the entry itself is never omitted.
+:::
 
 **Errors**:
 
-| Error code | Description |
-|------------|-------------|
+| Error code  | Description                                                                     |
+|-------------|-----------------------------------------------------------------------------------|
 | `not_found` | The resource you are looking for is not available on this authorization server. |
 
-A `404` is also the answer for a session that existed and has since been collected — see the warning at the top of
-this section.
+A session that has already been collected answers `not_found` like one that never existed.
 
 **Use Cases**:
 
 - See which step a stalled session is stopped at, and what the handler driving it is looking at
 - Read the message identifiers a failed session carries, to find the failure in the logs
-- Confirm what a client actually asked for — scopes, redirect URI, PKCE — on the session it asked with
-
----
+- Confirm whether a session signed a new account up or identified an existing one
 
 #### List Session Security Contexts
 
@@ -2199,12 +2308,8 @@ this section.
 
 **Authentication**: Bearer token with `admin:interactive-flow-sessions:read` scope
 
-**Purpose**: Retrieves a paginated list of the places one session was driven from — one entry per distinct address
-and user agent, counting the requests that came from it rather than repeating them.
-
-A place is one address and one user agent: `observation_count` counts the requests that came from it,
-`first_seen_date` and `last_seen_date` bound them. A session driven from one place for eleven requests is one entry
-saying eleven, not eleven entries.
+**Purpose**: Retrieves a paginated list of the places one interactive flow session was driven from — one entry per
+distinct address and user agent, counting the requests that came from it rather than repeating them.
 
 **Path Parameters**:
 
@@ -2212,8 +2317,34 @@ saying eleven, not eleven entries.
 
 **Query Parameters**:
 
-- `page` (optional): Zero-indexed page number (default: `0`)
-- `size` (optional): Number of results per page — see [Pagination](#pagination) for the default and the maximum
+- `page`, `size`, `sort`, `q` and every filter criterion — see [Collections](#collections)
+
+**Fields**:
+
+| Field | Type | Sortable | Searchable |
+|---|---|---|---|
+| `city` | `string` | Yes | Yes |
+| `country_code` | `string` | Yes | Yes |
+| `first_seen_date` | `date_time` | Yes | — |
+| `ip` | `string` | — | Yes |
+| `last_seen_date` | `date_time` | Yes | — |
+| `observation_count` | `number` — how many requests came from here | Yes | — |
+| `proven_date` | `date_time` — when a credential was last proven from here | Yes | — |
+| `region` | `string` | Yes | Yes |
+| `time_zone` | `timezone` | Yes | — |
+| `user_agent` | `string` | — | Yes |
+
+Every field but `ip`, `first_seen_date`, `last_seen_date` and `observation_count` may be absent, so each of the others
+also admits `is_null` — `proven_date.is_null=false` lists the places a credential was actually proven at.
+
+The `region_code` field the response publishes is not one this listing filters or orders on.
+
+**Default order**: `-last_seen_date` — the place seen most recently first.
+
+::: warning A walk through these pages may skip or repeat an entry
+The default order is on the last sighting, and every request the session makes rewrites it. Two calls still agree on a
+snapshot, but a walk in progress can see an entry twice or skip one. Order on `first_seen_date` to walk a stable key.
+:::
 
 **Response Format**:
 
@@ -2224,29 +2355,16 @@ saying eleven, not eleven entries.
   "security_contexts": [
     {
       "ip": "203.0.113.42",
-      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
       "country_code": "FR",
       "region_code": "IDF",
       "region": "Île-de-France",
       "city": "Paris",
       "time_zone": "Europe/Paris",
-      "first_seen_date": "2026-03-28T10:00:00Z",
-      "last_seen_date": "2026-03-28T10:04:37Z",
+      "first_seen_date": "2026-09-19T09:12:44",
+      "last_seen_date": "2026-09-19T09:18:02",
       "observation_count": 11,
-      "proven_date": "2026-03-28T10:01:08Z"
-    },
-    {
-      "ip": "198.51.100.7",
-      "user_agent": "curl/8.7.1",
-      "country_code": null,
-      "region_code": null,
-      "region": null,
-      "city": null,
-      "time_zone": null,
-      "first_seen_date": "2026-03-28T10:03:02Z",
-      "last_seen_date": "2026-03-28T10:03:02Z",
-      "observation_count": 1,
-      "proven_date": null
+      "proven_date": "2026-09-19T09:13:10"
     }
   ],
   "page": 0,
@@ -2255,21 +2373,22 @@ saying eleven, not eleven entries.
 }
 ```
 
-**Properties**:
+| Field               | Type    | Description                                                                                                       |
+|---------------------|---------|---------------------------------------------------------------------------------------------------------------------|
+| `city`              | string  | City the edge placed the address in.                                                                              |
+| `country_code`      | string  | Country the edge placed the address in.                                                                           |
+| `first_seen_date`   | string  | When this place was first seen driving the session.                                                               |
+| `ip`                | string  | Address the requests were observed coming from.                                                                   |
+| `last_seen_date`    | string  | When this place was last seen driving the session.                                                                |
+| `observation_count` | integer | How many requests of this session came from here. A session driven from one place for eleven requests is one entry saying eleven rather than eleven entries. |
+| `proven_date`       | string  | When a credential was last proven from here. Absent for a place only requests were seen from — which anybody holding the session's state can produce, so this is what tells a proven place from a merely observed one. |
+| `region`            | string  | Region the edge placed the address in.                                                                            |
+| `region_code`       | string  | Region code the edge placed the address in.                                                                       |
+| `time_zone`         | string  | Time zone the edge placed the address in.                                                                         |
+| `user_agent`        | string  | User agent the requests announced themselves with. Absent when none arrived.                                      |
 
-- `security_contexts`: Array of places, the one seen most recently first
-    - `ip`: Address the requests were observed coming from
-    - `user_agent`: User agent the requests announced themselves with, or `null` when none arrived
-    - `country_code`, `region_code`, `region`, `city`, `time_zone`: What the edge in front of this server said about
-      the address, unaltered. Each is present only where that edge sent it — see
-      [Security Context](/technical/configuration/security-context).
-    - `first_seen_date`: ISO 8601 timestamp (UTC) at which this place was first seen driving the session
-    - `last_seen_date`: ISO 8601 timestamp (UTC) at which it was last seen driving the session
-    - `observation_count`: How many requests of this session came from here
-    - `proven_date`: ISO 8601 timestamp (UTC) at which a credential was last proven from here, or `null`
-- `page`: Current page number
-- `size`: Number of results per page
-- `total`: Total number of places the session holds
+The geo fields are the words of the edge in front of this server, unaltered, and each is present only where that edge
+sent it. See [Security Context](/technical/configuration/security-context) for how the edge's headers are read.
 
 ::: warning `proven_date` separates two very different rows
 Every request against a session writes a place, and the signed state a flow travels under carries no identity — so
@@ -2282,27 +2401,16 @@ Reading an entry with no `proven_date` as the person's own is reading an attacke
 
 **The collection is bounded and rolls over.** A session holds at most ten places — fixed in the server rather than
 configured — and a request from a new one beyond that drops the place seen least recently, never the place a
-credential was proven at. Two consequences a caller sees: a place read earlier may be gone on the next call, and a
-place rolled out and seen again returns counting from one.
-
-**The order is the last sighting, most recent first**, and that key is rewritten by every request the session makes.
-Two calls agree on a snapshot; a walk in progress may see an entry twice or skip one. This is the only paged admin
-collection whose sort key moves under the caller, so a console paging through a live session should re-read the
-first page rather than trust an offset it held.
-
-**Nothing here is a person's history.** These rows die with their session, on the same sweep. Where a *person* signs
-in from is a separate record with a
-[retention of its own](/technical/configuration/security-context#what-is-kept), fed only by the proven places above.
-What the server believes about an address in the first place, and what naming a proxy promises, is on
-[Security](/technical/security#what-the-server-knows-about-a-request).
+credential was proven at. A place a reader saw earlier may therefore be gone, and a place rolled out and seen again
+returns counting from one.
 
 **Errors**:
 
-| Error code | Description |
-|------------|-------------|
+| Error code  | Description                                                                     |
+|-------------|-----------------------------------------------------------------------------------|
 | `not_found` | The resource you are looking for is not available on this authorization server. |
 
-See [Pagination](#pagination) for the errors `page` and `size` may return.
+See [Collections](#collections) for the errors a bad page, filter, order or search returns.
 
 **Use Cases**:
 

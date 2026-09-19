@@ -47,3 +47,13 @@ Credentials authentication with fine-grained admin scopes.
 
 See the [Admin API](admin) documentation for detailed information on authentication, scopes, and available
 endpoints.
+
+## Collections
+
+Every endpoint of the Client API and the Admin API that returns a collection accepts the same grammar: a page to read,
+criteria that narrow it, an order to read it in, and a free text to search it with. Each collection of the Admin API
+also publishes a document saying exactly which of its fields are filterable, under which operators, and which values
+those fields admit — built from this deployment's own configuration, so it names the claims, clients, audiences and
+scopes this server actually serves.
+
+See [Collections](collections) for the grammar, the operators, the error codes and the capability document.
