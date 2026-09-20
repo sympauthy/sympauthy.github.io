@@ -31,6 +31,13 @@ deployment lists in [`auth.identifier-claims`](/technical/configuration/authoriz
 deployments, but a username, an employee number or any other claim that singles out one person will do just as well.
 Whatever they are, the same claims are collected at sign-up, so the user signs in with what they registered with.
 
+A deployment may list more than one, and the user still types a **single value**: it is matched against every claim in
+the list. With `identifier-claims: [email, phone_number]` the sign-in form still asks for one field, the address reaches
+the account and so does the number, and which of the two matched is not remembered — the person who signed in with their
+number is the person who signed in with their address. Because one typed value has to reach one account, that value
+[belongs to a single account across the whole list](/functional/claims#identifier-claims) rather than within the claim it
+was entered under.
+
 Password authentication is off unless a deployment turns it on with
 [`auth.by-password.enabled`](/technical/configuration/authorization#auth-by-password). The
 [`by-mail` environment](/technical/configuration/environments) is a shortcut for the common case: it enables password
@@ -90,12 +97,31 @@ A user may authenticate with multiple methods over time — for example, first w
 Google — while using the same email address for both.
 
 When account merging is enabled, SympAuthy recognises that these are the same person and merges the two into a single
-account. The user ends up with one account regardless of the method they used to sign in. The merging is based on the
-configured identifier claims — any accounts that share the same value for an identifier claim are treated as the same
-person.
+account. The user ends up with one account regardless of the method they used to sign in.
+
+Merging matches **every** configured identifier claim, not any one of them: the account merged into is the one holding
+the same value for all of them. With `identifier-claims: [email, phone_number]`, a provider asserting a known address
+but a different number merges with nothing — the address on its own does not name an account. Matching all of them is
+deliberate rather than an oversight: merging has to answer *one* account instead of a choice between several, because a
+wrong answer attaches a stranger's provider identity to somebody's account.
 
 This behavior is controlled by the `auth.user-merging-enabled` configuration key. Refer to the
 [configuration](/technical/configuration/authorization#auth) section for details.
+
+##### A provider that asserts only some identifier claims
+
+A provider asserts what it knows: Google carries an email address and no phone number. A deployment that configures
+`identifier-claims: [email, phone_number]` therefore hands the provider a set it cannot fill, and the two things a
+provider can then do with that partial set differ:
+
+| The user is                                                                                        | What happens                                                                                                                         |
+|----------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| **signing up** through the provider                                                                | Refused — creating an account needs every configured identifier claim, because those values are written onto the account being created. |
+| **[linking](#linking-a-provider-to-an-existing-account)** the provider to an account they already have | Allowed — linking writes no claim, so what the provider asserts is the whole of what there is to check, and the link is refused if any of those values already belongs to another account. |
+
+A deployment that configures more than one identifier claim alongside a provider that cannot assert them all therefore
+has no working sign-up through that provider; users who already have an account can still link it. Listing a single
+identifier claim — the common case — avoids the question entirely.
 
 ### Multi-factor authentication (MFA)
 

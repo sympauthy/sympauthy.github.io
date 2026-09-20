@@ -53,6 +53,32 @@ without user involvement. This default can be overridden — if a custom claim s
 because it contains personal data entered by the user), you can configure its
 [ACL](/technical/configuration/claim#claims-id-acl) to require consent, just like an OpenID Connect claim.
 
+## Identifier claims
+
+Any enabled claim a deployment lists in [`auth.identifier-claims`](/technical/configuration/authorization#auth) becomes
+an **identifier claim** — one of the values a person
+[signs in with](/functional/authentication#identifier-and-password). An email address is the usual choice, but a
+username, an employee number or any other claim that singles out one person does the job as well. These claims are
+collected at sign-up, and an account keeps them.
+
+A user signs in with **any one** of them, never with all of them at once: a single typed value is matched against every
+claim in the list. That is what makes the uniqueness rule span the list rather than each claim in it — **a value belongs
+to one account across the whole set of identifier claims, not within the claim it was entered under.** With
+`identifier-claims: [email, preferred_username]`, no account may take as its username a value another account already
+holds as its email address, or the other way round; sign-up refuses it, exactly as it refuses an email address somebody
+else has registered.
+
+The rule is not tidiness, and what it keeps out is worth spelling out. Let one account hold `email = a` and
+`preferred_username = b`, and another hold `email = b` and `preferred_username = a`. Neither account is malformed on its
+own — but a login is one value matched against every claim, so typing `a` matches a row of each. The server resolves to
+one of them, and the person who owns `a` has their password checked against an account that is not theirs.
+
+One account holding a single value under two of its **own** identifier claims — its address as its username as well — is
+a different thing, and it is allowed: both rows name that account, so the login reaches it whichever one matched.
+
+Only completed sign-ups hold a value, though: an
+[abandoned one leaves its identifier claims free](/functional/end-user_management#a-sign-up-counts-only-once-the-flow-completes).
+
 ## Access control
 
 SympAuthy decides whether a user or client can read or write a claim based on the claim's
