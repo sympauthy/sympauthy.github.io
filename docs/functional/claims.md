@@ -63,17 +63,20 @@ collected at sign-up, and an account keeps them.
 
 A user signs in with **any one** of them, never with all of them at once: a single typed value is matched against every
 claim in the list. That is what makes the uniqueness rule span the list rather than each claim in it — **a value belongs
-to one account across the whole set of identifier claims, not within the claim it was entered under.** Two accounts
-holding one value under different identifier claims would make a login ambiguous.
+to one account across the whole set of identifier claims, not within the claim it was entered under.** With
+`identifier-claims: [email, preferred_username]`, no account may take as its username a value another account already
+holds as its email address, or the other way round; sign-up refuses it, exactly as it refuses an email address somebody
+else has registered.
 
-The practical consequence surprises, so it is worth knowing before configuring a second identifier claim. With
-`identifier-claims: [email, preferred_username]`:
+The rule is not tidiness, and what it keeps out is worth spelling out. Let one account hold `email = a` and
+`preferred_username = b`, and another hold `email = b` and `preferred_username = a`. Neither account is malformed on its
+own — but a login is one value matched against every claim, so typing `a` matches a row of each. The server resolves to
+one of them, and the person who owns `a` has their password checked against an account that is not theirs.
 
-- no account may use its own email address as its username;
-- no account may take another account's email address as its username.
+One account holding a single value under two of its **own** identifier claims — its address as its username as well — is
+a different thing, and it is allowed: both rows name that account, so the login reaches it whichever one matched.
 
-Sign-up refuses either one, exactly as it refuses an email address somebody else already registered with. Only completed
-sign-ups hold a value, though: an
+Only completed sign-ups hold a value, though: an
 [abandoned one leaves its identifier claims free](/functional/end-user_management#a-sign-up-counts-only-once-the-flow-completes).
 
 ## Access control
