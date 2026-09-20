@@ -53,6 +53,29 @@ without user involvement. This default can be overridden — if a custom claim s
 because it contains personal data entered by the user), you can configure its
 [ACL](/technical/configuration/claim#claims-id-acl) to require consent, just like an OpenID Connect claim.
 
+## Identifier claims
+
+Any enabled claim a deployment lists in [`auth.identifier-claims`](/technical/configuration/authorization#auth) becomes
+an **identifier claim** — one of the values a person
+[signs in with](/functional/authentication#identifier-and-password). An email address is the usual choice, but a
+username, an employee number or any other claim that singles out one person does the job as well. These claims are
+collected at sign-up, and an account keeps them.
+
+A user signs in with **any one** of them, never with all of them at once: a single typed value is matched against every
+claim in the list. That is what makes the uniqueness rule span the list rather than each claim in it — **a value belongs
+to one account across the whole set of identifier claims, not within the claim it was entered under.** Two accounts
+holding one value under different identifier claims would make a login ambiguous.
+
+The practical consequence surprises, so it is worth knowing before configuring a second identifier claim. With
+`identifier-claims: [email, preferred_username]`:
+
+- no account may use its own email address as its username;
+- no account may take another account's email address as its username.
+
+Sign-up refuses either one, exactly as it refuses an email address somebody else already registered with. Only completed
+sign-ups hold a value, though: an
+[abandoned one leaves its identifier claims free](/functional/end-user_management#a-sign-up-counts-only-once-the-flow-completes).
+
 ## Access control
 
 SympAuthy decides whether a user or client can read or write a claim based on the claim's
