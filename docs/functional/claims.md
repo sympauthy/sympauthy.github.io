@@ -85,14 +85,34 @@ SympAuthy decides whether a user or client can read or write a claim based on th
 **access control list (ACL)**. There are two ways access can be granted:
 
 - **Through consent** — the end-user consents to a [scope](/functional/scope#consentable-scope),
-  which unlocks the claim for the user and/or the client. This is the default for OpenID Connect
-  claims.
+  which unlocks the claim. This is the default for OpenID Connect claims.
 - **Through client scopes** — the client holds a [client scope](/functional/scope#client-scope)
   that grants access directly, without involving the end-user. This is the default for custom claims.
 
 Out of the box, you do not need to configure any ACL — the defaults follow the OpenID Connect
 specification. If you need different behavior (for example, consent-gating a custom claim), see
 [ACL configuration](/technical/configuration/claim#claims-id-acl).
+
+### One flag, one door
+
+Consent does not unlock a single door, and the ACL names each of them separately:
+
+| ACL flag                             | What consent opens                                                                                      |
+|--------------------------------------|---------------------------------------------------------------------------------------------------------|
+| `collected-in-flow-when-consented`   | The [interactive flow](/functional/interactive_flow) asks the end-user to fill the claim in.             |
+| `readable-by-person-when-consented`  | The end-user's own access token can read it, through `/api/openid/userinfo`.                             |
+| `writable-by-person-when-consented`  | The end-user's own access token can write it.                                                            |
+| `readable-by-client-when-consented`  | The client can read it — in the ID token, and through the [Client API](/technical/api/client).           |
+| `writable-by-client-when-consented`  | The client can write it.                                                                                |
+
+The interactive flow and the end-user's **own access token** are different doors, and no flag covers
+both: a claim the flow collects is not thereby writable through an API, and a claim an API may write
+is not thereby asked for during sign-in. A write through the end-user's own token can additionally be
+required to sit behind a recent authentication, with `write-max-authentication-age` — see
+[when the user authenticated](/functional/tokens#when-the-user-authenticated).
+
+No endpoint reads `writable-by-person-when-consented` or `write-max-authentication-age` yet; both are
+declarable today and open nothing until the endpoint that lets an end-user write their own claim ships.
 
 ## Configuration
 

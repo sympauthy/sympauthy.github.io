@@ -31,8 +31,9 @@ the `at+jwt` type header and contains the following claims:
 | `aud`       | Audience the token is intended for. The value comes from the `token-audience` of the [audience](/functional/audience) the client belongs to.                                                                                                                              | MUST     |
 | `sub`       | Subject — the authenticated user's identifier.                                                                                                                                                                                                                           | MUST     |
 | `client_id` | The client that requested the token.                                                                                                                                                                                                                                     | MUST     |
-| `iat`       | Issued-at time.                                                                                                                                                                                                                                                          | MUST     |
+| `iat`       | Issued-at time — when *this token* was minted. It moves on every refresh, so it does not say how recently the user signed in; [`auth_time`](#when-the-user-authenticated) does.                                                                                            | MUST     |
 | `jti`       | Unique token identifier.                                                                                                                                                                                                                                                 | MUST     |
+| `auth_time` | [When the user authenticated](#when-the-user-authenticated), as a Unix timestamp. Absent on `client_credentials` and [delegated](/functional/delegation) (token-exchange) tokens, behind which no user authenticated.                                                      | OPTIONAL |
 | `scope`     | Space-separated list of granted scopes. For `authorization_code` tokens: [consentable](/functional/scope#consentable-scope) and [grantable](/functional/scope#grantable-scope) scopes. For `client_credentials` tokens: [client](/functional/scope#client-scope) scopes. For [delegated](/functional/delegation) (token-exchange) tokens: empty — the token is identity-only. | SHOULD   |
 | `cnf`       | Confirmation claim. Present when the token is [DPoP-bound](#sender-constrained-tokens-dpop); contains the `jkt` (JWK SHA-256 Thumbprint) of the client's public key.                                                                                                     | OPTIONAL |
 | `act`       | Actor claim ([RFC 8693](https://datatracker.ietf.org/doc/html/rfc8693)). Present on [delegated](/functional/delegation) (act-as) tokens; a JSON object whose `sub` is the `client_id` of the client acting on behalf of the user.                                          | OPTIONAL |
@@ -81,6 +82,51 @@ While the access token answers "is this user allowed to do this?", the ID token 
 
 ID tokens have the same lifespan as access tokens. Once expired, the client should use the refresh token to obtain a
 fresh set of tokens.
+
+## When the user authenticated
+
+Every token SympAuthy issues for a user says when that user authenticated, as the `auth_time` claim
+[OpenID Connect Core section 2](https://openid.net/specs/openid-connect-core-1_0.html#IDToken) defines. It is stated on
+every such token, not only when a client asked for it:
+
+- on the **[ID token](#id-token)**, where OpenID Connect defines it;
+- on the **[access token](#access-token)**, where
+  [RFC 9068 section 2.2.1](https://www.rfc-editor.org/rfc/rfc9068#section-2.2.1) puts it, so a resource server that is
+  not SympAuthy can read it too;
+- in the **[introspection response](#token-introspection)**, where
+  [RFC 9470 section 6.2](https://www.rfc-editor.org/rfc/rfc9470#section-6.2) puts it.
+
+The value is a Unix timestamp — seconds since the epoch. `auth_time` is also always listed in `claims_supported` on the
+discovery document (`/.well-known/openid-configuration`), and because nothing configures it, a deployment declaring a
+[claim](/technical/configuration/claim#claims-id) under that name is refused at startup.
+
+### It is the moment the credential verified
+
+`auth_time` is the moment the user proved a credential of their account: a password checked, a third-party provider's
+callback resolved to the account, or the account created at sign-up. It is **not** the moment the client exchanged the
+authorization code for tokens.
+
+Passing a second factor does not move it. `auth_time` says when the credential was proven; whether an
+[MFA](/functional/authentication#multi-factor-authentication-mfa) step followed is what the `amr` claim would say, and
+SympAuthy publishes no `amr`.
+
+### A refresh reissues it unchanged
+
+This is the whole reason to read `auth_time` rather than `iat`. `iat` is when the token was minted, so it moves on
+every [refresh](#refresh-token); `auth_time` is the authentication the refresh descends from, so it does not. An
+authentication thirty days old shows an `iat` of a minute ago on a freshly refreshed token — and an `auth_time` of
+thirty days ago.
+
+A resource server asking "how recently did this user sign in?" must therefore read `auth_time`. `iat` does not answer
+that question.
+
+### Some tokens carry none
+
+A `client_credentials` token and a token obtained through [delegation](/functional/delegation) (token exchange) carry
+no `auth_time` at all: the first has no user behind it, and the second asserts an identity nobody proved in that
+exchange.
+
+A resource server must treat an absent `auth_time` as **"no user authenticated"** — never as "just now".
 
 ## Token introspection
 
