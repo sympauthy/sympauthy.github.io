@@ -111,6 +111,12 @@ the [OAuth 2.0 Token Introspection specification (RFC 7662)](https://datatracker
 whether it is still active and to retrieve metadata about it. The endpoint requires client authentication (Client Secret
 Basic or Client Secret Post).
 
+The response reports `auth_time`, [when the end-user authenticated](/functional/tokens#when-the-user-authenticated),
+where [RFC 9470 section 6.2](https://www.rfc-editor.org/rfc/rfc9470#section-6.2) puts it — so a resource server that
+validates by asking rather than by verifying a signature can decide how recent the authentication is. It is absent for a
+token no end-user authentication is behind: a `client_credentials` token, or one obtained through
+[token exchange](/functional/delegation). An absent value means no end-user authenticated, not that one just did.
+
 ## Authorization code security
 
 The authorization code is a short-lived, single-use credential. SympAuthy enforces the following protections:

@@ -18,6 +18,21 @@ When an end-user wants to access a client application, they go through an authen
 
 For a detailed walkthrough of each step from the user's perspective, see [How an Interactive Flow Works](interactive_flow).
 
+### Asking for a recent authentication
+
+A client that needs the user to have authenticated recently can add `max_age` to the authorization request
+([OpenID Connect Core section 3.1.2.1](https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest)): the number
+of seconds the authentication behind the issued tokens may be old. A value that is not a non-negative integer is
+refused.
+
+**SympAuthy satisfies any `max_age` by construction.** It keeps no session between authorizations, so step 2 above is
+never skipped — every authorization signs the user in anew, and the authentication behind an authorization code is
+always younger than the flow that produced it. There is no "already signed in" state for a maximum age to invalidate.
+
+What the client observes is what section 3.1.2.1 asks of a server answering `max_age`: an ID token stating
+[`auth_time`](/functional/tokens#when-the-user-authenticated), the moment the user proved a credential. SympAuthy
+states it on every ID token, whether or not the client asked.
+
 ### Authentication methods
 
 SympAuthy supports two primary ways for an end-user to prove their identity, plus an optional multi-factor

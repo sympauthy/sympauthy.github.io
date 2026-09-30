@@ -34,6 +34,7 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 | Access Token                            | Supported     | [draft-ietf-oauth-v2-1 - section 1.4](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-1.4) |
 | Refresh Token                           | Supported     | [draft-ietf-oauth-v2-1 - section 1.5](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-1.5) |
 | ID Token (JWT)                          | Supported     | [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html)                               |
+| `auth_time` in ID, access and introspection | Supported | [OpenID Connect Core - section 2](https://openid.net/specs/openid-connect-core-1_0.html#IDToken), [RFC 9068 - section 2.2.1](https://www.rfc-editor.org/rfc/rfc9068#section-2.2.1), [RFC 9470 - section 6.2](https://www.rfc-editor.org/rfc/rfc9470#section-6.2) |
 | Refresh Token Rotation (Public Clients) | Supported     | [draft-ietf-oauth-v2-1 - section 6.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-6.1) |
 | JWT Profile for Access Tokens           | Supported     | [RFC 9068](https://datatracker.ietf.org/doc/html/rfc9068)                                                      |
 | Sender-constrained Tokens (DPoP)        | Supported     | [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449)                                                      |
@@ -62,6 +63,8 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 | PKCE Plain Method               | Not Supported | [RFC 7636](https://datatracker.ietf.org/doc/html/rfc7636)                                                          |
 | State Parameter                 | Required      | [draft-ietf-oauth-v2-1 - section 7.5.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-7.5.1) |
 | Nonce Parameter                 | Supported     | [OpenID Connect Core](https://openid.net/specs/openid-connect-core-1_0.html)                                       |
+| `max_age` Authentication Age Request | Supported | [OpenID Connect Core - section 3.1.2.1](https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest)    |
+| Step Up Authentication Challenge | Partial      | [RFC 9470](https://www.rfc-editor.org/rfc/rfc9470)                                                                 |
 | Authorization Code One-Time Use | Enforced      | [draft-ietf-oauth-v2-1 - section 4.1.2](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-4.1.2) |
 | HTTP 307 Redirect Prohibition   | Enforced      | [draft-ietf-oauth-v2-1 - section 7.5.3](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-7.5.3) |
 | DPoP Nonce & Replay Detection   | Planned       | [RFC 9449 - section 8](https://datatracker.ietf.org/doc/html/rfc9449#section-8)                                    |
@@ -74,6 +77,19 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 > OAuth 2.1 requires PKCE for all clients using the authorization code flow. SympAuthy enforces this for both
 > public and confidential clients. See the [Security](security#pkce-proof-key-for-code-exchange) documentation
 > for details.
+
+> `max_age` is satisfied by construction: SympAuthy keeps no session between authorizations, so every authorization
+> signs the end-user in anew. See [Authentication](/functional/authentication#asking-for-a-recent-authentication) for
+> why, and for what a client observes in return.
+
+> [RFC 9470](https://www.rfc-editor.org/rfc/rfc9470) is **partially** supported, and the two halves differ. The
+> authentication information the RFC asks a server to convey **is** served: `auth_time` on the access token and in the
+> introspection response, so a resource server can decide for itself how recent an authentication is. The **challenge**
+> itself — `WWW-Authenticate: Bearer error="insufficient_user_authentication"`, carrying the `max_age` an operation
+> demands — is implemented in the server, but no endpoint emits one yet: its first consumer is the end-user's own
+> claim write ([sympauthy#482](https://github.com/sympauthy/sympauthy/issues/482)), which is not built. `acr` and
+> `acr_values` are not supported at all — SympAuthy publishes no vocabulary of authentication strengths, so it
+> advertises no `acr_values_supported` and the challenge never names `acr_values`.
 
 ## OpenID Connect
 
@@ -119,6 +135,7 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 - **Supported**: Feature is implemented and available
 - **Supported (>= version)**: Feature is implemented and available since a specific version
 - **Not Supported**: Feature is not implemented and not planned
+- **Partial**: Feature is partly implemented — the note beside the table says which part
 - **Planned**: Feature is not yet implemented but will be in a future release
 - **Required**: Feature must be used by clients
 - **Enforced**: Feature is enforced by the server
@@ -133,4 +150,5 @@ For more information about OAuth specifications, visit:
 - [OAuth 2.0 Demonstrating Proof of Possession (RFC 9449)](https://datatracker.ietf.org/doc/html/rfc9449)
 - [OAuth 2.0 Token Introspection (RFC 7662)](https://datatracker.ietf.org/doc/html/rfc7662)
 - [OAuth 2.0 Token Exchange (RFC 8693)](https://datatracker.ietf.org/doc/html/rfc8693)
+- [OAuth 2.0 Step Up Authentication Challenge Protocol (RFC 9470)](https://www.rfc-editor.org/rfc/rfc9470)
 - [OpenID Connect Specifications](https://openid.net/connect/)
