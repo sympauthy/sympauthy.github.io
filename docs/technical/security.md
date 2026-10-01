@@ -117,6 +117,12 @@ validates by asking rather than by verifying a signature can decide how recent t
 token no end-user authentication is behind: a `client_credentials` token, or one obtained through
 [token exchange](/functional/delegation). An absent value means no end-user authenticated, not that one just did.
 
+Beside the members RFC 7662 names, the response carries the [claims](/functional/claims) a deployment
+[exposes](/functional/claims#where-a-claim-is-exposed) in the introspection response, each as a top-level
+member under the claim's own identifier. What the introspecting client may be told is still the claim's
+[ACL](/technical/configuration/claim#claims-id-acl) decision, and a claim named after one of RFC 7662's
+own members is left out rather than written over it.
+
 ## Authorization code security
 
 The authorization code is a short-lived, single-use credential. SympAuthy enforces the following protections:

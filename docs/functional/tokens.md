@@ -40,6 +40,32 @@ the `at+jwt` type header and contains the following claims:
 
 The client can read this information directly from the token without making an additional request to SympAuthy.
 
+### A claim in an access token
+
+Beside what it says about its own authorization, an access token can carry [claims](claims) about the
+end-user. A deployment names `access-token` in a claim's
+[`published-in`](/technical/configuration/claim#claims-id-published-in), and the value then travels under
+the claim's own identifier, where
+[RFC 9068 section 2.2.3](https://www.rfc-editor.org/rfc/rfc9068#section-2.2.3) defines the profile that
+carries an identity claim. What a resource server gets for it is an attribute of the person read off the
+credential it already holds, rather than a round trip to `/userinfo` or to introspection on every request.
+
+It is also the place a value travels furthest, and the trade is not the ID token's:
+
+- an access token is a **bearer credential presented on every request**, to every resource server of its
+  [audience](/functional/audience), for the whole life of the token — where an ID token is handed over
+  once;
+- nothing encrypts it, so a claim in one is readable by every party the credential passes through;
+- **withdrawing a claim from a token already issued means revoking that token** — editing the
+  configuration stops the next token carrying the value and does nothing to the ones already out.
+
+The claim's [ACL](/functional/claims#access-control) still decides who may be told: it is the client's
+half that is asked, exactly as the ID token asks it, and a claim restricted to another audience is left
+out. A claim a deployment happens to have named after one of the members above is left out rather than
+written over it. A `client_credentials` token carries no claim of an end-user — there is none behind it —
+and neither does a [delegated](/functional/delegation) (act-as) one, which holds no scope and so satisfies
+no claim's ACL.
+
 ### Expiration
 
 Access tokens have a short lifespan — typically minutes to a few hours. The exact duration is controlled by the
@@ -77,6 +103,10 @@ address, or any custom attributes you have configured. It is intended for the cl
 resources.
 
 While the access token answers "is this user allowed to do this?", the ID token answers "who is this user?"
+
+Which claims it carries is the deployment's decision: a claim reaches the ID token when its
+[`published-in`](/technical/configuration/claim#claims-id-published-in) names `id-token` and its ACL lets
+the client read it. The OpenID Connect claims ship naming it, so they are where a client expects them.
 
 ### Expiration
 
@@ -136,7 +166,9 @@ validation — for example, to check whether a token has been revoked.
 
 SympAuthy provides a token introspection endpoint (`/api/oauth2/introspect`) that accepts a token and returns whether
 it is active, along with metadata such as the granted scopes, the client that requested the token, and the
-authenticated user.
+authenticated user. The response also carries the [claims](claims) a deployment
+[exposes](/functional/claims#where-a-claim-is-exposed) in the introspection response, each as a top-level
+member.
 
 For technical details on the endpoint, authentication requirements, and response format, see the
 [Security](../technical/security#token-introspection) documentation.
