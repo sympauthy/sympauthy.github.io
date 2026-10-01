@@ -97,19 +97,25 @@ specification. If you need different behavior (for example, consent-gating a cus
 
 Consent does not unlock a single door, and the ACL names each of them separately:
 
-| ACL flag                            | What consent opens                                                                                                                        |
-|-------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
-| `collected-in-flow-when-consented`  | The [interactive flow](/functional/interactive_flow) asks the end-user to fill the claim in.                                              |
-| `readable-by-person-when-consented` | The end-user's own access token can read it, through `/api/openid/userinfo`.                                                              |
-| `writable-by-person-when-consented` | The end-user's own access token can write it.                                                                                             |
-| `readable-by-client-when-consented` | The client can read it — through the [Client API](/technical/api/client), and wherever the claim is [exposed](#where-a-claim-is-exposed). |
-| `writable-by-client-when-consented` | The client can write it.                                                                                                                  |
+| ACL flag                            | What consent opens                                                                                                                                                                         |
+|-------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `collected-in-flow-when-consented`  | The [interactive flow](/functional/interactive_flow#collecting-additional-information-optional) asks the end-user to fill the claim in. Not for an [identifier claim](#identifier-claims). |
+| `readable-by-person-when-consented` | The end-user's own access token can read it, through `/api/openid/userinfo`.                                                                                                               |
+| `writable-by-person-when-consented` | The end-user's own access token can write it.                                                                                                                                              |
+| `readable-by-client-when-consented` | The client can read it — through the [Client API](/technical/api/client), and wherever the claim is [exposed](#where-a-claim-is-exposed).                                                  |
+| `writable-by-client-when-consented` | The client can write it.                                                                                                                                                                   |
 
 The interactive flow and the end-user's **own access token** are different doors, and no flag covers
 both: a claim the flow collects is not thereby writable through an API, and a claim an API may write
 is not thereby asked for during sign-in. A write through the end-user's own token can additionally be
 required to sit behind a recent authentication, with `write-max-authentication-age` — see
 [when the user authenticated](/functional/tokens#when-the-user-authenticated).
+
+**`collected-in-flow-when-consented` does not apply to an [identifier claim](#identifier-claims).**
+One is asked for at sign-up because it is what identifies the account, so it is collected whether or
+not any scope was consented to — and the flow's own
+[claim-collection step](/functional/interactive_flow#collecting-additional-information-optional)
+leaves identifier claims out whatever their ACL says.
 
 No endpoint reads `writable-by-person-when-consented` or `write-max-authentication-age` yet; both are
 declarable today and open nothing until the endpoint that lets an end-user write their own claim ships.
