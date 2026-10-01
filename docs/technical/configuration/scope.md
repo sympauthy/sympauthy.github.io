@@ -10,14 +10,6 @@
 | ```template```     | string  | Name of a custom [scope template](#templates-scopes-id) to apply. The referenced template provides default values for fields not explicitly set on this scope. Default template names (`default_openid`, `default_admin`, `default_client`, `default_custom`) cannot be referenced here — they are auto-applied based on scope category. | NO                        |
 | ```type```         | string  | The scope type. Either [`consentable`](/functional/scope#consentable-scope) or [`grantable`](/functional/scope#grantable-scope). Custom [`client`](/functional/scope#client-scope) scopes are not supported.                                                                                                                             | NO<br>```grantable```     |
 
-`published-in` is the same key a [claim](/technical/configuration/claim#claims-id-published-in) answers
-*where is this exposed* with, and the default is the other way round: a claim keeps a value back until a
-file names a place, while a scope has no value to keep back, so one is advertised unless the deployment
-says otherwise. The [admin](/functional/scope#admin-scopes) and [client](/functional/scope#client-scope)
-scopes SympAuthy defines are advertised nowhere and no deployment decides that — a client scope is
-unusable outside `client_credentials`, so advertising it to a client configuring an authorization would
-say nothing true.
-
 ## ```templates.scopes.<id>```
 
 Scope templates provide default field values that are inherited by scopes. The following default templates are auto-applied based on scope category:
