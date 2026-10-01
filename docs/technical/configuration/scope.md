@@ -2,12 +2,21 @@
 
 ## ```scopes.<id>```
 
-| Key            | Type    | Description                                                                                                                                                                                                                                                                                          | Required<br>Default   |
-|----------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|
-| ```audience``` | string  | The [audience](/functional/audience) this scope is scoped to. When set, the scope only applies within that audience — clients in other audiences cannot request it. When `null`, the scope is shared across all audiences. Built-in scopes are always unscoped.                                       | NO<br>```null```      |
-| ```enabled```  | boolean | Enable the scope.                                                                                                                                                                                                                                                                                    | NO<br>```false```     |
-| ```template``` | string  | Name of a custom [scope template](#templates-scopes-id) to apply. The referenced template provides default values for fields not explicitly set on this scope. Default template names (`default_openid`, `default_admin`, `default_client`, `default_custom`) cannot be referenced here — they are auto-applied based on scope category. | NO                    |
-| ```type```     | string  | The scope type. Either [`consentable`](/functional/scope#consentable-scope) or [`grantable`](/functional/scope#grantable-scope). Custom [`client`](/functional/scope#client-scope) scopes are not supported.                                                                                         | NO<br>```grantable``` |
+| Key                | Type    | Description                                                                                                                                                                                                                                                                                                                              | Required<br>Default       |
+|--------------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------|
+| ```audience```     | string  | The [audience](/functional/audience) this scope is scoped to. When set, the scope only applies within that audience — clients in other audiences cannot request it. When `null`, the scope is shared across all audiences. Built-in scopes are always unscoped.                                                                          | NO<br>```null```          |
+| ```enabled```      | boolean | Enable the scope.                                                                                                                                                                                                                                                                                                                        | NO<br>```false```         |
+| ```published-in``` | array   | Where this scope is exposed. `discovery` advertises it in `scopes_supported` on the discovery document; an empty list keeps the server serving the scope without advertising it. See [where a scope is exposed](/functional/scope#where-a-scope-is-exposed).                                                                             | NO<br>```[ discovery ]``` |
+| ```template```     | string  | Name of a custom [scope template](#templates-scopes-id) to apply. The referenced template provides default values for fields not explicitly set on this scope. Default template names (`default_openid`, `default_admin`, `default_client`, `default_custom`) cannot be referenced here — they are auto-applied based on scope category. | NO                        |
+| ```type```         | string  | The scope type. Either [`consentable`](/functional/scope#consentable-scope) or [`grantable`](/functional/scope#grantable-scope). Custom [`client`](/functional/scope#client-scope) scopes are not supported.                                                                                                                             | NO<br>```grantable```     |
+
+`published-in` is the same key a [claim](/technical/configuration/claim#claims-id-published-in) answers
+*where is this exposed* with, and the default is the other way round: a claim keeps a value back until a
+file names a place, while a scope has no value to keep back, so one is advertised unless the deployment
+says otherwise. The [admin](/functional/scope#admin-scopes) and [client](/functional/scope#client-scope)
+scopes SympAuthy defines are advertised nowhere and no deployment decides that — a client scope is
+unusable outside `client_credentials`, so advertising it to a client configuring an authorization would
+say nothing true.
 
 ## ```templates.scopes.<id>```
 
@@ -26,12 +35,13 @@ When a scope references a custom template, the matching default template is **no
 
 Fields set directly on a scope always override the corresponding template value.
 
-| Key            | Type    | Description                                                              | Required<br>Default |
-|----------------|---------|--------------------------------------------------------------------------|---------------------|
-| ```<id>```     | string  | Unique identifier of the template.                                       | **YES**             |
-| ```audience``` | string  | Default [audience](/functional/audience) for scopes using this template. | NO                  |
-| ```enabled```  | boolean | Default value for the scope's `enabled` field.                           | NO                  |
-| ```type```     | string  | Default scope type (`consentable`, `grantable`, or `client`).            | NO                  |
+| Key                | Type    | Description                                                                 | Required<br>Default |
+|--------------------|---------|-----------------------------------------------------------------------------|---------------------|
+| ```<id>```         | string  | Unique identifier of the template.                                          | **YES**             |
+| ```audience```     | string  | Default [audience](/functional/audience) for scopes using this template.    | NO                  |
+| ```enabled```      | boolean | Default value for the scope's `enabled` field.                              | NO                  |
+| ```published-in``` | array   | Default value for the scope's [`published-in`](#scopes-id) field.           | NO                  |
+| ```type```         | string  | Default scope type (`consentable`, `grantable`, or `client`).               | NO                  |
 
 **Constraints:**
 

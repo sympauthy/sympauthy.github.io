@@ -106,6 +106,27 @@ Client scopes are defined by SympAuthy and protect operations of the
 
 See [Client Authorization](/functional/client_authorization) for details on client scope granting rules.
 
+## Where a scope is exposed
+
+A scope is exposed in one place: `scopes_supported` on the discovery document
+(`/.well-known/openid-configuration`). A deployment says so with
+[`published-in`](/technical/configuration/scope#scopes-id) — the same key a
+[claim](/functional/claims#where-a-claim-is-exposed) answers *where is this exposed* with, where it names
+five places instead of one.
+
+**Being advertised is not being served.** The discovery document is a hint to a client that has not been
+told what to ask for, and nothing consults it when an authorization request arrives. A scope is served
+whether or not it appears there — so a deployment may hide one it serves, and every client already naming
+it is answered exactly as before. Whether the scope is served at all is the other question, and `enabled`
+is what answers it.
+
+Consentable and grantable scopes are advertised unless the deployment says otherwise: they have no value
+to keep back, and taking one out of `scopes_supported` would stop a client that configures itself from the
+document asking for something this server still serves. The [admin](#admin-scopes) and
+[client](#client-scope) scopes are never advertised, and no deployment decides that — a client scope is
+unusable outside `client_credentials`, so advertising it to a client configuring an authorization would
+say nothing true.
+
 ## OpenID Connect scopes
 
 OpenID Connect scopes are scopes defined in the

@@ -18,6 +18,7 @@ Default values for claim fields can be provided through [claim templates](#templ
 | ```audience```       | string  | The [audience](/functional/audience) this claim is scoped to. When set, the claim is only visible to clients within that audience. When `null`, the claim is shared across all audiences. OpenID Connect claims are always unscoped.                                                                                           | **NO**<br>```null```  |
 | ```enabled```        | boolean | Enable the collection of this claim for end-users. If disabled, the claim will never be stored by this authorization server even if it is made available by a client or a provider. In case this config is changed, it is up to the operator of the authorization server to clear the claim that have been already collected. | **NO**<br>```false``` |
 | ```group```          | string  | Grouping identifier (e.g. `identity`, `address`). Used to associate related claims.                                                                                                                                                                                                                                           | **NO**<br>```null```  |
+| ```published-in```   | array   | The places this claim is exposed in — see the [dedicated section](#claims-id-published-in). Publication only narrows what the [ACL](#claims-id-acl) permits and never grants: a claim the ACL refuses the caller is exposed nowhere, whatever it names.                                                                       | **NO**<br>```[]```    |
 | ```required```       | boolean | The end-user must provide a value for this claim before being allowed to complete an authorization flow.                                                                                                                                                                                                                      | **NO**<br>```false``` |
 | ```template```       | string  | Name of a [claim template](#templates-claims-id) to apply. The referenced template provides default values for fields not explicitly set on this claim. The built-in `default` template is auto-applied when no explicit template is set — see [templates](#templates-claims-id) for details.                                 | **NO**                |
 | ```type```           | string  | The data type of the claim. Predefined for OpenID Connect claims; required for custom claims. Supported types include `string`, `email`, `phone-number`, `date`, `boolean`, `number`.                                                                                                                                         | Depends               |
@@ -41,6 +42,34 @@ claims, the type is predefined and does not need to be set. For custom claims, `
 | `phone-number`   | A phone number.                                                |
 | `string`         | A free-form text value.                                        |
 | `timezone`       | A timezone identifier (e.g. `Europe/Paris`, `America/New_York`). |
+
+### ```claims.<id>.published-in```
+
+Where a claim is exposed is the deployment's decision, and this is the only key that answers it. Four of
+the five places carry the claim's value; the fifth advertises its name.
+
+| Value           | Exposes the claim in                                                                                                                                                                                |
+|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `access-token`  | The JWT [access token](/functional/tokens#a-claim-in-an-access-token), where [RFC 9068 section 2.2.3](https://www.rfc-editor.org/rfc/rfc9068#section-2.2.3) puts an identity claim.                  |
+| `discovery`     | `claims_supported` on the discovery document — the claim's **name**, never its value. Its `verified-id` companion is listed beside it.                                                               |
+| `id-token`      | The [ID token](/functional/tokens#id-token).                                                                                                                                                        |
+| `introspection` | The [introspection response](/functional/tokens#token-introspection), as a top-level member.                                                                                                         |
+| `userinfo`      | The `/api/openid/userinfo` response.                                                                                                                                                                |
+
+A claim naming no place is exposed in none of them: its value never leaves through a token, `/userinfo` or
+introspection, and it stays readable through the [Client API](/technical/api/client) and the
+[Admin API](/technical/api/admin), which publication does not narrow. The shipped
+[`openid` template](#templates-claims-id) names `[ id-token, userinfo, discovery ]`.
+
+Which half of the [ACL](#claims-id-acl) a place asks is the place's own question: the ID token, the access
+token and the introspection response ask whether the **client** may read the claim, and `/userinfo` asks
+whether the **end-user** may, because that endpoint is not client-authenticated. A claim restricted to
+another [audience](/functional/audience) is left out of every place.
+
+`claims_supported` lists exactly the claims naming `discovery`, whichever half of the specification the
+name comes from — so a deployment may serve a claim it does not advertise, and advertise a claim of its
+own. The other direction is refused: a claim naming `discovery` and no place that carries the value would
+advertise a name no client could obtain a value for, and the server refuses to start on it.
 
 ## ```claims.<id>.acl```
 
@@ -102,15 +131,16 @@ referenced template's values are used as defaults.
 
 Fields set directly on a claim always override the corresponding template value.
 
-| Key                  | Type    | Description                                                              | Required<br>Default |
-|----------------------|---------|--------------------------------------------------------------------------|---------------------|
-| ```<id>```           | string  | Unique identifier of the template.                                       | **YES**             |
-| ```audience```       | string  | Default [audience](/functional/audience) for claims using this template.  | NO                  |
-| ```enabled```        | boolean | Default value for the claim's `enabled` field.                           | NO                  |
-| ```required```       | boolean | Default value for the claim's `required` field.                          | NO                  |
-| ```group```          | string  | Default claim group.                                                     | NO                  |
-| ```allowed-values``` | array   | Default allowed values.                                                  | NO                  |
-| ```acl.*```          |         | All [ACL fields](#claims-id-acl) can be set in the template as defaults. | NO                  |
+| Key                  | Type    | Description                                                                     | Required<br>Default |
+|----------------------|---------|---------------------------------------------------------------------------------|---------------------|
+| ```<id>```           | string  | Unique identifier of the template.                                              | **YES**             |
+| ```acl.*```          |         | All [ACL fields](#claims-id-acl) can be set in the template as defaults.        | NO                  |
+| ```allowed-values``` | array   | Default allowed values.                                                         | NO                  |
+| ```audience```       | string  | Default [audience](/functional/audience) for claims using this template.        | NO                  |
+| ```enabled```        | boolean | Default value for the claim's `enabled` field.                                  | NO                  |
+| ```group```          | string  | Default claim group.                                                            | NO                  |
+| ```published-in```   | array   | Default value for the claim's [`published-in`](#claims-id-published-in) field.   | NO                  |
+| ```required```       | boolean | Default value for the claim's `required` field.                                 | NO                  |
 
 **Constraints:**
 
@@ -130,6 +160,10 @@ templates:
           - "users:claims:write"
     openid:
       enabled: false
+      published-in:
+        - id-token
+        - userinfo
+        - discovery
       acl:
         readable-by-person-when-consented: true
         collected-in-flow-when-consented: true
@@ -140,10 +174,15 @@ templates:
 With these defaults:
 
 - **Custom claims** (no explicit template) inherit from `default` — they are readable and writable by
-  any client holding `users:claims:read` or `users:claims:write`, without requiring end-user consent.
+  any client holding `users:claims:read` or `users:claims:write`, without requiring end-user consent. The
+  `default` template names no place, so a custom claim is exposed in no token until its own file says
+  where.
 - **OpenID Connect claims** (using `template: openid`) are disabled by default and must be explicitly
   enabled. When enabled, they are consent-gated: the interactive flow collects them, the end-user and the
-  client can read them after consent, and the client cannot write them.
+  client can read them after consent, and the client cannot write them. They are exposed in the ID token,
+  in `/userinfo` and in `claims_supported`, and in neither the access token nor the introspection
+  response — putting a value in a credential a client presents on every request is left to the
+  deployment.
 
 ## Examples
 
@@ -164,7 +203,8 @@ claims:
 
 This claim inherits the `openid` template defaults: the interactive flow collects it, the end-user can
 read it through `/api/openid/userinfo` and the client can read it — both after consent — and the client
-cannot write it. The `consent-scope: email` means the end-user must consent to the `email` scope for
+cannot write it. It is also [exposed](#claims-id-published-in) in the ID token, in `/userinfo` and in
+`claims_supported`. The `consent-scope: email` means the end-user must consent to the `email` scope for
 access to be granted.
 
 ### Custom claim with unconditional access
@@ -205,3 +245,27 @@ This claim requires the end-user to consent to the `account` scope (which must b
 [custom consentable scope](/functional/scope#custom-scopes)) before the client can read it. Consent
 does not make it writable: `writable-by-client-when-consented: false` closes the client's door, and
 `collected-in-flow-when-consented` is left unset, so the interactive flow never asks for it either.
+
+### Publishing a claim in the access token
+
+A claim a resource server reads off the credential it already holds, rather than by calling `/userinfo`
+or introspecting on every request:
+
+```yaml
+claims:
+  employee_number:
+    enabled: true
+    type: string
+    published-in:
+      - access-token
+      - introspection
+    acl:
+      consent-scope: profile
+      readable-by-client-when-consented: true
+```
+
+The access token and the introspection response ask the client's half of the ACL, so
+`readable-by-client-when-consented` is what lets the value through — a user's access token carries no
+[client scope](/functional/scope#client-scope), so `readable-with-client-scopes-unconditionally` does not
+open either of them. What an access token costs in exchange is
+[the place a value travels furthest](/functional/tokens#a-claim-in-an-access-token).

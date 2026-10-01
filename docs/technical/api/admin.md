@@ -351,7 +351,12 @@ Requires the `admin:config:read` scope.
       "origin": "openid",
       "enabled": true,
       "required": true,
-      "identifier": true
+      "identifier": true,
+      "published_in": [
+        "id_token",
+        "userinfo",
+        "discovery"
+      ]
     },
     {
       "id": "name",
@@ -360,7 +365,12 @@ Requires the `admin:config:read` scope.
       "enabled": true,
       "required": false,
       "identifier": false,
-      "group": "profile"
+      "group": "profile",
+      "published_in": [
+        "id_token",
+        "userinfo",
+        "discovery"
+      ]
     },
     {
       "id": "custom_department",
@@ -373,6 +383,10 @@ Requires the `admin:config:read` scope.
         "Engineering",
         "Marketing",
         "Sales"
+      ],
+      "published_in": [
+        "access_token",
+        "introspection"
       ]
     }
   ],
@@ -393,6 +407,12 @@ Requires the `admin:config:read` scope.
     - `identifier`: Whether this claim is configured as an [identifier claim](/technical/configuration/authorization#auth), used for password login and cross-provider account merging
     - `allowed_values`: Array of accepted values. Absent when the claim accepts any value
     - `group`: Grouping identifier (e.g., `"profile"`, `"address"`). Absent when the claim belongs to no group
+    - `published_in`: Places this claim is [exposed in](/functional/claims#where-a-claim-is-exposed), as
+      configured with [`published-in`](/technical/configuration/claim#claims-id-published-in). Possible
+      values: `"id_token"` | `"userinfo"` | `"access_token"` | `"introspection"` — which carry the value —
+      and `"discovery"`, which advertises the name in `claims_supported`. Empty when the claim is exposed
+      in none of them, which leaves it readable through this API and the
+      [Client API](/technical/api/client) and carried by no token
 - `page`: Current page number
 - `size`: Number of results per page
 - `total`: Total number of claims
@@ -402,6 +422,7 @@ Requires the `admin:config:read` scope.
 - Admin dashboard displaying all configured claims and their settings
 - Auditing which claims are enabled and required without accessing configuration files
 - Reviewing allowed values for claims with restricted inputs
+- Reading where each claim is exposed without decoding a token
 
 ---
 

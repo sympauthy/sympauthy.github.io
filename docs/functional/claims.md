@@ -97,13 +97,13 @@ specification. If you need different behavior (for example, consent-gating a cus
 
 Consent does not unlock a single door, and the ACL names each of them separately:
 
-| ACL flag                             | What consent opens                                                                                      |
-|--------------------------------------|---------------------------------------------------------------------------------------------------------|
-| `collected-in-flow-when-consented`   | The [interactive flow](/functional/interactive_flow) asks the end-user to fill the claim in.             |
-| `readable-by-person-when-consented`  | The end-user's own access token can read it, through `/api/openid/userinfo`.                             |
-| `writable-by-person-when-consented`  | The end-user's own access token can write it.                                                            |
-| `readable-by-client-when-consented`  | The client can read it — in the ID token, and through the [Client API](/technical/api/client).           |
-| `writable-by-client-when-consented`  | The client can write it.                                                                                |
+| ACL flag                            | What consent opens                                                                                                                        |
+|-------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| `collected-in-flow-when-consented`  | The [interactive flow](/functional/interactive_flow) asks the end-user to fill the claim in.                                              |
+| `readable-by-person-when-consented` | The end-user's own access token can read it, through `/api/openid/userinfo`.                                                              |
+| `writable-by-person-when-consented` | The end-user's own access token can write it.                                                                                             |
+| `readable-by-client-when-consented` | The client can read it — through the [Client API](/technical/api/client), and wherever the claim is [exposed](#where-a-claim-is-exposed). |
+| `writable-by-client-when-consented` | The client can write it.                                                                                                                  |
 
 The interactive flow and the end-user's **own access token** are different doors, and no flag covers
 both: a claim the flow collects is not thereby writable through an API, and a claim an API may write
@@ -113,6 +113,34 @@ required to sit behind a recent authentication, with `write-max-authentication-a
 
 No endpoint reads `writable-by-person-when-consented` or `write-max-authentication-age` yet; both are
 declarable today and open nothing until the endpoint that lets an end-user write their own claim ships.
+
+## Where a claim is exposed
+
+Access control decides **who** may know a claim's value. Where that value travels is a separate decision,
+and [`published-in`](/technical/configuration/claim#claims-id-published-in) is the one key that answers it.
+There are five places:
+
+| Place                                                                | Carries        |
+|----------------------------------------------------------------------|----------------|
+| The [ID token](/functional/tokens#id-token)                          | the value      |
+| The `/api/openid/userinfo` response                                  | the value      |
+| The [access token](/functional/tokens#a-claim-in-an-access-token)    | the value      |
+| The [introspection response](/functional/tokens#token-introspection) | the value      |
+| `claims_supported` on the discovery document                         | the name alone |
+
+A claim is exposed in the places its configuration names and in no other: one naming none never leaves
+through a token, `/userinfo` or introspection, though the [Client API](/technical/api/client) still reads
+it where the ACL allows. OpenID Connect claims ship naming the ID token, `/userinfo` and the discovery
+document, so they travel where a client expects them; a custom claim names nothing until you say so.
+
+**Naming a place is not being allowed to reach it.** Publication only narrows what the
+[ACL](#access-control) already permits — a claim the ACL refuses the caller is exposed nowhere, whatever it
+names, and a claim restricted to another [audience](/functional/audience) is left out everywhere.
+
+Advertising and serving come apart in both directions. `claims_supported` lists exactly the claims naming
+`discovery`, so a deployment may serve a claim it does not advertise — and advertise a custom claim of its
+own. The opposite is refused at startup: a claim advertised in no place that carries its value would be a
+name no client could ever obtain a value for.
 
 ## Configuration
 
