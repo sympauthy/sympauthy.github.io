@@ -305,7 +305,8 @@ in responses. Requires the `admin:config:read` scope.
 
 Endpoints for viewing configured claims. Since claims are defined in configuration files
 (not in a database), these endpoints expose them as read-only resources — following the same pattern as
-[Client Management](#client-management). Both OpenID Connect and custom claims are returned.
+[Client Management](#client-management). Every configured claim is returned, of either
+[kind](/functional/claims#two-kinds-of-claim) and whichever half of the specification its name comes from.
 Requires the `admin:config:read` scope.
 
 #### List Claims
@@ -332,11 +333,12 @@ Requires the `admin:config:read` scope.
 | `generated` | `boolean` | Yes | — |
 | `group` | `enum` — `identity`, `address` | Yes | — |
 | `id` | `string` | — | Yes |
+| `kind` | `enum` — `personal`, `application` | Yes | — |
 | `origin` | `enum` — `openid`, `custom` | Yes | — |
 | `required` | `boolean` | Yes | — |
 
 
-`audience_id` and `group` may be absent from a claim, so both also admit `is_null`.
+`audience_id`, `group` and `kind` may be absent from a claim, so all three also admit `is_null`.
 
 **Default order**: `-enabled` — enabled claims first.
 
@@ -349,6 +351,7 @@ Requires the `admin:config:read` scope.
       "id": "email",
       "type": "string",
       "origin": "openid",
+      "kind": "personal",
       "enabled": true,
       "required": true,
       "identifier": true,
@@ -362,6 +365,7 @@ Requires the `admin:config:read` scope.
       "id": "name",
       "type": "string",
       "origin": "openid",
+      "kind": "personal",
       "enabled": true,
       "required": false,
       "identifier": false,
@@ -376,6 +380,7 @@ Requires the `admin:config:read` scope.
       "id": "custom_department",
       "type": "string",
       "origin": "custom",
+      "kind": "application",
       "enabled": true,
       "required": false,
       "identifier": false,
@@ -402,6 +407,7 @@ Requires the `admin:config:read` scope.
     - `id`: Unique claim identifier, as defined in configuration
     - `type`: Data type expected for this claim (`string`, `number`, or `date`)
     - `origin`: Where the claim is defined. Possible values: `"openid"` (OpenID Connect specification) | `"custom"` (defined by the operator in configuration)
+    - `kind`: Whose the claim's value is, as configured with [`kind`](/technical/configuration/claim#claims-id-kind). Possible values: `"personal"` (the person's, collected from them and written by a client only within its own audience) | `"application"` (an application's, which a backend answers for and the person is never asked to type). Null for a claim this server generates, which is nobody's to write
     - `enabled`: Whether collection is enabled for this claim
     - `required`: Whether the end-user must provide this claim to complete an authorization flow
     - `identifier`: Whether this claim is configured as an [identifier claim](/technical/configuration/authorization#auth), used for password login and cross-provider account merging
