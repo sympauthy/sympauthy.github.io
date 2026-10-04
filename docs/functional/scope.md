@@ -36,7 +36,7 @@ Examples of consentable scopes:
 
 - `profile`, `email`, `address`, `phone` — OpenID Connect scopes that protect OpenID Connect claims.
 
-An [application claim](/functional/claims#an-application-claim) is not protected by a consentable scope by
+An [application claim](/functional/claim_kinds#an-application-claim) is not protected by a consentable scope by
 default — it uses unconditional [client scope](/functional/scope#client-scope) access. It can still be made
 to require consent by setting a `consent-scope` in its
 [ACL](/technical/configuration/claim#claims-id-acl): consent gates disclosure, and says nothing about whose

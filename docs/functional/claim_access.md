@@ -2,7 +2,7 @@
 
 Every [claim](/functional/claims) has an **access control list (ACL)** that determines who can read and
 write it. Two things decide the outcome: what the caller was authorized to do, and
-[which kind of claim](/functional/claims#two-kinds-of-claim) it is.
+[which kind of claim](/functional/claim_kinds#two-kinds-of-claim) it is.
 
 The ACL grants access through two paths, and either one is sufficient:
 
@@ -34,7 +34,7 @@ failing the request later.
 | An administrator, through the [Admin API](/technical/api/admin)                                                  | read           | every claim of every audience                                                          | every claim of every audience                 |
 | An administrator                                                                                                 | write          | nothing                                                                                | nothing                                       |
 
-[Generated claims](/functional/claims#a-generated-claim) appear in no row. SympAuthy computes `sub`,
+[Generated claims](/functional/claim_kinds#a-generated-claim) appear in no row. SympAuthy computes `sub`,
 `updated_at` and `auth_time` itself, so there is no caller to authorize and nothing to configure.
 
 ## End-user access

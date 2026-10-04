@@ -306,7 +306,7 @@ in responses. Requires the `admin:config:read` scope.
 Endpoints for viewing configured claims. Since claims are defined in configuration files
 (not in a database), these endpoints expose them as read-only resources — following the same pattern as
 [Client Management](#client-management). Every configured claim is returned, of either
-[kind](/functional/claims#two-kinds-of-claim) and whichever half of the specification its name comes from.
+[kind](/functional/claim_kinds#two-kinds-of-claim) and whichever half of the specification its name comes from.
 Requires the `admin:config:read` scope.
 
 #### List Claims

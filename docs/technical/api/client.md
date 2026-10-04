@@ -438,8 +438,8 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
 **Important Notes**:
 
 - Only claims whose [ACL](/technical/configuration/claim#claims-id-acl) grants write access to the client can be
-  modified. An [application claim](/functional/claims#an-application-claim) — a value a backend answers for — is
-  writable by a client holding `users:claims:write`. A [personal claim](/functional/claims#a-personal-claim) is
+  modified. An [application claim](/functional/claim_kinds#an-application-claim) — a value a backend answers for — is
+  writable by a client holding `users:claims:write`. A [personal claim](/functional/claim_kinds#a-personal-claim) is
   writable only where it is restricted to this client's own [audience](/functional/audience): a shared one grants no
   client write at all, and a deployment configuring one is refused at startup.
 - An [identifier claim](/functional/claims#identifier-claims) is refused to every client, whatever its scopes.
