@@ -99,9 +99,3 @@ A claim must be enabled in the configuration before SympAuthy uses it. Refer to 
 [`kind`](/technical/configuration/claim#claims-id-kind),
 [claim templates](/technical/configuration/claim#templates-claims-id) and
 [ACL settings](/technical/configuration/claim#claims-id-acl).
-
-## Claims pages
-
-- [Kinds of Claims](/functional/claim_kinds) — whose a claim's value is, and who may write it.
-- [Claim Access Control](/functional/claim_access) — every party, every direction, and the ACL key that
-  grants it.
