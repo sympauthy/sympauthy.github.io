@@ -48,8 +48,7 @@ The kind is read **resolved**, so a grant, a restriction or a kind reaching the 
 [identifier claim](/functional/claims#identifier-claims) is always `personal`, and declaring one an
 application's is refused.
 
-It is not the `origin` the [Admin API](/technical/api/admin) publishes beside it: that says whether the
-claim's *name* is the specification's or your own, which never said whose the value was.
+What each kind is, and the origin it is not, is [kinds of claims](/functional/claim_kinds).
 
 ### ```claims.<id>.type```
 
