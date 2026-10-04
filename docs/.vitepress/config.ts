@@ -75,7 +75,7 @@ export default defineConfig({
               text: 'Claims',
               collapsed: false,
               items: [
-                { text: 'Kind of claims', link: '/functional/claims' },
+                { text: 'Kinds of claims', link: '/functional/claims' },
                 { text: 'Who can access a claim', link: '/functional/claim_access' },
               ]
             },
