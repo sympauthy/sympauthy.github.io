@@ -9,7 +9,7 @@ the same authorization server reads it without asking the person again.
 
 **Whose that value is decides who may write it**, and every claim says so for itself: it is
 [the person's or an application's](#two-kinds-of-claim). Who may read and write one, party by party, is
-[who can access a claim](/functional/claim_access).
+[claim access control](/functional/claim_access).
 
 ## Two kinds of claim
 
@@ -134,9 +134,9 @@ are two paths — either one is sufficient:
 The [kind](#two-kinds-of-claim) is held to the ACL at startup: a key the kind of claim cannot mean is refused
 rather than accepted and ignored.
 
-**[Who can access a claim](/functional/claim_access) is the whole of it** — every party, every direction and
-every key, in one table — and [ACL configuration](/technical/configuration/claim#claims-id-acl) is where the
-keys are written.
+[Claim access control](/functional/claim_access) is the whole of it — every party, every direction and every
+key, in one table — and [ACL configuration](/technical/configuration/claim#claims-id-acl) is where the keys
+are written.
 
 ## Where a claim is exposed
 

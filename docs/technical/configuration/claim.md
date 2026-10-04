@@ -116,7 +116,7 @@ for during sign-in. A consent-based key on a claim naming no `consent-scope` has
 opens its door unconditionally.
 
 Which keys a claim may set at all depends on [its kind](#claims-id-kind). Party by party and direction by
-direction, [who can access a claim](/functional/claim_access) is the whole of it.
+direction, [claim access control](/functional/claim_access) is the whole of it.
 
 | Key                                               | Type     | Description                                                                                                                                                                                                                                                                       | Required<br>Default   |
 |---------------------------------------------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|
