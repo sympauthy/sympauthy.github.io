@@ -47,8 +47,8 @@ X-SympAuthy-Signature: sha256=<hmac-hex>
   filtered out before the webhook is called, so the external server can trust that every scope in this list is a
   legitimate scope for this client.
 - `claims`: The user's claims available to the client. This includes claims accessible through
-  [consent-based access](/functional/claims#access-control) (when the user has consented to the relevant scope)
-  and claims accessible through [unconditional access](/functional/claims#access-control) (when the client
+  [consent-based access](/functional/claim_access) (when the user has consented to the relevant scope)
+  and claims accessible through [unconditional access](/functional/claim_access) (when the client
   holds the required client scopes). This gives the external server the context it needs for authorization decisions
   while respecting the minimal-disclosure principle.
 

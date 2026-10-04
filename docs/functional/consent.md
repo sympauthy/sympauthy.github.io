@@ -69,7 +69,8 @@ issued refresh token to obtain new access tokens.
   the same audience share the consent.
 - **[Clients](/functional/client)** — a client belongs to an audience. The client that originally
   prompted consent is recorded for audit purposes.
-- **[Claims](/functional/claims)** — claims with [consent-based access](/functional/claims#access-control) are
-  only shared with the client when covered by the consented scopes.
+- **[Claims](/functional/claims)** — claims with
+  [consent-based access](/functional/claim_access) are only shared with the client when covered by the
+  consented scopes.
 - **[Tokens](/functional/tokens)** — tokens issued by SympAuthy reflect the scopes recorded in the
   consent. Revoking a consent invalidates the associated refresh tokens across all clients in the audience.

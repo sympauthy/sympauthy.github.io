@@ -120,28 +120,11 @@ a different thing, and it is allowed: both rows name that account, so the login 
 Only completed sign-ups hold a value, though: an
 [abandoned one leaves its identifier claims free](/functional/end-user_management#a-sign-up-counts-only-once-the-flow-completes).
 
-## Access control
-
-Whether a party may read or write a claim is decided by the claim's **access control list (ACL)**, and there
-are two paths — either one is sufficient:
-
-- **Through consent** — the person consents to a [scope](/functional/scope#consentable-scope), which unlocks
-  the claim for the interactive flow, for the person, for the client, or for any combination of them. This is
-  what the shipped `personal` template grants.
-- **Through client scopes** — the client holds a [client scope](/functional/scope#client-scope) that grants
-  access directly, without involving the person. This is what the shipped `application` template grants.
-
-The [kind](#two-kinds-of-claim) is held to the ACL at startup: a key the kind of claim cannot mean is refused
-rather than accepted and ignored.
-
-[Claim access control](/functional/claim_access) is the whole of it — every party, every direction and every
-key, in one table — and [ACL configuration](/technical/configuration/claim#claims-id-acl) is where the keys
-are written.
-
 ## Where a claim is exposed
 
-Access control decides **who** may know a claim's value. Where that value travels is a separate decision,
-and [`published-in`](/technical/configuration/claim#claims-id-published-in) is the one key that answers it.
+[Access control](/functional/claim_access) decides **who** may know a claim's value. Where that value
+travels is a separate decision, and
+[`published-in`](/technical/configuration/claim#claims-id-published-in) is the one key that answers it.
 There are five places:
 
 | Place                                                                | Carries        |
@@ -158,9 +141,9 @@ it where the ACL allows. The shipped `personal` template names the ID token, `/u
 document, so a claim taking it travels where a client expects it; a claim on the `application` template
 names nothing until you say so.
 
-**Naming a place is not being allowed to reach it.** Publication only narrows what the
-[ACL](#access-control) already permits — a claim the ACL refuses the caller is exposed nowhere, whatever it
-names, and a claim restricted to another [audience](/functional/audience) is left out everywhere.
+**Naming a place is not being allowed to reach it.** Publication only narrows what the ACL already
+permits — a claim the ACL refuses the caller is exposed nowhere, whatever it names, and a claim restricted
+to another [audience](/functional/audience) is left out everywhere.
 
 Advertising and serving come apart in both directions. `claims_supported` lists exactly the claims naming
 `discovery`, so a deployment may serve a claim it does not advertise — and advertise a claim of its own. The
