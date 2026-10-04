@@ -1,57 +1,36 @@
 # Claims
 
-A **claim** is a piece of information about an end-user — their name, email address, preferred language, or any other
-detail relevant to your application. When a client needs to know something about the user who just logged in, it reads
-it from the claims provided by SympAuthy.
+A **claim** is a piece of information this authorization server holds about a person — their name, their
+email address, a subscription tier, a score a backend computed. When a client needs to know something
+about the person who just signed in, it reads it from the claims SympAuthy provides.
 
-SympAuthy acts as a central repository for these claims: a user fills in their information once, and all clients sharing
-the same authorization server can access it without asking the user again.
+SympAuthy acts as a central repository for these claims: a value is held once, and every client sharing
+the same authorization server reads it without asking the person again.
 
-SympAuthy controls who can access each claim. These defaults can be
-[customized per claim](/technical/configuration/claim#claims-id-acl).
+A deployment answers three questions about every claim it declares:
 
-Out of the box, SympAuthy supports all claims standardized in
-the [OpenID specification](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims). They are referred to
-as [OpenID Connect claims](#openid-connect-claims) throughout this documentation.
+- **Whose is the value?** The person's, or an application's. That is
+  [the kind of the claim](/functional/claim_kinds), and it decides who may write it.
+- **Who may read and write it?** The claim's access control list, party by party and direction by
+  direction — [claim access control](/functional/claim_access).
+- **Where does the value travel?** The tokens and endpoints that carry it, which is
+  [where a claim is exposed](#where-a-claim-is-exposed) below.
 
-In addition to [OpenID Connect claims](#openid-connect-claims), you can define your own claims about the end-user to
-centralize additional information you want to share between the clients of this authorization server. Those are referred
-to as [custom claims](#custom-claims) throughout this documentation.
+## Standard and custom claim names
 
-## OpenID Connect claims
+Out of the box, SympAuthy supports every claim standardized in the
+[OpenID Connect specification](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims) —
+`name`, `email`, `phone_number`, `birthdate`, `locale` and the rest. Because they follow a shared
+specification, any OpenID Connect-compatible library understands them with no integration work on your
+part. They ship disabled: a deployment enables the ones its applications ask for.
 
-OpenID Connect claims are claims defined by
-the [OpenID Connect specification](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims). They cover the
-most common pieces of user information: `name`, `email`, `phone_number`, `birthdate`, `locale`, and more.
+Where the specification covers nothing you need, declare a claim of your own — a subscription plan, an
+internal role, a `discord_id` — and centralize it between the clients of this authorization server the
+same way.
 
-Because they follow a shared specification, OpenID Connect claims are understood by any OpenID Connect-compatible
-library or service without any custom integration work on your part.
-
-SympAuthy supports all OpenID Connect claims out of the box. You only need to enable the ones you want to collect.
-
-By default, OpenID Connect claims require the end-user's [consent](/functional/consent) — a client can only read them
-if the user has approved the corresponding [scope](/functional/scope#consentable-scope).
-
-OpenID Connect claims are always shared across all [audiences](/functional/audience) — they cannot be scoped to a
-specific audience.
-
-## Custom claims
-
-When the OpenID Connect claims do not cover a piece of information specific to your application — for example, a
-subscription plan or an internal user role — you can define your own **custom claims**.
-
-By default, custom claims are not collected from the end-user. They are written by client applications through
-the [Client API](/technical/api/client) and represent application-managed metadata about a user — for example, a
-department, a subscription tier, or an internal role.
-
-Custom claims can optionally be scoped to an **[audience](/functional/audience)** by setting the `audience` field in
-the claim configuration. When set, the claim is only visible to clients within that audience. When `audience` is not
-set (the default), the claim is shared across all audiences.
-
-By default, any client with the right [client scope](/functional/scope#client-scope) can read and write custom claims
-without user involvement. This default can be overridden — if a custom claim should be consent-gated (for example,
-because it contains personal data entered by the user), you can configure its
-[ACL](/technical/configuration/claim#claims-id-acl) to require consent, just like an OpenID Connect claim.
+This is a claim's **origin**, which the [Admin API](/technical/api/admin) publishes as `openid` or
+`custom`. It says nothing about [whose the value is](/functional/claim_kinds#the-kind-is-not-the-origin):
+a claim of your own can be the person's, and a standard-named one can be an application's.
 
 ## Identifier claims
 
@@ -60,6 +39,10 @@ an **identifier claim** — one of the values a person
 [signs in with](/functional/authentication#identifier-and-password). An email address is the usual choice, but a
 username, an employee number or any other claim that singles out one person does the job as well. These claims are
 collected at sign-up, and an account keeps them.
+
+An identifier claim is a [personal claim](/functional/claim_kinds#a-personal-claim), because it is what the
+account signs in with and nobody but the person ever types it. Declaring one an application's is refused at
+startup, and no client writes one whatever its scopes.
 
 A user signs in with **any one** of them, never with all of them at once: a single typed value is matched against every
 claim in the list. That is what makes the uniqueness rule span the list rather than each claim in it — **a value belongs
@@ -79,51 +62,11 @@ a different thing, and it is allowed: both rows name that account, so the login 
 Only completed sign-ups hold a value, though: an
 [abandoned one leaves its identifier claims free](/functional/end-user_management#a-sign-up-counts-only-once-the-flow-completes).
 
-## Access control
-
-SympAuthy decides whether a user or client can read or write a claim based on the claim's
-**access control list (ACL)**. There are two ways access can be granted:
-
-- **Through consent** — the end-user consents to a [scope](/functional/scope#consentable-scope),
-  which unlocks the claim. This is the default for OpenID Connect claims.
-- **Through client scopes** — the client holds a [client scope](/functional/scope#client-scope)
-  that grants access directly, without involving the end-user. This is the default for custom claims.
-
-Out of the box, you do not need to configure any ACL — the defaults follow the OpenID Connect
-specification. If you need different behavior (for example, consent-gating a custom claim), see
-[ACL configuration](/technical/configuration/claim#claims-id-acl).
-
-### One flag, one door
-
-Consent does not unlock a single door, and the ACL names each of them separately:
-
-| ACL flag                            | What consent opens                                                                                                                                                                         |
-|-------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `collected-in-flow-when-consented`  | The [interactive flow](/functional/interactive_flow#collecting-additional-information-optional) asks the end-user to fill the claim in. Not for an [identifier claim](#identifier-claims). |
-| `readable-by-person-when-consented` | The end-user's own access token can read it, through `/api/openid/userinfo`.                                                                                                               |
-| `writable-by-person-when-consented` | The end-user's own access token can write it.                                                                                                                                              |
-| `readable-by-client-when-consented` | The client can read it — through the [Client API](/technical/api/client), and wherever the claim is [exposed](#where-a-claim-is-exposed).                                                  |
-| `writable-by-client-when-consented` | The client can write it.                                                                                                                                                                   |
-
-The interactive flow and the end-user's **own access token** are different doors, and no flag covers
-both: a claim the flow collects is not thereby writable through an API, and a claim an API may write
-is not thereby asked for during sign-in. A write through the end-user's own token can additionally be
-required to sit behind a recent authentication, with `write-max-authentication-age` — see
-[when the user authenticated](/functional/tokens#when-the-user-authenticated).
-
-**`collected-in-flow-when-consented` does not apply to an [identifier claim](#identifier-claims).**
-One is asked for at sign-up because it is what identifies the account, so it is collected whether or
-not any scope was consented to — and the flow's own
-[claim-collection step](/functional/interactive_flow#collecting-additional-information-optional)
-leaves identifier claims out whatever their ACL says.
-
-No endpoint reads `writable-by-person-when-consented` or `write-max-authentication-age` yet; both are
-declarable today and open nothing until the endpoint that lets an end-user write their own claim ships.
-
 ## Where a claim is exposed
 
-Access control decides **who** may know a claim's value. Where that value travels is a separate decision,
-and [`published-in`](/technical/configuration/claim#claims-id-published-in) is the one key that answers it.
+[Access control](/functional/claim_access) decides **who** may know a claim's value. Where that value
+travels is a separate decision, and
+[`published-in`](/technical/configuration/claim#claims-id-published-in) is the one key that answers it.
 There are five places:
 
 | Place                                                                | Carries        |
@@ -136,21 +79,23 @@ There are five places:
 
 A claim is exposed in the places its configuration names and in no other: one naming none never leaves
 through a token, `/userinfo` or introspection, though the [Client API](/technical/api/client) still reads
-it where the ACL allows. OpenID Connect claims ship naming the ID token, `/userinfo` and the discovery
-document, so they travel where a client expects them; a custom claim names nothing until you say so.
+it where the ACL allows. The shipped `personal` template names the ID token, `/userinfo` and the discovery
+document, so a claim taking it travels where a client expects it; a claim on the `application` template
+names nothing until you say so.
 
-**Naming a place is not being allowed to reach it.** Publication only narrows what the
-[ACL](#access-control) already permits — a claim the ACL refuses the caller is exposed nowhere, whatever it
-names, and a claim restricted to another [audience](/functional/audience) is left out everywhere.
+**Naming a place is not being allowed to reach it.** Publication only narrows what the ACL already
+permits — a claim the ACL refuses the caller is exposed nowhere, whatever it names, and a claim restricted
+to another [audience](/functional/audience) is left out everywhere.
 
 Advertising and serving come apart in both directions. `claims_supported` lists exactly the claims naming
-`discovery`, so a deployment may serve a claim it does not advertise — and advertise a custom claim of its
-own. The opposite is refused at startup: a claim advertised in no place that carries its value would be a
-name no client could ever obtain a value for.
+`discovery`, so a deployment may serve a claim it does not advertise — and advertise a claim of its own. The
+opposite is refused at startup: a claim advertised in no place that carries its value would be a name no
+client could ever obtain a value for.
 
 ## Configuration
 
-Both OpenID Connect and custom claims must be enabled in the configuration before SympAuthy uses them. Refer to
-the [configuration](/technical/configuration/claim) section for the full list of options, including
+A claim must be enabled in the configuration before SympAuthy uses it. Refer to the
+[configuration](/technical/configuration/claim) section for the full list of options, including
+[`kind`](/technical/configuration/claim#claims-id-kind),
 [claim templates](/technical/configuration/claim#templates-claims-id) and
 [ACL settings](/technical/configuration/claim#claims-id-acl).

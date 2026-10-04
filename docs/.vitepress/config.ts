@@ -72,13 +72,15 @@ export default defineConfig({
               ]
             },
             {
-              text: 'Tokens &amp; Claims',
+              text: 'Claims',
               collapsed: false,
               items: [
-                { text: 'Claims', link: '/functional/claims' },
-                { text: 'Tokens', link: '/functional/tokens' },
+                { text: 'Overview', link: '/functional/claims' },
+                { text: 'Kinds of claims', link: '/functional/claim_kinds' },
+                { text: 'Access Control', link: '/functional/claim_access' },
               ]
             },
+            { text: 'Tokens', link: '/functional/tokens' },
           ]
         }
       ],

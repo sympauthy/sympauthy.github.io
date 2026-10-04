@@ -1,7 +1,8 @@
 # Client API
 
 The Client API provides endpoints allowing client applications to query the authorization server for information about
-end-users. This API enables client applications to retrieve user data and manage custom claims.
+end-users. This API enables client applications to retrieve user data and manage the claims they are authorized to
+write.
 
 All Client API endpoints are under `/api/v1/client/` and require client authentication.
 
@@ -360,9 +361,10 @@ read based on each claim's [ACL](/technical/configuration/claim#claims-id-acl).
 
 - Claims scoped to a different [audience](/functional/audience) than the requesting client are filtered out. Only
   claims that are unscoped or scoped to the client's audience are returned.
-- By default, OpenID Connect claims require end-user consent to the relevant scope, and custom claims are returned
-  unconditionally to clients holding `users:claims:read`. This behavior can be customized through
-  [ACL configuration](/technical/configuration/claim#claims-id-acl).
+- A claim on the shipped `personal` [template](/technical/configuration/claim#templates-claims-id) requires the
+  end-user's consent to its scope; one on the `application` template is returned to any client holding
+  `users:claims:read`, whatever the end-user consented to. Either path is sufficient, and both are customizable
+  through [ACL configuration](/technical/configuration/claim#claims-id-acl).
 
 **Use Cases**:
 
@@ -436,8 +438,11 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
 **Important Notes**:
 
 - Only claims whose [ACL](/technical/configuration/claim#claims-id-acl) grants write access to the client can be
-  modified. By default, OpenID Connect claims are not writable by clients, and custom claims are writable by clients
-  holding `users:claims:write`.
+  modified. An [application claim](/functional/claim_kinds#an-application-claim) — a value a backend answers for — is
+  writable by a client holding `users:claims:write`. A [personal claim](/functional/claim_kinds#a-personal-claim) is
+  writable only where it is restricted to this client's own [audience](/functional/audience): a shared one grants no
+  client write at all, and a deployment configuring one is refused at startup.
+- An [identifier claim](/functional/claims#identifier-claims) is refused to every client, whatever its scopes.
 - Attempting to modify a claim the client is not authorized to write will result in an error.
 - Claims can be set to `null` to remove them.
 

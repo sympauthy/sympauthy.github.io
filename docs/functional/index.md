@@ -40,6 +40,10 @@ Its main design concepts are:
 - [User Authorization](user_authorization)
 - [Client Authorization](client_authorization)
 
-**Tokens & Claims**
-- [Claims](claims)
+**Claims**
+- [Overview](claims)
+- [Kinds of claims](claim_kinds)
+- [Access Control](claim_access)
+
+**Tokens**
 - [Tokens](tokens)
