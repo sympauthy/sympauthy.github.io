@@ -71,6 +71,33 @@ assert on the path a flow took, read `flow.stepTypes()` — the `List<FlowStep.T
 (e.g. `[SIGN_UP, COMPLETED]`) — instead of accumulating them through a `StepListener`. For
 lower-level access, `FlowApiClient` wraps each Flow API endpoint directly.
 
+## Authorization request parameters
+
+The driver assembles the `/authorize` request that starts a run.
+`withAuthorizationParam(name, value)` adds an extra query parameter to it — the escape hatch for a
+parameter the module does not model ([`max_age`](/functional/authentication), `claims`, `prompt`,
+`login_hint`, `acr_values`, …). Call it once per parameter; the value is url-encoded, so one that
+needs it — a JSON object, a space-separated list — reaches the server intact. The run stays an
+ordinary `run()`: the driver still generates the PKCE pair and the `AuthorizationResult` still
+`exchange()`s.
+
+```java
+TokenResponse tokens = registry.newFlow()
+    .withSignInHandler(cfg -> Credentials.of(email, password))
+    .withAuthorizationParam("max_age", "60")
+    .withAuthorizationParam("prompt", "login")
+    .run()
+    .exchange();
+```
+
+The parameters the driver computes — `response_type`, `client_id`, `redirect_uri`, `scope`
+(from the registry's `withScopes(...)`), `state`, `code_challenge` and `code_challenge_method` —
+are what make that exchange possible, so setting one raises `IllegalArgumentException` rather than
+being honoured; a test that needs one of them malformed has to issue the authorization request
+itself. `nonce` and `invitation_token` may be set this way too, but `withNonce(...)` and
+[`withInvitationToken(...)`](/testcontainers/invitation) spell them better; set both ways, the value
+given here wins.
+
 ## Chaining scenarios
 
 Register a flow per run and run them in order to chain scenarios against one container — for example
