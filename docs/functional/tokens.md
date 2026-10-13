@@ -202,7 +202,8 @@ When using DPoP, the client must:
 1. Generate an asymmetric key pair (e.g., RSA or ECDSA).
 2. Include a signed DPoP proof JWT in the `DPoP` header of every token request.
 3. Present the access token with `token_type: "DPoP"` to resource servers, along with a new DPoP proof for each
-   request.
+   request. SympAuthy's own APIs — the UserInfo endpoint, the [Client API](/technical/api/client) and the
+   [Admin API](/technical/api/admin) — are among those resource servers, and refuse the token sent as a bearer token.
 
 ### Token response differences
 

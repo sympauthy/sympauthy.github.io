@@ -105,11 +105,23 @@ grant_type=client_credentials
 
 **Step 3**: Use the access token in Admin API requests
 
-Include the access token in the `Authorization` header:
+Include the access token in the `Authorization` header, under the scheme its `token_type` names. A token issued with
+`token_type: "Bearer"` is sent as a bearer token:
 
 ```http
 GET /api/v1/admin/users
 Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+A token issued with `token_type: "DPoP"` is
+[bound to the key the client signed its proof with](/technical/security#dpop-demonstrating-proof-of-possession). It is
+sent under the `DPoP` scheme, with a new proof in the `DPoP` header on every request, and is refused if sent as a
+bearer token — even beside a valid proof:
+
+```http
+GET /api/v1/admin/users
+Authorization: DPoP eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+DPoP: eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IkVTMjU2IiwiandrIjp7...
 ```
 
 ### Authorization
@@ -135,6 +147,28 @@ The following errors may be returned by any endpoint:
 |----------------|--------------------------------------------------------------------------------|
 | `unauthorized` | The access to this resource is protected. Please authenticate before retrying. |
 | `forbidden`    | The access token does not include the required scope to access this resource.  |
+
+A request presenting a DPoP-bound access token, or presenting one under the `DPoP` scheme, may also be answered
+**401 Unauthorized** with one of these errors. The proof is checked as
+[Security](/technical/security#dpop-demonstrating-proof-of-possession) describes.
+
+| Error code                    | When                                                                                                 |
+|-------------------------------|------------------------------------------------------------------------------------------------------|
+| `dpop.bound_token_as_bearer`  | The access token is bound to a DPoP key and is sent as `Authorization: Bearer`.                      |
+| `dpop.unbound_token`          | The access token is sent as `Authorization: DPoP` and is bound to no DPoP key.                       |
+| `dpop.missing_header`         | The access token is sent as `Authorization: DPoP` with no `DPoP` header.                             |
+| `dpop.multiple_headers`       | The `DPoP` header is sent more than once.                                                            |
+| `dpop.malformed`              | The `DPoP` header is not a signed JWT.                                                               |
+| `dpop.invalid_type`           | The `typ` of the proof is not `dpop+jwt`.                                                            |
+| `dpop.unsupported_algorithm`  | The proof is signed with an algorithm `dpop_signing_alg_values_supported` does not list.             |
+| `dpop.private_key_in_header`  | The `jwk` of the proof holds a private key.                                                          |
+| `dpop.invalid_signature`      | The proof does not verify against its `jwk`.                                                         |
+| `dpop.missing_claims`         | The proof has no `jwk`, `jti`, `htm`, `htu` or `iat`.                                                |
+| `dpop.invalid_htm`            | `htm` is not the method of the request.                                                              |
+| `dpop.invalid_htu`            | `htu` is not the URL of the request, as the server's configured root names it.                       |
+| `dpop.expired`                | `iat` is more than 60 seconds away from the time of the request.                                     |
+| `dpop.invalid_ath`            | `ath` is missing or is not the hash of the access token.                                             |
+| `dpop.mismatching_key`        | The proof is signed with another key than the one the access token is bound to.                      |
 
 Endpoints returning a collection may return additional errors. See [Collections](#collections).
 
@@ -175,7 +209,7 @@ in responses. Requires the `admin:config:read` scope.
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:config:read` scope
+**Authentication**: Access token with `admin:config:read` scope
 
 **Purpose**: Retrieves a paginated list of all configured client applications.
 
@@ -248,7 +282,7 @@ in responses. Requires the `admin:config:read` scope.
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:config:read` scope
+**Authentication**: Access token with `admin:config:read` scope
 
 **Purpose**: Retrieves details for a specific client.
 
@@ -315,7 +349,7 @@ Requires the `admin:config:read` scope.
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:config:read` scope
+**Authentication**: Access token with `admin:config:read` scope
 
 **Purpose**: Retrieves a paginated list of all configured claims (OpenID Connect and custom).
 
@@ -445,7 +479,7 @@ Endpoints for viewing configured scopes. Since scopes are defined in configurati
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:config:read` scope
+**Authentication**: Access token with `admin:config:read` scope
 
 **Purpose**: Retrieves a paginated list of all configured scopes (OpenID Connect and custom, across all three types).
 
@@ -556,7 +590,7 @@ Endpoints for viewing configured [audiences](/functional/audience). Since audien
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:config:read` scope
+**Authentication**: Access token with `admin:config:read` scope
 
 **Purpose**: Retrieves a paginated list of all configured audiences.
 
@@ -616,7 +650,7 @@ Endpoints for viewing configured [audiences](/functional/audience). Since audien
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:config:read` scope
+**Authentication**: Access token with `admin:config:read` scope
 
 **Purpose**: Retrieves details for a specific audience.
 
@@ -665,7 +699,7 @@ read operations, `admin:users:write` for modifications, and `admin:users:delete`
 
 **Method**: POST
 
-**Authentication**: Bearer token with `admin:users:write` scope
+**Authentication**: Access token with `admin:users:write` scope
 
 **Purpose**: Creates a new user account. Useful for bulk provisioning and user migrations.
 
@@ -720,7 +754,7 @@ read operations, `admin:users:write` for modifications, and `admin:users:delete`
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:users:read` scope
+**Authentication**: Access token with `admin:users:read` scope
 
 **Purpose**: Retrieves a paginated list of users. Filters on the account's own fields and on any claim this
 deployment collects, searches across claim values, orders on any of them, and selects which claims to include in the
@@ -815,7 +849,7 @@ Returns **400 Bad Request** with error code `user.search.invalid_claim` when:
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:users:read` scope
+**Authentication**: Access token with `admin:users:read` scope
 
 **Purpose**: Retrieves the account status, metadata, and identifier claim values for a specific user.
 
@@ -857,7 +891,7 @@ Returns **400 Bad Request** with error code `user.search.invalid_claim` when:
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:users:read` scope
+**Authentication**: Access token with `admin:users:read` scope
 
 **Purpose**: Retrieves a paginated list of claim values for a specific user, with claim definition metadata. Only claims
 enabled in the configuration are returned. OpenID `*_verified` claims (e.g., `email_verified`, `phone_number_verified`)
@@ -960,7 +994,7 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 **Method**: PATCH
 
-**Authentication**: Bearer token with `admin:users:write` scope
+**Authentication**: Access token with `admin:users:write` scope
 
 **Purpose**: Updates claims for a specific user. Only the provided claims are modified; omitted claims remain unchanged.
 
@@ -1019,7 +1053,7 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 **Method**: POST
 
-**Authentication**: Bearer token with `admin:users:write` scope
+**Authentication**: Access token with `admin:users:write` scope
 
 **Purpose**: Disables a user account. A disabled user cannot authenticate but their data is preserved.
 
@@ -1050,7 +1084,7 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 **Method**: POST
 
-**Authentication**: Bearer token with `admin:users:write` scope
+**Authentication**: Access token with `admin:users:write` scope
 
 **Purpose**: Re-enables a previously disabled user account.
 
@@ -1081,7 +1115,7 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 **Method**: DELETE
 
-**Authentication**: Bearer token with `admin:users:delete` scope
+**Authentication**: Access token with `admin:users:delete` scope
 
 **Purpose**: Permanently deletes a user account and all associated data. This operation is irreversible.
 
@@ -1113,7 +1147,7 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 **Method**: POST
 
-**Authentication**: Bearer token with `admin:users:write` scope
+**Authentication**: Access token with `admin:users:write` scope
 
 **Purpose**: Administratively resets the password for a user account.
 
@@ -1152,7 +1186,7 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 **Method**: POST
 
-**Authentication**: Bearer token with `admin:consent:write` scope
+**Authentication**: Access token with `admin:consent:write` scope
 
 **Purpose**: Revokes all tokens for a specific user, forcing them to re-authenticate.
 
@@ -1188,7 +1222,7 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 **Method**: POST
 
-**Authentication**: Bearer token with `admin:consent:write` scope
+**Authentication**: Access token with `admin:consent:write` scope
 
 **Purpose**: Revokes all tokens for a specific user on a specific client application, forcing them to re-authenticate on
 that client only.
@@ -1235,7 +1269,7 @@ admin-initiated MFA enrollment on a user's behalf. Requires `admin:users:read` f
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:users:read` scope
+**Authentication**: Access token with `admin:users:read` scope
 
 **Purpose**: Retrieves a paginated list of the MFA methods a user has registered.
 
@@ -1309,7 +1343,7 @@ This listing names no searchable field, so it accepts no `q`, and one sent to it
 
 **Method**: DELETE
 
-**Authentication**: Bearer token with `admin:users:write` scope
+**Authentication**: Access token with `admin:users:write` scope
 
 **Purpose**: Revokes a specific MFA method registered by a user. The user can no longer use it as a second factor.
 Returns 404 if no MFA registration matches the given identifier.
@@ -1343,7 +1377,7 @@ Returns 404 if no MFA registration matches the given identifier.
 
 **Method**: POST
 
-**Authentication**: Bearer token with `admin:users:write` scope
+**Authentication**: Access token with `admin:users:write` scope
 
 **Purpose**: Starts a standalone MFA enrollment [interactive flow](/functional/interactive_flow) on a user's behalf and
 returns a `redirect_url` to hand or send to that user. When the user completes enrollment, they are redirected to the
@@ -1435,7 +1469,7 @@ Endpoints for viewing and managing the links between end-user accounts and exter
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:users:read` scope
+**Authentication**: Access token with `admin:users:read` scope
 
 **Purpose**: Retrieves a paginated list of all external identity providers linked to a specific user account.
 
@@ -1512,7 +1546,7 @@ Endpoints for viewing and managing the links between end-user accounts and exter
 
 **Method**: DELETE
 
-**Authentication**: Bearer token with `admin:users:write` scope
+**Authentication**: Access token with `admin:users:write` scope
 
 **Purpose**: Removes the link between a user account and an external identity provider. The user will no longer be
 able to authenticate through this provider until they re-link it via the authentication flow. Returns 404 if no
@@ -1547,7 +1581,7 @@ link exists for the user and provider pair.
 
 **Method**: POST
 
-**Authentication**: Bearer token with `admin:users:write` scope
+**Authentication**: Access token with `admin:users:write` scope
 
 **Purpose**: Starts a standalone provider-link [interactive flow](/functional/interactive_flow) on a user's behalf and
 returns a `redirect_url` to hand or send to that user. In the flow the end-user is asked to **confirm** the action —
@@ -1654,7 +1688,7 @@ and `admin:consent:write` for modifications.
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:consent:read` scope
+**Authentication**: Access token with `admin:consent:read` scope
 
 **Purpose**: Retrieves all active consents granted by a specific user, grouped by [audience](/functional/audience).
 
@@ -1735,7 +1769,7 @@ A consent covers several scopes, so `scope=openid` keeps a consent holding `open
 
 **Method**: DELETE
 
-**Authentication**: Bearer token with `admin:consent:write` scope
+**Authentication**: Access token with `admin:consent:write` scope
 
 **Purpose**: Revokes the active consent granted by a user to a specific [audience](/functional/audience). All clients
 in the audience will no longer be able to access the user's data until the user re-authorizes. Returns 404 if no
@@ -1784,7 +1818,7 @@ The admin API can see and manage all invitations regardless of who created them 
 
 **Method**: POST
 
-**Authentication**: Bearer token with `admin:invitations:write` scope
+**Authentication**: Access token with `admin:invitations:write` scope
 
 **Purpose**: Creates a single-use invitation for a specific audience. The invitation token is returned only in this
 response — it cannot be retrieved later.
@@ -1862,7 +1896,7 @@ response — it cannot be retrieved later.
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:invitations:read` scope
+**Authentication**: Access token with `admin:invitations:read` scope
 
 **Purpose**: Retrieves a paginated list of all invitations across all audiences and creators.
 
@@ -1950,7 +1984,7 @@ admits `is_null` — `revoked_at.is_null=false` lists the invitations that were 
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:invitations:read` scope
+**Authentication**: Access token with `admin:invitations:read` scope
 
 **Purpose**: Retrieves details for a specific invitation. When the invitation has been consumed, the response includes
 the `user_id` and `consumed_at` fields.
@@ -2038,7 +2072,7 @@ the `user_id` and `consumed_at` fields.
 
 **Method**: POST
 
-**Authentication**: Bearer token with `admin:invitations:write` scope
+**Authentication**: Access token with `admin:invitations:write` scope
 
 **Purpose**: Revokes a pending invitation. The invitation can no longer be redeemed. This operation is immediate
 and permanent. The response is the full invitation, with `status` now `revoked` and `revoked_at` set.
@@ -2099,7 +2133,7 @@ operator read a moment ago may be gone by the time they open it.
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:interactive-flow-sessions:read` scope
+**Authentication**: Access token with `admin:interactive-flow-sessions:read` scope
 
 **Purpose**: Retrieves a paginated list of the interactive flow sessions currently in flight, each with the purpose it
 started for, the purpose it is stopped at, the account it identified, and the place it was last driven from.
@@ -2224,7 +2258,7 @@ See [Collections](#collections) for the errors a bad page, filter, order or sear
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:interactive-flow-sessions:read` scope
+**Authentication**: Access token with `admin:interactive-flow-sessions:read` scope
 
 **Purpose**: Retrieves one interactive flow session: every purpose it carries, where each one stands, and what the
 handler that owns each purpose has to say about it.
@@ -2333,7 +2367,7 @@ A session that has already been collected answers `not_found` like one that neve
 
 **Method**: GET
 
-**Authentication**: Bearer token with `admin:interactive-flow-sessions:read` scope
+**Authentication**: Access token with `admin:interactive-flow-sessions:read` scope
 
 **Purpose**: Retrieves a paginated list of the places one interactive flow session was driven from — one entry per
 distinct address and user agent, counting the requests that came from it rather than repeating them.

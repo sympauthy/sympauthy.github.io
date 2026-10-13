@@ -181,6 +181,24 @@ The mechanism works as follows:
 6. Refresh tokens are also DPoP-bound. When refreshing a DPoP-bound token, the client must present a new DPoP proof
    signed with the same key.
 
+The bound access token is then presented the same way on every request it authorizes — to the UserInfo endpoint, the
+[Client API](/technical/api/client) and the [Admin API](/technical/api/admin) alike:
+
+1. The client sends `Authorization: DPoP <token>` and a new proof in the `DPoP` header.
+2. The proof names the method of the request in `htm` and its URL, without query or fragment, in `htu`, as at the token
+   endpoint. It also carries `ath`: the base64url-encoded SHA-256 hash of the access token.
+3. SympAuthy validates the proof as it does at the token endpoint, checks `ath`, and checks that the proof is signed by
+   the key the token is bound to (`cnf.jkt`).
+
+A bound token sent as `Authorization: Bearer` is refused, even beside a valid proof — otherwise whoever stole it would
+simply present it the old way. A token bound to no key sent under the `DPoP` scheme is refused too. The
+[Client API](/technical/api/client#error-format) and [Admin API](/technical/api/admin#error-format) list the error code
+of each refusal.
+
+**`htu` is compared with the configured [`urls.root`](/technical/configuration/#urls) joined to the request path**, not
+with the host the request arrived on — at the token endpoint as on every other request. A client reaching SympAuthy
+through a proxy or on another port must name the URL the server is configured with, or its proof is refused.
+
 The following asymmetric algorithms are supported for DPoP proof signatures:
 
 | Family | Algorithms          |
