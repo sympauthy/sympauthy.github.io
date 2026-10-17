@@ -61,11 +61,23 @@ grant_type=client_credentials
 
 **Step 2**: Use the access token in Client API requests
 
-Include the access token in the `Authorization` header:
+Include the access token in the `Authorization` header, under the scheme its `token_type` names. A token issued with
+`token_type: "Bearer"` is sent as a bearer token:
 
 ```http
 GET /api/v1/client/users
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+A token issued with `token_type: "DPoP"` is
+[bound to the key the client signed its proof with](/technical/security#dpop-demonstrating-proof-of-possession). It is
+sent under the `DPoP` scheme, with a new proof in the `DPoP` header on every request, and is refused if sent as a
+bearer token — even beside a valid proof:
+
+```http
+GET /api/v1/client/users
+Authorization: DPoP eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+DPoP: eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IkVTMjU2IiwiandrIjp7...
 ```
 
 ### Authorization
@@ -91,6 +103,28 @@ The following errors may be returned by any endpoint:
 |----------------|--------------------------------------------------------------------------------|
 | `unauthorized` | The access to this resource is protected. Please authenticate before retrying. |
 | `forbidden`    | The access token does not include the required scope to access this resource.  |
+
+A request presenting a DPoP-bound access token, or presenting one under the `DPoP` scheme, may also be answered
+**401 Unauthorized** with one of these errors. The proof is checked as
+[Security](/technical/security#dpop-demonstrating-proof-of-possession) describes.
+
+| Error code                    | When                                                                                                 |
+|-------------------------------|------------------------------------------------------------------------------------------------------|
+| `dpop.bound_token_as_bearer`  | The access token is bound to a DPoP key and is sent as `Authorization: Bearer`.                      |
+| `dpop.unbound_token`          | The access token is sent as `Authorization: DPoP` and is bound to no DPoP key.                       |
+| `dpop.missing_header`         | The access token is sent as `Authorization: DPoP` with no `DPoP` header.                             |
+| `dpop.multiple_headers`       | The `DPoP` header is sent more than once.                                                            |
+| `dpop.malformed`              | The `DPoP` header is not a signed JWT.                                                               |
+| `dpop.invalid_type`           | The `typ` of the proof is not `dpop+jwt`.                                                            |
+| `dpop.unsupported_algorithm`  | The proof is signed with an algorithm `dpop_signing_alg_values_supported` does not list.             |
+| `dpop.private_key_in_header`  | The `jwk` of the proof holds a private key.                                                          |
+| `dpop.invalid_signature`      | The proof does not verify against its `jwk`.                                                         |
+| `dpop.missing_claims`         | The proof has no `jwk`, `jti`, `htm`, `htu` or `iat`.                                                |
+| `dpop.invalid_htm`            | `htm` is not the method of the request.                                                              |
+| `dpop.invalid_htu`            | `htu` is not the URL of the request, as the server's configured root names it.                       |
+| `dpop.expired`                | `iat` is more than 60 seconds away from the time of the request.                                     |
+| `dpop.invalid_ath`            | `ath` is missing or is not the hash of the access token.                                             |
+| `dpop.mismatching_key`        | The proof is signed with another key than the one the access token is bound to.                      |
 
 Endpoints returning a collection may return additional errors. See [Collections](#collections).
 
@@ -123,7 +157,7 @@ Endpoints for listing users and viewing their authorization status. Requires the
 
 **Method**: GET
 
-**Authentication**: Bearer token with `users:read` scope
+**Authentication**: Access token with `users:read` scope
 
 **Purpose**: Retrieves a paginated list of all end-users who have consented to share scopes with the [audience](/functional/audience) the requesting client belongs to.
 
@@ -240,7 +274,7 @@ It orders on nothing and searches nothing, so a `sort` or a `q` sent to it is re
 
 **Method**: GET
 
-**Authentication**: Bearer token with `users:read` scope
+**Authentication**: Access token with `users:read` scope
 
 **Purpose**: Retrieves basic information about a specific end-user and their authorization status with the client.
 
@@ -311,7 +345,7 @@ Endpoints for reading and updating user claims. Requires `users:claims:read` for
 
 **Method**: GET
 
-**Authentication**: Bearer token with `users:claims:read` scope
+**Authentication**: Access token with `users:claims:read` scope
 
 **Purpose**: Retrieves claims associated with a specific end-user. Returns claims that the client is authorized to
 read based on each claim's [ACL](/technical/configuration/claim#claims-id-acl).
@@ -381,7 +415,7 @@ read based on each claim's [ACL](/technical/configuration/claim#claims-id-acl).
 
 **Method**: PATCH
 
-**Authentication**: Bearer token with `users:claims:write` scope
+**Authentication**: Access token with `users:claims:write` scope
 
 **Purpose**: Updates claims for a specific end-user. Only claims that the client is authorized to write based on the
 claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified through this endpoint.
@@ -467,7 +501,7 @@ enrollment from, for example, an account-settings or security screen. Requires t
 
 **Method**: POST
 
-**Authentication**: Bearer token with `users:mfa:write` scope, **plus** the end-user's access token in the request
+**Authentication**: Access token with `users:mfa:write` scope, **plus** the end-user's access token in the request
 body (see **Dual authentication** below)
 
 **Purpose**: Starts a standalone MFA enrollment [interactive flow](/functional/interactive_flow) for an
@@ -479,7 +513,7 @@ through this endpoint cannot be skipped.
 **Dual authentication**: This endpoint acts on behalf of an end-user, so it identifies **two** parties and requires
 **two** credentials:
 
-1. **The client** — authenticates with its client-credentials Bearer token, like every other Client API endpoint, and
+1. **The client** — authenticates with its client-credentials access token, like every other Client API endpoint, and
    must hold the `users:mfa:write` scope.
 2. **The end-user** — identified by their own access token, passed in the request body as `access_token`. The server
    validates this token and derives the user to enroll from it.
@@ -538,7 +572,7 @@ the same way.
   already included in the URL.
 
 The client is responsible for navigating the end-user's browser to `redirect_url`. The endpoint returns JSON rather
-than issuing a `303` redirect because the caller is a client backend holding a bearer token, not the browser itself.
+than issuing a `303` redirect because the caller is a client backend holding an access token, not the browser itself.
 
 **Important Notes**:
 
@@ -568,7 +602,7 @@ screen. Requires the `users:providers:write` scope.
 
 **Method**: POST
 
-**Authentication**: Bearer token with `users:providers:write` scope, **plus** the end-user's access token in the
+**Authentication**: Access token with `users:providers:write` scope, **plus** the end-user's access token in the
 request body (see **Dual authentication** below)
 
 **Purpose**: Starts a standalone provider-link [interactive flow](/functional/interactive_flow) for an
@@ -590,7 +624,7 @@ This step is not optional and cannot be skipped.
 **Dual authentication**: This endpoint acts on behalf of an end-user, so it identifies **two** parties and requires
 **two** credentials:
 
-1. **The client** — authenticates with its client-credentials Bearer token, like every other Client API endpoint, and
+1. **The client** — authenticates with its client-credentials access token, like every other Client API endpoint, and
    must hold the `users:providers:write` scope.
 2. **The end-user** — identified by their own access token, passed in the request body as `access_token`. The server
    validates this token and derives the user to link the provider to from it.
@@ -650,7 +684,7 @@ the same way (**400 Bad Request**).
   re-authentication, then provider authorization). The `state` is already included in the URL.
 
 The client is responsible for navigating the end-user's browser to `redirect_url`. The endpoint returns JSON rather
-than issuing a `303` redirect because the caller is a client backend holding a bearer token, not the browser itself.
+than issuing a `303` redirect because the caller is a client backend holding an access token, not the browser itself.
 
 **Important Notes**:
 
@@ -686,7 +720,7 @@ can manage all invitations regardless of creator.
 
 **Method**: POST
 
-**Authentication**: Bearer token with `invitations:write` scope
+**Authentication**: Access token with `invitations:write` scope
 
 **Purpose**: Creates a single-use invitation for the client's [audience](/functional/audience). The audience is
 always the requesting client's own, so this API neither accepts nor publishes an audience field anywhere. The
@@ -765,7 +799,7 @@ invitation token is returned only in this response — it cannot be retrieved la
 
 **Method**: GET
 
-**Authentication**: Bearer token with `invitations:read` scope
+**Authentication**: Access token with `invitations:read` scope
 
 **Purpose**: Retrieves a paginated list of invitations created by the requesting client. Invitations created by
 other clients or by administrators are not returned.
@@ -846,7 +880,7 @@ so there is nothing to filter on.
 
 **Method**: GET
 
-**Authentication**: Bearer token with `invitations:read` scope
+**Authentication**: Access token with `invitations:read` scope
 
 **Purpose**: Retrieves details for a specific invitation created by the requesting client. Returns 404 if the
 invitation was not created by this client.
@@ -923,7 +957,7 @@ invitation was not created by this client.
 
 **Method**: POST
 
-**Authentication**: Bearer token with `invitations:write` scope
+**Authentication**: Access token with `invitations:write` scope
 
 **Purpose**: Revokes a pending invitation created by the requesting client. The invitation can no longer be
 redeemed. Returns 404 if the invitation was not created by this client. This operation is immediate and permanent.
