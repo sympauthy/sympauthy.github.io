@@ -71,8 +71,14 @@ Two categories of keys are used:
 
 - **Public-key tokens** — issued to external parties (clients, providers). The algorithm must be asymmetric so that a
   recipient can verify the signature with the public key alone, without being able to forge tokens. Configured with
-  `advanced.jwt.public-alg` (default: `RS256`).
-- **Private-key tokens** — used for internal operations. Configured with `advanced.jwt.private-alg` (default: `RS256`).
+  [`advanced.jwt.public-alg`](/technical/configuration/advanced) (default: `es256`), and
+  `advanced.jwt.access-alg` (default: `es256`) for the access token's own key.
+- **Private-key tokens** — used for internal operations. Configured with
+  [`advanced.jwt.private-alg`](/technical/configuration/advanced) (default: `hs256`).
+
+`id_token_signing_alg_values_supported` on the discovery document lists exactly the configured `public-alg` and
+nothing else — `RS256` is **not** advertised unless it is what you configured. A client library that assumes `RS256`
+must either read the discovery document or be given a deployment that sets `advanced.jwt.public-alg: rs256`.
 
 Access tokens and ID tokens are signed with **separate keys** as recommended
 by [RFC 9068](https://datatracker.ietf.org/doc/html/rfc9068). This prevents a token intended for one purpose from being
@@ -103,13 +109,28 @@ the [OAuth 2.0 Token Revocation specification (RFC 7009)](https://datatracker.ie
 `/api/oauth2/revoke`. Clients can proactively revoke tokens — for example, when a user signs out — so that they are
 rejected immediately rather than waiting for expiration.
 
+A confidential client authenticates as it does elsewhere (Client Secret Basic or Client Secret Post), and a
+[public client](/functional/client#confidential-and-public-clients) sends its `client_id` alone, as
+[RFC 7009 section 2.1](https://datatracker.ietf.org/doc/html/rfc7009#section-2.1) has it. Either way a token is revoked
+only where it was issued to the client asking. The `token_type_hint` parameter is accepted and **ignored**: the server
+reads the type off the token itself, so a hint naming the wrong type no longer hides it.
+
+A revocation only touches a token still in service. One already revoked keeps the record of its first revocation, and
+an expired one is left as it was — so a count of what a revocation took out of service counts only that.
+
+**A token does not outlive its client.** When a deployment removes a client from its configuration, every unexpired
+access token naming that client is refused with **401** `token.client_disabled` on every surface. The tokens are
+refused rather than revoked — nothing is written to them — so re-declaring the same client id serves them again until
+they expire. See [removing a client](/technical/configuration/client#removing-a-client).
+
 ## Token introspection
 
 SympAuthy implements
 the [OAuth 2.0 Token Introspection specification (RFC 7662)](https://datatracker.ietf.org/doc/html/rfc7662) at
 `/api/oauth2/introspect`. Resource servers and other authorized parties can submit a token to this endpoint to determine
 whether it is still active and to retrieve metadata about it. The endpoint requires client authentication (Client Secret
-Basic or Client Secret Post).
+Basic or Client Secret Post). As at the revocation endpoint, `token_type_hint` is accepted and ignored — the type is
+read off the token.
 
 The response reports `auth_time`, [when the end-user authenticated](/functional/tokens#when-the-user-authenticated),
 where [RFC 9470 section 6.2](https://www.rfc-editor.org/rfc/rfc9470#section-6.2) puts it — so a resource server that
@@ -127,8 +148,14 @@ own members is left out rather than written over it.
 
 The authorization code is a short-lived, single-use credential. SympAuthy enforces the following protections:
 
-- **One-time use**: Each authorization code can only be exchanged for tokens once. Any subsequent attempt to reuse it is
-  rejected.
+- **One-time use**: Each authorization code is spent by the exchange that is issued tokens. A second exchange of the
+  same code is refused with `invalid_grant` and, where it passes client authentication and the PKCE verifier, **revokes
+  every token that code was issued** — the first exchange's access and refresh tokens, and every token refreshed from
+  them. The end-user must sign in again, which is what
+  [RFC 6749 section 4.1.2](https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2) asks of a server that detects a
+  replay. A client that retries an exchange whose response it lost therefore signs the end-user out: retry the
+  authorization, not the exchange. A replay failing client authentication or the PKCE verifier is refused and revokes
+  nothing.
 - **State parameter required**: The `state` parameter is mandatory on every authorization request, protecting against
   cross-site request forgery (CSRF)
   attacks ([RFC 6749 section 10.12](https://datatracker.ietf.org/doc/html/rfc6749#section-10.12)).
@@ -287,9 +314,12 @@ since that step was issued:
 3. If the version no longer matches, the session has already progressed (a later step won, or the same step was
    replayed), so the stale update is rejected and changes nothing.
 
-A rejected step is an unrecoverable conflict: the flow session is failed and the end-user is redirected to the flow's
-[error URI](configuration/authorization#flows-id). A replayed or stale request can never overwrite the legitimate
-session state.
+A rejected step is an unrecoverable conflict, and the end-user is redirected to the flow's
+[error URI](configuration/authorization#flows-id). Where the session is still running, it is failed. Where a sibling
+request has already ended it — an authorization that completed, for instance — the session is left as that sibling
+left it and the late request is simply routed to the error page: the authorization code went to the request that
+completed the authorization and is never handed out again. Either way, a replayed or stale request can never overwrite
+the legitimate session state.
 
 This protection is always on and requires no configuration.
 

@@ -73,6 +73,11 @@ Access tokens have a short lifespan — typically minutes to a few hours. The ex
 
 Once expired, the access token is rejected. The client must use the refresh token to obtain a new one.
 
+Expiry is not the only reason an access token is rejected. It is also refused when it has been
+[revoked](/technical/security#token-revocation), and when the deployment's configuration
+[no longer declares the client](/technical/configuration/client#removing-a-client) it was issued to — a token does not
+outlive its client.
+
 ### Acting on behalf of a user
 
 A confidential client can also obtain an access token that acts **on behalf of a user** — without that
@@ -107,6 +112,11 @@ While the access token answers "is this user allowed to do this?", the ID token 
 Which claims it carries is the deployment's decision: a claim reaches the ID token when its
 [`published-in`](/technical/configuration/claim#claims-id-published-in) names `id-token` and its ACL lets
 the client read it. The OpenID Connect claims ship naming it, so they are where a client expects them.
+
+A claim whose
+[`published-in-when-requested`](/technical/configuration/claim#claims-id-published-in-when-requested)
+names `id-token` reaches it too, but only for an authorization that
+[asked for it by name](/functional/claims#asking-for-a-claim-in-the-request).
 
 ### Expiration
 
@@ -183,7 +193,11 @@ The user will be prompted to sign in again when:
 - the refresh token has expired (controlled by `token.refresh-token.lifespan`),
 - the refresh token has been revoked (for example, following an account action),
 - the [consent](/functional/consent) for the user and [audience](/functional/audience) has been revoked by an
-  administrator,
+  administrator — which revokes every token issued for that audience, not the refresh token alone,
+- the authorization code the tokens were issued for was presented a second time, which
+  [revokes them](/technical/security#authorization-code-security),
+- the deployment removed the client from its configuration
+  ([a token does not outlive its client](/technical/configuration/client#removing-a-client)),
 - the client explicitly signs the user out.
 
 ## Sender-constrained tokens (DPoP)

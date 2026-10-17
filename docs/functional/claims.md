@@ -66,8 +66,10 @@ Only completed sign-ups hold a value, though: an
 
 [Access control](/functional/claim_access) decides **who** may know a claim's value. Where that value
 travels is a separate decision, and
-[`published-in`](/technical/configuration/claim#claims-id-published-in) is the one key that answers it.
-There are five places:
+[`published-in`](/technical/configuration/claim#claims-id-published-in) is the key that answers it for every
+authorization alike —
+[`published-in-when-requested`](/technical/configuration/claim#claims-id-published-in-when-requested) answers it
+for the ones that [ask by name](#asking-for-a-claim-in-the-request). There are five places:
 
 | Place                                                                | Carries        |
 |----------------------------------------------------------------------|----------------|
@@ -90,7 +92,39 @@ to another [audience](/functional/audience) is left out everywhere.
 Advertising and serving come apart in both directions. `claims_supported` lists exactly the claims naming
 `discovery`, so a deployment may serve a claim it does not advertise — and advertise a claim of its own. The
 opposite is refused at startup: a claim advertised in no place that carries its value would be a name no
-client could ever obtain a value for.
+client could ever obtain a value for. A place a client can ask the claim into counts as carrying it here.
+
+## Asking for a claim in the request
+
+A client can ask for a claim in the ID token or in `/userinfo` with the `claims` parameter of its
+authorization request, as
+[OpenID Connect Core section 5.5](https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter)
+defines it:
+
+```
+GET /api/oauth2/authorize?...&claims={"id_token":{"phone_number":null},"userinfo":{"birthdate":null}}
+```
+
+The request **only ever adds**, and only where the deployment has opened a door. The rules:
+
+- A claim reaches a place on the strength of
+  [`published-in-when-requested`](/technical/configuration/claim#claims-id-published-in-when-requested)
+  naming it, never on the strength of the request alone. A deployment that names nothing there answers
+  every request exactly as before.
+- Only `id_token` and `userinfo` can be asked for — they are the two members section 5.5 defines.
+- The request is asked **last**: access control, the audience and publication all decide first, and a
+  claim they withhold stays withheld whatever the request asks for. So the parameter cannot be used to
+  ask for a *smaller* ID token either.
+- A name the deployment has not opened is **ignored**, not refused.
+- The `essential`, `value` and `values` members of section 5.5.1 are ignored, as are `claims_locales`.
+- A `claims` parameter that cannot be read sends the end-user to the flow's error page.
+- The ask is remembered for the whole authorization: a refresh reissues the ID token with the same
+  claims, and `/userinfo` answers with them for as long as the token lives.
+
+`claims_parameter_supported` on the discovery document is `true`. The `request` and `request_uri` JWT
+request objects of section 6 are the other way to send the parameter, and an authorization request
+carrying either is [refused](/technical/oauth2_compatibility) — this server reads `claims` from the query
+alone.
 
 ## Configuration
 

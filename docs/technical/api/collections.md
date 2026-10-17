@@ -149,6 +149,7 @@ that does not answer what they asked. Any collection endpoint may return **400 B
 | `collection.size.too_large`              | The number of results per page must not exceed the server's configured maximum. Request fewer results per page and page through the collection.  |
 | `collection.size.too_small`              | The number of results per page must be 1 or greater.                                                                                            |
 | `collection.sort.unknown_field`          | This collection cannot be ordered by the named key. The sortable fields are listed in the message.                                              |
+| `parameter.malformed`                    | A `page` or `size` that is not a whole number, or one too large to be read as one, is refused here rather than by a `collection.page.*` code.    |
 
 Each description names the parameter, the field or the value at fault, and `collection.size.too_large` names the
 configured maximum, so the message a caller receives states the actual number.

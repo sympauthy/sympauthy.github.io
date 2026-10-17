@@ -92,6 +92,11 @@ No client can write an [identifier claim](/functional/claims#identifier-claims),
 Nothing in a claim write verifies the value, so a client able to set one could repoint an account's sign-in
 at an address it controls. The [Client API](/technical/api/client) refuses such a claim by name.
 
+Because a write verifies nothing, **a write that changes a value clears whatever verification the old one
+held**: the [`verified-id`](/technical/configuration/claim#claims-id) companion goes back to `false`, and
+the end-user is asked to validate the new value at their next authorization. This holds for every write —
+a client's, an administrator's, the end-user's own, and one collected from a provider.
+
 Each place a claim is published in asks its own half of the ACL. The [ID token](/functional/tokens#id-token),
 the [access token](/functional/tokens#a-claim-in-an-access-token) and the
 [introspection response](/functional/tokens#token-introspection) are issued or answered to a client, so each

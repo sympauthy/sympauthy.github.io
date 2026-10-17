@@ -453,7 +453,7 @@ it.
 
 ```json
 {
-  "redirect_url": "/api/v1/flow/claims/validation/EMAIL?state=..."
+  "redirect_url": "/api/v1/flow/claims/validation/email?state=..."
 }
 ```
 
@@ -491,7 +491,7 @@ it.
 
 **Parameters**:
 
-- `media`: Media type for code delivery (e.g., `EMAIL`, `SMS`)
+- `media`: Media type for code delivery: `email` or `sms`
 
 **Response Format**:
 
@@ -499,14 +499,14 @@ When validation is needed:
 
 ```json
 {
-  "media": "EMAIL",
+  "media": "email",
   "code": {
     "id": "abc123",
-    "media": "EMAIL",
+    "media": "email",
     "reasons": [
-      "EMAIL_CLAIM"
+      "email_claim"
     ],
-    "resendDate": "2026-02-14T10:43:30"
+    "resend_date": "2026-02-14T10:43:30"
   }
 }
 ```
@@ -523,8 +523,9 @@ When no validation needed (auto-skip):
 
 - `id`: Unique identifier for this validation code
 - `media`: Media through which code was sent
-- `reasons`: Why validation is required (e.g., `EMAIL_CLAIM`, `PHONE_CLAIM`)
-- `resendDate`: ISO 8601 timestamp when the code can be resent. UTC, written with no zone offset
+- `reasons`: Why validation is required: `email_claim` confirms the end-user receives mail at the value of their
+  `email` claim, and `phone_number_claim` that they receive messages at the value of their `phone_number` claim
+- `resend_date`: ISO 8601 timestamp when the code can be resent. UTC, written with no zone offset
 
 **Behavior**:
 
@@ -542,7 +543,7 @@ When no validation needed (auto-skip):
 
 ```json
 {
-  "media": "EMAIL",
+  "media": "email",
   "code": "123456"
 }
 ```
@@ -576,7 +577,7 @@ When no validation needed (auto-skip):
 
 ```json
 {
-  "media": "EMAIL"
+  "media": "email"
 }
 ```
 
@@ -586,15 +587,15 @@ When code was resent:
 
 ```json
 {
-  "media": "EMAIL",
+  "media": "email",
   "resent": true,
   "code": {
     "id": "def456",
-    "media": "EMAIL",
+    "media": "email",
     "reasons": [
-      "EMAIL_CLAIM"
+      "email_claim"
     ],
-    "resendDate": "2026-02-14T10:48:30"
+    "resend_date": "2026-02-14T10:48:30"
   }
 }
 ```
@@ -603,7 +604,7 @@ When resend was blocked (anti-spam):
 
 ```json
 {
-  "media": "EMAIL",
+  "media": "email",
   "resent": false
 }
 ```
@@ -616,11 +617,13 @@ When resend was blocked (anti-spam):
 
 **Workflow**:
 
-1. Check if enough time has passed since last send (based on `resendDate`)
+1. Check if enough time has passed since last send (based on `resend_date`)
 2. If allowed: Send new code and return new code information
 3. If blocked: Return `resent: false` to prevent spam
 
-**Supported Media Types**: `EMAIL`, `SMS`
+**Supported Media Types**: `email`, `sms`. The values are case-sensitive: any other `media` — including an
+uppercase `EMAIL` — is refused with a recoverable **400** `flow.claim_validation.unknown_media`, and the flow session
+stays on the current step so the caller can submit a supported one.
 
 ---
 
@@ -666,7 +669,10 @@ When method selection is needed:
 ```json
 {
   "methods": [
-    "totp"
+    {
+      "method": "totp",
+      "redirect_url": "/api/v1/flow/mfa/totp/enroll?state=..."
+    }
   ],
   "skip_redirect_url": "/api/v1/flow/mfa/skip?state=..."
 }
@@ -675,7 +681,8 @@ When method selection is needed:
 **Properties**:
 
 - `redirect_url`: URL to redirect to (enrollment, challenge, or next step)
-- `methods`: Array of available MFA method identifiers (only when user must choose or may enrol)
+- `methods`: Array of the available MFA methods (only when user must choose or may enrol). Each entry carries the
+  method's `method` — `totp` is the only one today — and the `redirect_url` of its enrollment or challenge step
 - `skip_redirect_url`: URL to skip MFA (only present when `mfa.required` is `false` **and** the user has not enrolled in
   any MFA method)
 
@@ -873,7 +880,7 @@ Confirmation required:
 
 ```json
 {
-  "action": "LINK_PROVIDER",
+  "action": "link_provider",
   "requires_reauthentication": true,
   "initiating_client_id": "my-app"
 }
@@ -890,7 +897,7 @@ Nothing to confirm — follow the redirect:
 **Properties**:
 
 - `action`: Machine-readable code of the action the end-user is asked to approve; turn it into localized copy in your
-  UI. Possible values: `ENROLL_MFA` (a [MFA enrollment](/technical/api/client#start-mfa-enrollment)) and `LINK_PROVIDER`
+  UI. Possible values: `enroll_mfa` (a [MFA enrollment](/technical/api/client#start-mfa-enrollment)) and `link_provider`
   (a [provider link](/technical/api/client#provider-linking)). `null` when a `redirect_url` is returned.
 - `requires_reauthentication`: Whether the end-user will be asked to **re-authenticate** (prove they own the account)
   after approving — so the UI can warn them up front. `true` for a provider link (which mints a durable login credential
@@ -1051,10 +1058,10 @@ to the sign-in page):
    → Returns: {"claims": [...]}
    ↓
 6. POST /api/v1/flow/claims   [Authorization: State abc123]
-   → Returns: {"redirect_url": "/api/v1/flow/claims/validation/EMAIL?state=abc123"}
+   → Returns: {"redirect_url": "/api/v1/flow/claims/validation/email?state=abc123"}
    ↓
-7. GET /api/v1/flow/claims/validation/EMAIL?state=abc123
-   → Returns: {"media": "EMAIL", "code": {...}}
+7. GET /api/v1/flow/claims/validation/email?state=abc123
+   → Returns: {"media": "email", "code": {...}}
    ↓
 8. POST /api/v1/flow/claims/validation   [Authorization: State abc123]
    → Returns: {"redirect_url": "https://client.app/callback?code=xyz789"}
@@ -1069,7 +1076,7 @@ ends at the initiator's `return_uri`:
 
 ```
 1. GET /api/v1/flow/confirm?state=def456
-   → Returns: {"action": "LINK_PROVIDER", "requires_reauthentication": true, "initiating_client_id": "my-app"}
+   → Returns: {"action": "link_provider", "requires_reauthentication": true, "initiating_client_id": "my-app"}
      (render the action, and warn that a sign-in follows)
    ↓
 2. POST /api/v1/flow/confirm   [Authorization: State def456]
@@ -1117,6 +1124,9 @@ The Flow API implements two types of error handling:
 - Session expired, configuration error, etc.
 - A replayed or stale step submission (a step resent, or a form submitted twice against an already-advanced session) —
   see [Replay protection on the interactive flow](/technical/security#replay-protection-on-the-interactive-flow)
+- A request on an authorization that already completed — a reload, the back button, a second tab. The authorization
+  code went to the request that completed the authorization and is never handed out again, so the later request reaches
+  the error page with `auth.interactive_flow_session.already_completed`, and the flow restarts from the client
 - User automatically redirected to error page
 - Flow must be restarted from the beginning
 
@@ -1128,7 +1138,7 @@ The Flow API implements two types of error handling:
    GET requests, and as `Authorization: State <jwt>` header for POST requests. URLs the server returns
    (`redirect_url`, cross-links, provider `authorize_url`) already include the state, so follow them as-is
 4. **Handle dynamic claims**: Claims are configuration-driven; don't hardcode which claims to collect
-5. **Respect resend limits**: Honor the `resendDate` to prevent spam and improve deliverability
+5. **Respect resend limits**: Honor the `resend_date` to prevent spam and improve deliverability
 6. **Pre-fill values**: Use `value` and `suggested_value` from responses to improve user experience
 7. **Localization**: Send appropriate `Accept-Language` header for localized claim names and messages
 8. **Offer a cancel path**: Let users abandon the flow through the [Cancel Endpoint](#_7-cancel-endpoint) and follow the
