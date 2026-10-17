@@ -54,24 +54,47 @@ irreversible operation with GDPR implications and should require explicit author
 
 ## Authentication
 
-All Admin API endpoints require authentication using an OAuth 2.1 access token obtained via the Client Credentials
-flow with [PKCE](/technical/security#pkce-proof-key-for-code-exchange). The default admin client is a
-public client — it authenticates using a code verifier instead of a client secret.
+All Admin API endpoints require authentication using an OAuth 2.1 access token belonging to **an administrator**: an
+end-user who signed in through the authorization code grant of a client of the admin
+[audience](/functional/audience), and was granted the admin scope the operation names. It is not a client acting on its
+own behalf — there is no `client_credentials` token that reaches this API.
+
+Which end-users become administrators is a
+[scope granting rule](/functional/user_authorization#scope-granting-rules). The `admin` environment ships one that
+grants every admin scope to an end-user whose `is_sympauthy_admin` claim is `true`, and a bootstrap invitation that
+sets that claim for the first administrator.
 
 ### Obtaining an Access Token
 
-To authenticate with the Admin API, you must first obtain an access token using the OAuth 2.1 Client Credentials grant
-with PKCE:
+The admin client is a [public client](/functional/client#confidential-and-public-clients), so the exchange is secured
+by [PKCE](/technical/security#pkce-proof-key-for-code-exchange) rather than by a client secret. Obtain the token the way
+any public client does:
 
 **Step 1**: Generate a PKCE code verifier and challenge
 
-Before making the token request, generate a random `code_verifier` and compute the challenge:
+Before starting the authorization, generate a random `code_verifier` and compute the challenge:
 
 ```
 code_challenge = BASE64URL(SHA256(code_verifier))
 ```
 
-**Step 2**: Request an access token from the Token Endpoint
+**Step 2**: Send the administrator through the Authorization Endpoint
+
+```
+GET /api/oauth2/authorize
+    ?response_type=code
+    &client_id=YOUR_ADMIN_CLIENT_ID
+    &redirect_uri=YOUR_REDIRECT_URI
+    &scope=openid+admin:users:read
+    &state=YOUR_STATE
+    &code_challenge=YOUR_CODE_CHALLENGE
+    &code_challenge_method=S256
+```
+
+The administrator signs in through the [interactive flow](/functional/interactive_flow), and the browser comes back to
+`redirect_uri` with an authorization `code`.
+
+**Step 3**: Exchange the code at the Token Endpoint
 
 **Endpoint**: `/api/oauth2/token`
 
@@ -83,15 +106,16 @@ code_challenge = BASE64URL(SHA256(code_verifier))
 POST /api/oauth2/token
 Content-Type: application/x-www-form-urlencoded
 
-grant_type=client_credentials
+grant_type=authorization_code
+&code=THE_AUTHORIZATION_CODE
 &client_id=YOUR_ADMIN_CLIENT_ID
 &code_verifier=YOUR_CODE_VERIFIER
-&code_challenge=YOUR_CODE_CHALLENGE
-&code_challenge_method=S256
 ```
 
-> When using the `admin` Micronaut environment, the default admin client ID is pre-configured. No client secret is
-> needed — PKCE secures the exchange.
+> When using the `admin` Micronaut environment, the default admin client ID is pre-configured, and its allowed grant
+> types are `authorization_code` and `refresh_token` only. No client secret is needed — PKCE secures the exchange.
+> An authorization code is spent once: a second exchange of the same code is refused and
+> [revokes the tokens the first one was issued](/technical/security#authorization-code-security).
 
 **Response Format**:
 
@@ -103,7 +127,7 @@ grant_type=client_credentials
 }
 ```
 
-**Step 3**: Use the access token in Admin API requests
+**Step 4**: Use the access token in Admin API requests
 
 Include the access token in the `Authorization` header, under the scheme its `token_type` names. A token issued with
 `token_type: "Bearer"` is sent as a bearer token:
@@ -129,26 +153,51 @@ DPoP: eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IkVTMjU2IiwiandrIjp7...
 Each Admin API endpoint requires a specific admin scope. The access token must include the scope required by the
 endpoint being called.
 
-- If the token is missing or invalid: **401 Unauthorized** (`unauthorized`)
+- If no access token is sent: **401 Unauthorized** (`unauthorized`)
+- If a token is sent but cannot be accepted: **401 Unauthorized** with the code saying why — see
+  [Why an access token is refused](/technical/api/client#why-an-access-token-is-refused)
 - If the token is valid but lacks the required scope: **403 Forbidden** (`forbidden`)
 
 The required scope for each endpoint is documented in the [Endpoints](#endpoints) section below.
 
 ### Error format
 
-When a request fails, the API responds with a JSON error object containing the HTTP `status`, a stable
-machine-readable `error_code`, a user-facing `description`, and — only when the `print-details-in-error` feature is
-enabled on the server — a technical `details` message. Each failure case in this page is listed by its `error_code`
-and `description`.
+When a request to one of this API's `/api/v1/admin/...` endpoints fails, it responds with a JSON error object
+containing the HTTP `status`, a stable machine-readable `error_code`, a user-facing `description`, and — only when the
+`print-details-in-error` feature is enabled on the server — a technical `details` message. Each failure case in this
+page is listed by its `error_code` and `description`.
+
+> A failed request to `/api/oauth2/token` — where the access token is obtained — answers a different body: the one
+> [RFC 6749 section 5.2](https://datatracker.ietf.org/doc/html/rfc6749#section-5.2) defines, naming the code `error`
+> and the text `error_description`, with no `status` and no `error_code`. See
+> [Error Responses](/technical/oauth2_compatibility#error-responses).
 
 The following errors may be returned by any endpoint:
 
-| Error code     | Description                                                                    |
-|----------------|--------------------------------------------------------------------------------|
-| `unauthorized` | The access to this resource is protected. Please authenticate before retrying. |
-| `forbidden`    | The access token does not include the required scope to access this resource.  |
+| Error code              | Status | Description                                                                    |
+|-------------------------|--------|--------------------------------------------------------------------------------|
+| `unauthorized`          | 401    | The access to this resource is protected. Please authenticate before retrying. |
+| `forbidden`             | 403    | The access token does not include the required scope to access this resource.  |
+| `parameter.malformed`   | 400    | A parameter cannot be read as the type the operation expects.                  |
+| `parameter.missing`     | 400    | A required parameter was not carried by the request.                           |
+| `not_found`             | 404    | The resource you are looking for is not available on this authorization server. |
+| `method.unsupported`    | 405    | The route does not answer the request's method.                                |
+| `accept.unsupported`    | 406    | The operation answers with none of the media types the request accepts.         |
+| `internal_server_error` | 500    | Internal server error.                                                         |
 
-A request presenting a DPoP-bound access token, or presenting one under the `DPoP` scheme, may also be answered
+An endpoint taking a JSON body may also answer:
+
+| Error code              | Status | Description                                                                     |
+|-------------------------|--------|---------------------------------------------------------------------------------|
+| `body.malformed`        | 400    | The body is not JSON, or a property in it is missing or holds a value of the wrong type. |
+| `body.missing`          | 400    | The operation takes a body and the request carried none.                        |
+| `body.too_large`        | 413    | The body is larger than this server is configured to accept.                    |
+| `content_type.unsupported` | 415 | The operation does not read a body of the request's content type.               |
+
+A request carrying an access token this server will not accept is answered **401 Unauthorized** with the code saying
+why — `jwt.expired`, `token.revoked`, `token.client_disabled` and the rest are listed under
+[Why an access token is refused](/technical/api/client#why-an-access-token-is-refused), and they hold on this surface
+too. A request presenting a DPoP-bound access token, or presenting one under the `DPoP` scheme, may also be answered
 **401 Unauthorized** with one of these errors. The proof is checked as
 [Security](/technical/security#dpop-demonstrating-proof-of-possession) describes.
 
@@ -393,7 +442,8 @@ Requires the `admin:config:read` scope.
         "id_token",
         "userinfo",
         "discovery"
-      ]
+      ],
+      "published_in_when_requested": []
     },
     {
       "id": "name",
@@ -403,12 +453,13 @@ Requires the `admin:config:read` scope.
       "enabled": true,
       "required": false,
       "identifier": false,
-      "group": "profile",
+      "group": "identity",
       "published_in": [
         "id_token",
         "userinfo",
         "discovery"
-      ]
+      ],
+      "published_in_when_requested": []
     },
     {
       "id": "custom_department",
@@ -426,6 +477,9 @@ Requires the `admin:config:read` scope.
       "published_in": [
         "access_token",
         "introspection"
+      ],
+      "published_in_when_requested": [
+        "userinfo"
       ]
     }
   ],
@@ -442,17 +496,24 @@ Requires the `admin:config:read` scope.
     - `type`: Data type expected for this claim (`string`, `number`, or `date`)
     - `origin`: Where the claim is defined. Possible values: `"openid"` (OpenID Connect specification) | `"custom"` (defined by the operator in configuration)
     - `kind`: Whose the claim's value is, as configured with [`kind`](/technical/configuration/claim#claims-id-kind). Possible values: `"personal"` (the person's, collected from them and written by a client only within its own audience) | `"application"` (an application's, which a backend answers for and the person is never asked to type). Null for a claim this server generates, which is nobody's to write
-    - `enabled`: Whether collection is enabled for this claim
+    - `enabled`: Whether this claim is in use. A disabled claim is collected, written, read and published nowhere — it is still listed here, and the values already collected for it are kept and served again if it is re-enabled
     - `required`: Whether the end-user must provide this claim to complete an authorization flow
     - `identifier`: Whether this claim is configured as an [identifier claim](/technical/configuration/authorization#auth), used for password login and cross-provider account merging
     - `allowed_values`: Array of accepted values. Absent when the claim accepts any value
-    - `group`: Grouping identifier (e.g., `"profile"`, `"address"`). Absent when the claim belongs to no group
-    - `published_in`: Places this claim is [exposed in](/functional/claims#where-a-claim-is-exposed), as
-      configured with [`published-in`](/technical/configuration/claim#claims-id-published-in). Possible
-      values: `"id_token"` | `"userinfo"` | `"access_token"` | `"introspection"` — which carry the value —
-      and `"discovery"`, which advertises the name in `claims_supported`. Empty when the claim is exposed
-      in none of them, which leaves it readable through this API and the
-      [Client API](/technical/api/client) and carried by no token
+    - `group`: Grouping identifier. Possible values: `"identity"` | `"address"`. Absent when the claim belongs to no group
+    - `published_in`: Places this claim is [exposed in](/functional/claims#where-a-claim-is-exposed) for
+      every authorization alike, as configured with
+      [`published-in`](/technical/configuration/claim#claims-id-published-in). Possible values:
+      `"id_token"` | `"userinfo"` | `"access_token"` | `"introspection"` — which carry the value — and
+      `"discovery"`, which advertises the name in `claims_supported`. Empty when an enabled claim is
+      exposed in none of them, which leaves it readable through this API and the
+      [Client API](/technical/api/client) and carried by no token. **Always empty for a disabled claim**,
+      whatever the configuration names, because a disabled claim is served nowhere
+    - `published_in_when_requested`: Places this claim is exposed in **only for an authorization that
+      [asked for it by name](/functional/claims#asking-for-a-claim-in-the-request)**, as configured with
+      [`published-in-when-requested`](/technical/configuration/claim#claims-id-published-in-when-requested).
+      Possible values: `"id_token"` | `"userinfo"`. Empty when the deployment opened neither to a request —
+      and always empty for a disabled claim
 - `page`: Current page number
 - `size`: Number of results per page
 - `total`: Total number of claims
@@ -945,7 +1006,7 @@ are excluded — their status is represented by the `verified_at` field on the p
       "origin": "openid",
       "required": false,
       "identifier": false,
-      "group": "profile",
+      "group": "identity",
       "collected_at": "2026-01-15T14:30:00"
     },
     {
@@ -971,7 +1032,7 @@ are excluded — their status is represented by the `verified_at` field on the p
     - `origin`: Where the claim is defined. Possible values: `"openid"` (OpenID Connect specification) | `"custom"` (defined by the operator in configuration)
     - `required`: Whether the end-user must provide this claim
     - `identifier`: Whether this claim is configured as an identifier claim
-    - `group`: Grouping identifier (e.g., `"profile"`, `"address"`). Absent when the claim belongs to no group
+    - `group`: Grouping identifier. Possible values: `"identity"` | `"address"`. Absent when the claim belongs to no group
     - `collected_at`: When the value was collected. Absent when no value has been collected
     - `verified_at`: When the value was verified. Absent when the claim has not been verified
 - `page`: Current page number
@@ -1038,6 +1099,14 @@ are excluded — their status is represented by the `verified_at` field on the p
 - `claims`: Object containing all of the user's claims after the update
 - `status`: Account status
 - `created_at`: When the account was created
+
+**Important Notes**:
+
+- **A write that changes a claim's value clears its verification.** The
+  [`verified-id`](/technical/configuration/claim#claims-id) companion — `email_verified` for `email`, for instance —
+  goes back to `false` and `verified_at` is cleared, so the end-user is asked to validate the new value at their next
+  authorization. Writing the value the claim already holds changes nothing.
+- A claim the deployment has [disabled](/technical/configuration/claim#claims-id) is written nowhere.
 
 **Use Cases**:
 
@@ -1206,7 +1275,8 @@ are excluded — their status is represented by the `verified_at` field on the p
 **Properties**:
 
 - `user_id`: Unique identifier of the user
-- `tokens_revoked`: Number of active tokens that were revoked
+- `tokens_revoked`: Number of tokens this call revoked. A token already revoked or expired is left as it was and is
+  not counted, so calling again answers `0`
 
 **Use Cases**:
 
@@ -1246,7 +1316,8 @@ that client only.
 
 - `user_id`: Unique identifier of the user
 - `client_id`: Identifier of the client application whose tokens were revoked
-- `tokens_revoked`: Number of active tokens that were revoked for the specified client
+- `tokens_revoked`: Number of tokens this call revoked for the specified client. A token already revoked or expired
+  is left as it was and is not counted, so calling again answers `0`
 
 **Use Cases**:
 
@@ -1748,7 +1819,8 @@ A consent covers several scopes, so `scope=openid` keeps a consent holding `open
 
 - `consents`: Array of active consent records
     - `audience_id`: Identifier of the [audience](/functional/audience) that received consent
-    - `prompted_by_client_id`: Identifier of the client that originally prompted consent (kept for audit)
+    - `prompted_by_client_id`: Identifier of the client whose authorization last updated the consent (kept for
+      audit). It records who asked, and decides nothing about which of the audience's clients act under the consent
     - `scopes`: List of scopes the user has consented to for this audience
     - `consented_at`: When consent was granted
 - `page`: Current page number
@@ -1788,13 +1860,16 @@ active consent exists for the user and audience pair.
 
 When a consent is revoked through this endpoint:
 
-1. The consent is marked as revoked (`revoked_by = ADMIN`) with the administrator's identifier.
-2. All refresh tokens for the user across all clients in the audience are immediately invalidated.
+1. The consent is marked as revoked (`revoked_by = admin`) with the administrator's identifier.
+2. Every token issued to the user for that audience — access, ID and refresh alike — is revoked at the same instant,
+   whichever of the audience's clients holds it, and is refused on the next request rather than lasting until it
+   expires.
 3. As a safety net, subsequent token refresh attempts also verify that a valid consent exists — so even if a refresh
    token was missed, it cannot be used.
 
-Existing access tokens for clients in the audience remain valid until they expire naturally (typically minutes), but no
-new tokens can be obtained.
+A token obtained through [delegation](/functional/delegation) is the one exception: it rests on the
+[act-as rules](/functional/delegation#act-as-rules), not on a consent, so it is left in service and the acting client
+may exchange for another.
 
 **Use Cases**:
 
@@ -1841,8 +1916,9 @@ response — it cannot be retrieved later.
 
 - `audience_id` (required): The [audience](/functional/audience) the invitation is bound to. When the invitation is
   redeemed, the requesting client must belong to this audience.
-- `expires_at` (optional): Expiration date as an ISO 8601 date-time with no zone, in UTC. Defaults to
-  `now + default-expiration`. Capped at `now + max-expiration`. See
+- `expires_at` (optional): Expiration date as an ISO 8601 date-time with no zone, in UTC — `2026-12-01T00:00:00`.
+  A value carrying a zone or an offset (`...Z`, `...+02:00`) is **refused, not converted**, and a value that is not
+  in the future is refused too. Defaults to `now + default-expiration`. Capped at `now + max-expiration`. See
   [advanced configuration](/technical/configuration/advanced#advanced-invitation) for these values.
 - `claims` (optional): Custom [claim](/functional/claims) values to pre-set on the user's account upon
   registration. Only custom claims are accepted — OpenID Connect claims must come from the user. Unlike the
@@ -1881,6 +1957,16 @@ response — it cannot be retrieved later.
 - `note`: Admin note. Absent when none was set
 - `created_at`: When the invitation was created
 - `expires_at`: When the invitation expires
+
+**Errors**:
+
+| Error code | Description |
+|------------|-------------|
+| `invitation.claim_of_another_audience` | Claim `{claim}` is restricted to another audience than `{audience}`. |
+| `invitation.expires_at.malformed` | The `expires_at` property expects a date and time in ISO-8601 with no zone and was sent `{value}`. |
+| `invitation.expires_at.past` | The `expires_at` property names `{expiresAt}`, which is not in the future. |
+| `invitation.unknown_audience` | Audience `{audience}` does not exist. |
+| `invitation.unknown_claim` | Claim `{claim}` does not exist or is not enabled. |
 
 **Use Cases**:
 
@@ -2077,6 +2163,9 @@ the `user_id` and `consumed_at` fields.
 **Purpose**: Revokes a pending invitation. The invitation can no longer be redeemed. This operation is immediate
 and permanent. The response is the full invitation, with `status` now `revoked` and `revoked_at` set.
 
+Only a **pending** invitation can be revoked. One that is already revoked, expired, or was consumed by a sign-up in
+the meantime is refused with `invitation.cannot_revoke` naming the status it is in, and is left as it is.
+
 **Path Parameters**:
 
 - `invitation_id`: Unique identifier of the invitation
@@ -2107,6 +2196,7 @@ and permanent. The response is the full invitation, with `status` now `revoked` 
 
 | Error code | Description |
 |------------|-------------|
+| `invitation.cannot_revoke` | The invitation cannot be revoked because it is in status `{status}`; only a pending invitation can be revoked. |
 | `not_found` | The resource you are looking for is not available on this authorization server. |
 
 **Use Cases**:

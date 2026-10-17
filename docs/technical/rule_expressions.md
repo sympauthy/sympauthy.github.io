@@ -33,8 +33,9 @@ CLAIM("<claim-id>")
 
 Returns the value of a [claim](/functional/claims) as a **string**.
 
-- Returns an empty string (`""`) if the claim was collected but has no value.
-- Returns `NULL` if the claim was not collected for the user (or if no argument is given).
+- Returns `NULL` if the claim was not collected for the user, if it was collected without a value, or
+  if no argument is given. There is no case in which it answers an empty string, so testing
+  `CLAIM("x") = ""` never matches.
 
 Depending on the rule type, the claim is read from the **authenticating** user (user scope granting
 rules) or the **target** user (act-as rules).

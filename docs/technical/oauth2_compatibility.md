@@ -66,6 +66,7 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 | `max_age` Authentication Age Request | Supported | [OpenID Connect Core - section 3.1.2.1](https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest)    |
 | Step Up Authentication Challenge | Partial      | [RFC 9470](https://www.rfc-editor.org/rfc/rfc9470)                                                                 |
 | Authorization Code One-Time Use | Enforced      | [draft-ietf-oauth-v2-1 - section 4.1.2](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-4.1.2) |
+| Authorization Code Replay Revocation | Enforced | [draft-ietf-oauth-v2-1 - section 4.1.2](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-4.1.2) |
 | HTTP 307 Redirect Prohibition   | Enforced      | [draft-ietf-oauth-v2-1 - section 7.5.3](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-7.5.3) |
 | DPoP Nonce & Replay Detection   | Planned       | [RFC 9449 - section 8](https://datatracker.ietf.org/doc/html/rfc9449#section-8)                                    |
 | Exact Redirect URI Matching     | Enforced      | [draft-ietf-oauth-v2-1 - section 7.5.3](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-7.5.3) |
@@ -77,6 +78,11 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 > OAuth 2.1 requires PKCE for all clients using the authorization code flow. SympAuthy enforces this for both
 > public and confidential clients. See the [Security](security#pkce-proof-key-for-code-exchange) documentation
 > for details.
+
+> An authorization code is spent by the exchange that is issued tokens. A second exchange of the same code is refused
+> with `invalid_grant` and, where it passes client authentication and the PKCE verifier, **revokes every token issued
+> for that code** — so a client that retries an exchange whose response it lost signs the end-user out. See
+> [authorization code security](security#authorization-code-security).
 
 > `max_age` is satisfied by construction: SympAuthy keeps no session between authorizations, so every authorization
 > signs the end-user in anew. See [Authentication](/functional/authentication#asking-for-a-recent-authentication) for
@@ -99,7 +105,27 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 |-----------------------------|---------------|--------------------------------------------------------------------------------------------|
 | OpenID Connect Discovery    | Supported     | [OpenID Connect Discovery 1.0](https://openid.net/specs/openid-connect-discovery-1_0.html) |
 | ID Token                    | Supported     | [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html)           |
+| `claims` Request Parameter  | Partial       | [OpenID Connect Core - section 5.5](https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter) |
+| Request Object (`request`, `request_uri`) | Not Supported | [OpenID Connect Core - section 6](https://openid.net/specs/openid-connect-core-1_0.html#JWTRequests) |
+| `response_mode`             | Not Supported | [OAuth 2.0 Multiple Response Type Encoding Practices](https://openid.net/specs/oauth-v2-multiple-response-types-1_0.html#ResponseModes) |
 | Dynamic Client Registration | Not Supported | [RFC 7591](https://datatracker.ietf.org/doc/html/rfc7591)                                  |
+
+> The `claims` request parameter is **partially** supported, and `claims_parameter_supported` is advertised as `true`.
+> A client may ask for a claim in the `id_token` or `userinfo` member, and the claim is carried there only where the
+> deployment opened that place to a request with
+> [`published-in-when-requested`](/technical/configuration/claim#claims-id-published-in-when-requested) — the request
+> only ever adds, and never overrides access control, the audience or publication. The `essential`, `value` and
+> `values` members of section 5.5.1 are ignored, as are `claims_locales` and the language tags of section 5.2. See
+> [asking for a claim in the request](/functional/claims#asking-for-a-claim-in-the-request).
+
+> The JWT request objects of section 6 are **refused**, not ignored: an authorization request carrying `request` or
+> `request_uri` fails with `authorize.request.unsupported` or `authorize.request_uri.unsupported`, and the end-user
+> reaches the flow's error page rather than being redirected back to the client. The discovery document says so up
+> front — `request_parameter_supported` and `request_uri_parameter_supported` are both `false`, and
+> `require_request_uri_registration` is `false`. A client sends `claims` in the query string instead.
+
+> A `response_mode` in the authorization request is **ignored**: the authorization response is always sent in the query
+> string of `redirect_uri`, and `response_modes_supported` advertises `query` alone.
 
 ### Scopes
 
@@ -122,6 +148,19 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 | Token Endpoint         | Supported | `/api/oauth2/token`      | [draft-ietf-oauth-v2-1 - section 3.2](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-3.2) |
 | Token Revocation       | Supported | `/api/oauth2/revoke`     | [RFC 7009](https://datatracker.ietf.org/doc/html/rfc7009)                                                      |
 | Token Introspection    | Supported | `/api/oauth2/introspect` | [RFC 7662](https://datatracker.ietf.org/doc/html/rfc7662)                                                      |
+
+### Error Responses
+
+| Feature                | Status    | Reference                                                                               |
+|------------------------|-----------|-----------------------------------------------------------------------------------------|
+| Error Response Body    | Supported | [RFC 6749 - section 5.2](https://datatracker.ietf.org/doc/html/rfc6749#section-5.2)     |
+| `error_uri`            | Not Supported | [RFC 6749 - section 5.2](https://datatracker.ietf.org/doc/html/rfc6749#section-5.2) |
+
+> A failed request to one of the four endpoints above answers the body RFC 6749 section 5.2 defines: `error` names the
+> code and `error_description` carries the human-readable text. No `error_uri` is ever sent. When
+> `features.print-details-in-error` is enabled, a technical `details` member is added beside them — an extension of
+> this server's own. This is **not** the body the rest of the APIs answer: everything under `/api/v1/...` uses the
+> [error format](/technical/api/client#error-format) with `status`, `error_code` and `description`.
 
 ### OpenID Connect Endpoints
 

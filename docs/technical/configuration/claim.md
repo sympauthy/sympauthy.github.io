@@ -16,14 +16,15 @@ ACL is held to.
 | ```acl```            | object  | [Access control list](#claims-id-acl) that determines who can read and write this claim. See the [dedicated section](#claims-id-acl) below.                                                                                                                                                                                   | **NO**                |
 | ```allowed-values``` | array   | List of possible values an user can provide for this claim. If not specified or ```null```, all values will be accepted by the authorization server.<br> **Note**: Changing this configuration will not change the value collected for existing user.                                                                         | **NO**<br>```null```  |
 | ```audience```       | string  | The [audience](/functional/audience) this claim is scoped to. When set, the claim is only visible to clients within that audience. When `null`, the claim is shared across all audiences. Required on a `personal` claim whose ACL grants a client write, and refused on an [identifier claim](/functional/claims#identifier-claims). | **NO**<br>```null```  |
-| ```enabled```        | boolean | Enable the collection of this claim for end-users. If disabled, the claim will never be stored by this authorization server even if it is made available by a client or a provider. In case this config is changed, it is up to the operator of the authorization server to clear the claim that have been already collected. Every claim the OpenID Connect specification defines ships with ```false```, so a deployment enables the ones its applications ask for. | **NO**<br>```true```  |
+| ```enabled```        | boolean | Whether this claim is in use. A disabled claim is collected, written, read and published nowhere — it is never stored even when a client or a provider offers it, and it is served in no token, no `/userinfo` response and no API answer. Values already collected are kept untouched and served again if it is re-enabled. Every claim the OpenID Connect specification defines ships with ```false```, so a deployment enables the ones its applications ask for. | **NO**<br>```true```  |
 | ```group```          | string  | Grouping identifier (e.g. `identity`, `address`). Used to associate related claims.                                                                                                                                                                                                                                           | **NO**<br>```null```  |
 | ```kind```           | string  | Whose this claim's value is: `personal` or `application` — see the [dedicated section](#claims-id-kind). Falls back to the one its `template` declares, and a claim declaring it neither way is refused at startup.                                                                                                             | Depends               |
 | ```published-in```   | array   | The places this claim is exposed in — see the [dedicated section](#claims-id-published-in). Publication only narrows what the [ACL](#claims-id-acl) permits and never grants: a claim the ACL refuses the caller is exposed nowhere, whatever it names.                                                                       | **NO**<br>```[]```    |
+| ```published-in-when-requested``` | array | The places this claim is exposed in **only for an authorization that asked for it by name** — see the [dedicated section](#claims-id-published-in-when-requested). Only `id-token` and `userinfo` can be named, and a place named here and in `published-in` is refused at startup.                                      | **NO**<br>```[]```    |
 | ```required```       | boolean | The end-user must provide a value for this claim before being allowed to complete an authorization flow.                                                                                                                                                                                                                      | **NO**<br>```false``` |
 | ```template```       | string  | Name of a [claim template](#templates-claims-id) to apply. The referenced template provides default values for fields not explicitly set on this claim. A claim takes the template it names and no other, and one naming none is read from its own keys alone — so it must then declare `kind` itself. Naming a template that does not exist is refused at startup. | **NO**                |
 | ```type```           | string  | The data type of the claim — see the [dedicated section](#claims-id-type). Predefined for the claims the OpenID Connect specification defines; required for a claim of your own. It can be set on a claim only, never on a template.                                                                                           | Depends               |
-| ```verified-id```    | string  | The identifier of the associated boolean claim that indicates whether this claim's value has been verified (e.g. `email` has `verified-id: email_verified`).                                                                                                                                                                  | **NO**<br>```null```  |
+| ```verified-id```    | string  | The identifier of the associated boolean claim that indicates whether this claim's value has been verified (e.g. `email` has `verified-id: email_verified`). A write that changes the claim's value clears the verification, so the companion goes back to `false` until the new value is validated.                          | **NO**<br>```null```  |
 
 ### ```claims.<id>```
 
@@ -69,7 +70,8 @@ person and how two values are compared.
 
 ### ```claims.<id>.published-in```
 
-Where a claim is exposed is the deployment's decision, and this is the only key that answers it. Four of
+Where a claim is exposed is the deployment's decision, and this key answers it for every authorization alike —
+[`published-in-when-requested`](#claims-id-published-in-when-requested) answers it for the ones that ask. Four of
 the five places carry the claim's value; the fifth advertises its name.
 
 | Value           | Exposes the claim in                                                                                                                                                                                |
@@ -94,7 +96,34 @@ another [audience](/functional/audience) is left out of every place.
 `claims_supported` lists exactly the claims naming `discovery`, whichever half of the specification the
 name comes from — so a deployment may serve a claim it does not advertise, and advertise a claim of its
 own. The other direction is refused: a claim naming `discovery` and no place that carries the value would
-advertise a name no client could obtain a value for, and the server refuses to start on it.
+advertise a name no client could obtain a value for, and the server refuses to start on it. A place named
+in [`published-in-when-requested`](#claims-id-published-in-when-requested) counts as a carrier here — a
+client can reach it — so advertising such a claim is allowed.
+
+### ```claims.<id>.published-in-when-requested```
+
+A place named here carries the claim's value **only for an authorization whose
+[`claims` request parameter](/functional/claims#asking-for-a-claim-in-the-request) asked for the claim in
+that place**. It is the deployment opening a door rather than the client forcing one: a request can add a
+claim to a place this list names and to no other, so a deployment that names nothing here answers every
+request exactly as before.
+
+| Value       | Exposes the claim in                       |
+|-------------|--------------------------------------------|
+| `id-token`  | The [ID token](/functional/tokens#id-token). |
+| `userinfo`  | The `/api/openid/userinfo` response.        |
+
+Those two are the whole of it — they are the places [OpenID Connect Core
+section 5.5](https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter) defines a member for.
+Naming `access-token`, `introspection` or `discovery` here states a condition no request could ever
+satisfy, and **the server refuses to start on it**. Naming the same place in both `published-in` and
+`published-in-when-requested` is refused at startup too, naming the claim and the place: always and
+on request are two answers for one place, and only one of them can be meant.
+
+The request is asked **last**. The [ACL](#claims-id-acl) decides whether the caller may know the value at
+all, the [audience](/functional/audience) whether it is this audience's to know, and publication which
+place carries it — only then does the request decide whether an on-request place opens. A claim the first
+three withhold stays withheld, whatever a request asks for.
 
 ## ```claims.<id>.acl```
 
@@ -174,6 +203,7 @@ via its `template` field. Fields set directly on a claim always override the cor
 | ```group```          | string  | Default claim group.                                                            | NO                  |
 | ```kind```           | string  | Default [`kind`](#claims-id-kind) for claims using this template.               | NO                  |
 | ```published-in```   | array   | Default value for the claim's [`published-in`](#claims-id-published-in) field.   | NO                  |
+| ```published-in-when-requested``` | array | Default value for the claim's [`published-in-when-requested`](#claims-id-published-in-when-requested) field. A place no request can name is refused on the template that writes it. | NO                  |
 | ```required```       | boolean | Default value for the claim's `required` field.                                 | NO                  |
 
 A claim's `type` and `verified-id` cannot be defaulted this way: both are the claim's own.

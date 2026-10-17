@@ -110,6 +110,16 @@ clients:
         on-failure: deny_all
 ```
 
+### Removing a client
+
+**A token does not outlive its client.** When a client is no longer in the configuration, every unexpired access token
+naming it is refused with **401** `token.client_disabled`, on every API surface and on `/api/openid/userinfo` alike.
+The configuration is read at startup, so the removal takes effect when the server restarts.
+
+The tokens are **refused, not revoked**: nothing is written to them. Re-declaring the same `<id>` therefore serves
+those tokens again until they expire on their own. To end them for good, revoke them before removing the client — or
+remove the client and leave it removed until the longest `auth.token.access-expiration` has passed.
+
 ## ```templates.clients.<id>```
 
 Client templates provide default field values that are inherited by clients. A template named `default` is auto-applied to every client that does not declare a `template` field. Custom templates (any name other than `default`) must be explicitly referenced by a client via its `template` field.

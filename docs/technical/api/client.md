@@ -85,27 +85,67 @@ DPoP: eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IkVTMjU2IiwiandrIjp7...
 Each Client API endpoint requires a specific client scope. The access token must include the scope required by the
 endpoint being called.
 
-- If the token is missing or invalid: **401 Unauthorized** (`unauthorized`)
+- If no access token is sent: **401 Unauthorized** (`unauthorized`)
+- If a token is sent but cannot be accepted: **401 Unauthorized** with the code saying why — see
+  [Why an access token is refused](#why-an-access-token-is-refused)
 - If the token is valid but lacks the required scope: **403 Forbidden** (`forbidden`)
 
 The required scope for each endpoint is documented in the [Endpoints](#endpoints) section below.
 
 ### Error format
 
-When a request fails, the API responds with a JSON error object containing the HTTP `status`, a stable
-machine-readable `error_code`, a user-facing `description`, and — only when the `print-details-in-error` feature is
-enabled on the server — a technical `details` message. Each failure case in this page is listed by its `error_code`
-and `description`.
+When a request to one of this API's `/api/v1/client/...` endpoints fails, it responds with a JSON error object
+containing the HTTP `status`, a stable machine-readable `error_code`, a user-facing `description`, and — only when the
+`print-details-in-error` feature is enabled on the server — a technical `details` message. Each failure case in this
+page is listed by its `error_code` and `description`.
+
+> A failed request to `/api/oauth2/token` — where an access token is obtained — answers a different body: the one
+> [RFC 6749 section 5.2](https://datatracker.ietf.org/doc/html/rfc6749#section-5.2) defines, naming the code `error`
+> and the text `error_description`, with no `status` and no `error_code`. See
+> [Error Responses](/technical/oauth2_compatibility#error-responses).
 
 The following errors may be returned by any endpoint:
 
-| Error code     | Description                                                                    |
-|----------------|--------------------------------------------------------------------------------|
-| `unauthorized` | The access to this resource is protected. Please authenticate before retrying. |
-| `forbidden`    | The access token does not include the required scope to access this resource.  |
+| Error code              | Status | Description                                                                    |
+|-------------------------|--------|--------------------------------------------------------------------------------|
+| `unauthorized`          | 401    | The access to this resource is protected. Please authenticate before retrying. |
+| `forbidden`             | 403    | The access token does not include the required scope to access this resource.  |
+| `parameter.malformed`   | 400    | A parameter cannot be read as the type the operation expects.                  |
+| `parameter.missing`     | 400    | A required parameter was not carried by the request.                           |
+| `not_found`             | 404    | The resource you are looking for is not available on this authorization server. |
+| `method.unsupported`    | 405    | The route does not answer the request's method.                                |
+| `accept.unsupported`    | 406    | The operation answers with none of the media types the request accepts.         |
+| `internal_server_error` | 500    | Internal server error.                                                         |
 
-A request presenting a DPoP-bound access token, or presenting one under the `DPoP` scheme, may also be answered
-**401 Unauthorized** with one of these errors. The proof is checked as
+An endpoint taking a JSON body may also answer:
+
+| Error code              | Status | Description                                                                     |
+|-------------------------|--------|---------------------------------------------------------------------------------|
+| `body.malformed`        | 400    | The body is not JSON, or a property in it is missing or holds a value of the wrong type. |
+| `body.missing`          | 400    | The operation takes a body and the request carried none.                        |
+| `body.too_large`        | 413    | The body is larger than this server is configured to accept.                    |
+| `content_type.unsupported` | 415 | The operation does not read a body of the request's content type.               |
+
+### Why an access token is refused
+
+A request carrying an access token this server will not accept is answered **401 Unauthorized** with the code saying
+why.
+
+| Error code                    | When                                                                                                 |
+|-------------------------------|------------------------------------------------------------------------------------------------------|
+| `unauthorized`                | No access token is sent.                                                                             |
+| `jwt.malformed`               | The access token is not a signed JWT.                                                                |
+| `jwt.invalid_signature`       | The access token is not signed with the key this server signs access tokens with.                    |
+| `jwt.expired`                 | The access token has expired.                                                                        |
+| `token.invalid_token_id`      | This server issued no such access token.                                                             |
+| `token.revoked`               | The access token was revoked.                                                                        |
+| `token.client_disabled`       | The client the access token was issued to is [no longer in the configuration](/technical/configuration/client#removing-a-client). |
+| `token.actor_invalid`         | The access token was obtained by token exchange, and the token presented in that exchange no longer exists. |
+| `token.actor_revoked`         | The access token was obtained by token exchange, and the token presented in that exchange was revoked. |
+| `token.actor_expired`         | The access token was obtained by token exchange, and the token presented in that exchange has expired. |
+
+A request presenting a DPoP-bound access token, or presenting one under the `DPoP` scheme, is refused with one of
+these instead. The proof is checked as
 [Security](/technical/security#dpop-demonstrating-proof-of-possession) describes.
 
 | Error code                    | When                                                                                                 |
@@ -461,7 +501,7 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
 
 | Error code | Description |
 |------------|-------------|
-| `client.invalid_claim` | The claim `{claim}` cannot be modified by the client. Either the claim does not exist or the client does not hold the required scopes. |
+| `client.invalid_claim` | The claim `{claim}` cannot be modified by the client. Either the claim does not exist, the claim is disabled on this deployment, or the client does not hold the required scopes. |
 | `not_found` | The resource you are looking for is not available on this authorization server. |
 
 **Properties**:
@@ -477,8 +517,14 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
   writable only where it is restricted to this client's own [audience](/functional/audience): a shared one grants no
   client write at all, and a deployment configuring one is refused at startup.
 - An [identifier claim](/functional/claims#identifier-claims) is refused to every client, whatever its scopes.
+- A claim the deployment has [disabled](/technical/configuration/claim#claims-id) is refused like one that does not
+  exist.
 - Attempting to modify a claim the client is not authorized to write will result in an error.
 - Claims can be set to `null` to remove them.
+- **A write that changes a claim's value clears its verification.** The
+  [`verified-id`](/technical/configuration/claim#claims-id) companion — `email_verified` for `email`, for instance —
+  goes back to `false`, and the end-user is asked to validate the new value at their next authorization. Writing the
+  value it already holds changes nothing.
 
 **Use Cases**:
 
@@ -740,8 +786,9 @@ invitation token is returned only in this response — it cannot be retrieved la
 
 **Properties**:
 
-- `expires_at` (optional): Expiration date as an ISO 8601 date-time with no zone, in UTC. Defaults to
-  `now + default-expiration`. Capped at `now + max-expiration`. See
+- `expires_at` (optional): Expiration date as an ISO 8601 date-time with no zone, in UTC — `2026-12-01T00:00:00`.
+  A value carrying a zone or an offset (`...Z`, `...+02:00`) is **refused, not converted**, and a value that is not
+  in the future is refused too. Defaults to `now + default-expiration`. Capped at `now + max-expiration`. See
   [advanced configuration](/technical/configuration/advanced#advanced-invitation) for these values.
 - `claims` (optional): Custom [claim](/functional/claims) values to pre-set on the user's account upon
   registration. Only custom claims are accepted — OpenID Connect claims must come from the user. The client must
@@ -782,8 +829,11 @@ invitation token is returned only in this response — it cannot be retrieved la
 
 | Error code | Description |
 |------------|-------------|
-| `invitation.unknown_claim` | The claim `{claim}` does not exist or is not enabled. Please check the available claims and try again. |
 | `invitation.claim_not_writable` | The claim `{claim}` cannot be pre-assigned by this client. The client does not hold the required scopes. |
+| `invitation.claim_of_another_audience` | The claim `{claim}` is restricted to another audience than `{audience}`. |
+| `invitation.expires_at.malformed` | The `expires_at` property expects a date and time in ISO-8601 with no zone and was sent `{value}`. |
+| `invitation.expires_at.past` | The `expires_at` property names `{expiresAt}`, which is not in the future. |
+| `invitation.unknown_claim` | The claim `{claim}` does not exist or is not enabled. Please check the available claims and try again. |
 
 **Use Cases**:
 

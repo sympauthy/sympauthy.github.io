@@ -31,6 +31,10 @@ behind it, so no [consentable](/functional/scope#consentable-scope) or
 [grantable](/functional/scope#grantable-scope) scope can be attached. The resource server authorizes
 the request from the asserted identity plus the trusted actor.
 
+Because it rests on the act-as rules and not on a consent, revoking the user's
+[consent](/functional/consent#revoking-consent) leaves a delegated token in service, and the acting
+client may exchange for another. Withdraw the act-as rule to stop it.
+
 ## Single level of delegation
 
 SympAuthy supports **only a single level of delegation**.

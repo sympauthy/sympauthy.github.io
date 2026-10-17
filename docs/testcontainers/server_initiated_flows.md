@@ -3,7 +3,7 @@
 A client or an administrator can **initiate** an interactive flow on a user's behalf. The flow opens
 with a **confirm** step — the user approves or cancels the action that was started for them — and,
 unlike a normal sign-in, does not begin at `/authorize` but at a link the initiating API hands back.
-Today the only action is enrolling **TOTP MFA** (`ENROLL_MFA`); the mechanism is general and more
+Today the only action is enrolling **TOTP MFA** (`enroll_mfa`); the mechanism is general and more
 actions will follow.
 
 ## Entry points

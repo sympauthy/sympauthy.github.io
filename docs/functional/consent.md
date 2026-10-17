@@ -43,23 +43,30 @@ A consent records:
 
 - The **end-user** who gave consent.
 - The **audience** that received it.
-- The **client** that originally prompted consent — kept for audit purposes.
+- The **client** whose authorization last updated the consent — kept for audit purposes. It records who asked, and
+  decides nothing about which of the audience's clients act under the consent: all of them do.
 - The **granted scopes** — the list of scopes the user has authorized the audience to use.
 - The **date** when consent was given.
 - The **revocation date** — when the consent was revoked, if applicable.
-- The **revocation origin** — who revoked the consent: `ADMIN`
-  (when an administrator revoked it through the [Admin API](/technical/api/admin)).
+- The **revocation origin** — who revoked the consent: `admin` when an administrator revoked it through the
+  [Admin API](/technical/api/admin), and `user` when the end-user's own re-authorization superseded it (the previous
+  row is closed and a new one records the merged scopes, which is what keeps the audit history).
 - The **revoking user** — the identifier of the user who caused the revocation.
 
 ## Revoking consent
 
 A consent can be revoked by an **administrator** through the [Admin API](/technical/api/admin). The consent is marked
-with `revoked_by = ADMIN` and the administrator's identifier.
+with `revoked_by = admin` and the administrator's identifier.
 
-When a consent is revoked, all refresh tokens for the user across all clients in the audience are immediately
-invalidated. As an additional safety net, the token refresh flow verifies that a valid consent still exists before
-issuing new tokens. This means revocation takes effect immediately — no client in the audience can use any previously
-issued refresh token to obtain new access tokens.
+When a consent is revoked, **every token issued to the user for that audience** — access, ID and refresh alike — is
+revoked at the same instant, whichever of the audience's clients holds it. Each of them acts under the one consent, so
+none goes on acting for the user once it is withdrawn: a revoked token is refused on the next request rather than
+lasting until it expires. As an additional safety net, the token refresh flow verifies that a valid consent still
+exists before issuing new tokens.
+
+A token a client obtained through [delegation](/functional/delegation) is the one exception: it rests on the
+[act-as rules](/functional/delegation#act-as-rules), not on a consent, so revoking the consent leaves it in
+service and the client may exchange for another.
 
 ## Relation to other concepts
 
@@ -67,10 +74,10 @@ issued refresh token to obtain new access tokens.
   consentable scopes were granted. Only consentable scopes — those protecting user claims — are subject to consent.
 - **[Audiences](/functional/audience)** — a consent ties a user to an audience. All clients within
   the same audience share the consent.
-- **[Clients](/functional/client)** — a client belongs to an audience. The client that originally
-  prompted consent is recorded for audit purposes.
+- **[Clients](/functional/client)** — a client belongs to an audience. The client whose authorization
+  last updated the consent is recorded for audit purposes.
 - **[Claims](/functional/claims)** — claims with
   [consent-based access](/functional/claim_access) are only shared with the client when covered by the
   consented scopes.
 - **[Tokens](/functional/tokens)** — tokens issued by SympAuthy reflect the scopes recorded in the
-  consent. Revoking a consent invalidates the associated refresh tokens across all clients in the audience.
+  consent. Revoking a consent revokes every token issued to the user for the audience, across all of its clients.

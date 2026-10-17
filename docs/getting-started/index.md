@@ -146,11 +146,11 @@ XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - Authenticati
 XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - Authentication by provider: disabled.
 XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - MFA disabled.
 XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X audiences.
-XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X client.
-XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X scopes (X consentables, X grantable, X admins, X clients).
-XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X claims (X standards, X custom).
-XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X rule (X user, X client).
-XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X templates (X client, X scope, X claims).
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X clients.
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X scopes (X consentable, X grantable, X admin, X client).
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X claims (X personal, X application, X generated).
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X rules (X user, X client).
+XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X templates (X client, X scope, X claim).
 ```
 
 If the banner reports errors instead, the server has started but declares itself **unready**, and it

@@ -23,8 +23,8 @@ This is a pure documentation site — no application code, no tests. All content
   - `functional/` — What SympAuthy does (authentication, tokens, scopes, claims, consent, etc.)
   - `technical/` — How to configure and integrate (APIs, configuration, security, OAuth2 compatibility)
     - `technical/configuration/` — Configuration documentation, split by concern (database, mail, client, authorization, etc.). Each page covers one topic; the `index.md` is the overview with links to sub-pages.
-  - `contributing/` — How to contribute to the SympAuthy codebase (backend patterns)
   - `getting-started/` — Onboarding guide
+  - `testcontainers/` — The testcontainers module integrators use to test against SympAuthy
 
 ## Writing Conventions
 
