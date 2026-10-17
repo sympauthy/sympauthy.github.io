@@ -32,3 +32,16 @@ This is a pure documentation site — no application code, no tests. All content
 - YAML examples should only illustrate the feature they document — do not inject unrelated config keys into existing examples
 - Configuration reference tables (`docs/technical/configuration/`) must list keys in alphabetical order
 - Verify the build succeeds (`npm run docs:build`) after making changes
+
+## Merging a Pull Request
+
+Merge with **squash**, and clean up afterwards:
+
+```sh
+gh pr merge <number> --squash --delete-branch   # deletes the remote and local branch
+git checkout main
+git pull
+```
+
+`--delete-branch` removes the local branch too, so the only step left is returning to `main` and
+pulling the squashed commit. Do not leave the merged branch behind on the remote.
