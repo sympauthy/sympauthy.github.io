@@ -81,11 +81,11 @@ export default defineConfig({
               ]
             },
             {
-              text: 'Tokens',
-              link: '/functional/tokens',
+              text: 'Grants &amp; Tokens',
               collapsed: false,
               items: [
                 { text: 'Grant', link: '/functional/grant' },
+                { text: 'Tokens', link: '/functional/tokens' },
               ]
             },
           ]
