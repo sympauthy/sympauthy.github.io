@@ -10,6 +10,9 @@ SympAuthy issues three kinds of tokens, each with a distinct purpose:
 - **Refresh token** — used to obtain a new access token when the current one expires.
 - **ID token** — used to identify who the user is.
 
+Every one of them is issued under a **[grant](/functional/grant)** — the record of what the client was allowed — and
+is in service only while that grant is.
+
 ## Access token
 
 The **access token** is the credential the client presents whenever it wants to access a protected resource. It is
@@ -56,8 +59,9 @@ It is also the place a value travels furthest, and the trade is not the ID token
   [audience](/functional/audience), for the whole life of the token — where an ID token is handed over
   once;
 - nothing encrypts it, so a claim in one is readable by every party the credential passes through;
-- **withdrawing a claim from a token already issued means revoking that token** — editing the
-  configuration stops the next token carrying the value and does nothing to the ones already out.
+- **withdrawing a claim from a token already issued means revoking the [grant](/functional/grant) it was
+  issued under** — editing the configuration stops the next token carrying the value and does nothing to
+  the ones already out.
 
 The claim's [ACL](/functional/claim_access) still decides who may be told: it is the client's
 half that is asked, exactly as the ID token asks it, and a claim restricted to another audience is left
@@ -69,14 +73,15 @@ no claim's ACL.
 ### Expiration
 
 Access tokens have a short lifespan — typically minutes to a few hours. The exact duration is controlled by the
-`token.access-token.lifespan` configuration key.
+[`auth.token.access-expiration`](/technical/configuration/authorization#auth-token) configuration key.
 
 Once expired, the access token is rejected. The client must use the refresh token to obtain a new one.
 
-Expiry is not the only reason an access token is rejected. It is also refused when it has been
-[revoked](/technical/security#token-revocation), and when the deployment's configuration
-[no longer declares the client](/technical/configuration/client#removing-a-client) it was issued to — a token does not
-outlive its client.
+Expiry is not the only reason an access token is rejected. It is also refused when the
+[grant](/functional/grant) it was issued under has been [revoked](/technical/security#token-revocation), and when the
+deployment's configuration [no longer declares the client](/technical/configuration/client#removing-a-client) the
+grant was opened for — a grant does not outlive its client. A grant given a lifetime needs no refusal of its own: no
+access token under it is ever issued an expiry later than the grant's end.
 
 ### Acting on behalf of a user
 
@@ -97,9 +102,16 @@ without being prompted to authenticate again.
 ### Expiration
 
 Refresh tokens have a much longer lifespan than access tokens — typically hours to days. The exact duration is
-controlled by the `token.refresh-token.lifespan` configuration key.
+controlled by the [`auth.token.refresh-expiration`](/technical/configuration/authorization#auth-token) configuration
+key.
 
 If a refresh token itself expires, the user will need to sign in again from scratch.
+
+A refresh also ends with the [grant](/functional/grant) the refresh token was issued under. Where the deployment
+configures
+[`auth.token.grant-expiration`](/technical/configuration/authorization#auth-token), the grant has an absolute lifetime
+no refresh extends: once it has passed, the refresh is refused however long the refresh token itself had left, and the
+user signs in again.
 
 ## ID token
 
@@ -120,8 +132,10 @@ names `id-token` reaches it too, but only for an authorization that
 
 ### Expiration
 
-ID tokens have the same lifespan as access tokens. Once expired, the client should use the refresh token to obtain a
-fresh set of tokens.
+ID tokens have the same lifespan as access tokens by default. A deployment may give them one of their own with
+[`auth.token.id-expiration`](/technical/configuration/authorization#auth-token), which falls back to
+[`auth.token.access-expiration`](/technical/configuration/authorization#auth-token) when it is not set. Once expired,
+the client should use the refresh token to obtain a fresh set of tokens.
 
 ## When the user authenticated
 
@@ -153,7 +167,8 @@ SympAuthy publishes no `amr`.
 ### A refresh reissues it unchanged
 
 This is the whole reason to read `auth_time` rather than `iat`. `iat` is when the token was minted, so it moves on
-every [refresh](#refresh-token); `auth_time` is the authentication the refresh descends from, so it does not. An
+every [refresh](#refresh-token); `auth_time` is the authentication the refresh descends from, recorded on the
+[grant](/functional/grant) rather than on the token, so it does not move. An
 authentication thirty days old shows an `iat` of a minute ago on a freshly refreshed token — and an `auth_time` of
 thirty days ago.
 
@@ -190,14 +205,17 @@ silently refresh that token using the refresh token, the user never needs to aut
 
 The user will be prompted to sign in again when:
 
-- the refresh token has expired (controlled by `token.refresh-token.lifespan`),
-- the refresh token has been revoked (for example, following an account action),
-- the [consent](/functional/consent) for the user and [audience](/functional/audience) has been revoked by an
-  administrator — which revokes every token issued for that audience, not the refresh token alone,
-- the authorization code the tokens were issued for was presented a second time, which
-  [revokes them](/technical/security#authorization-code-security),
-- the deployment removed the client from its configuration
-  ([a token does not outlive its client](/technical/configuration/client#removing-a-client)),
+- the refresh token has expired (controlled by
+  [`auth.token.refresh-expiration`](/technical/configuration/authorization#auth-token)),
+- the [grant](/functional/grant) the tokens were issued under has been
+  [revoked](/functional/grant#what-takes-a-grant-out-of-service) — by an administrator's force logout, by the client
+  revoking either of its tokens, by the [consent](/functional/consent) for the user and
+  [audience](/functional/audience) being revoked, or by the authorization code being presented a second time,
+- the grant has reached the end of the lifetime
+  [`auth.token.grant-expiration`](/technical/configuration/authorization#auth-token) gives it, which no refresh
+  extends,
+- the deployment removed the client from its configuration, or moved it to another audience
+  ([a grant does not outlive its client](/functional/grant#a-grant-does-not-outlive-its-client)),
 - the client explicitly signs the user out.
 
 ## Sender-constrained tokens (DPoP)

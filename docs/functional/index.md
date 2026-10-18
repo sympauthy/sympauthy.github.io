@@ -45,5 +45,6 @@ Its main design concepts are:
 - [Kinds of claims](claim_kinds)
 - [Access Control](claim_access)
 
-**Tokens**
+**Grants & Tokens**
+- [Grant](grant)
 - [Tokens](tokens)

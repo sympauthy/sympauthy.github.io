@@ -132,10 +132,12 @@ key. This one only bounds how long the server waits for it.
 
 ## Scheduled cleanups
 
-Three sweeps run every fifteen minutes, each on a schedule of its own: the one expiring
+Four sweeps run every fifteen minutes, each on a schedule of its own: the one expiring
 [interactive flow](/functional/interactive_flow) sessions and the records attached to them, the one collecting
-the accounts an abandoned sign-up left half-created, and the one removing the places people sign in from once
-nobody has signed in from one for [`known-user-retention`](#advanced-security-context).
+the accounts an abandoned sign-up left half-created, the one removing the places people sign in from once
+nobody has signed in from one for [`known-user-retention`](#advanced-security-context), and the one deleting
+expired tokens, the tokens of a revoked [grant](/functional/grant), and then every grant that no token and no
+authorization code names any longer.
 
 How much a run takes is fixed in the server rather than configured, and nothing is lost by it: whatever a run
 leaves behind, the next one takes. The only key touching any of this is the retention above, which says when a
@@ -143,4 +145,4 @@ place becomes expired, not how it is removed.
 
 In a deployment of several instances, a sweep is run by one instance rather than by every one of them: an
 instance takes a lease on the sweep before running it, and the instances that do not hold it skip that round.
-Each sweep has a lease of its own, so the three may well be taken by three different instances.
+Each sweep has a lease of its own, so the four may well be taken by four different instances.

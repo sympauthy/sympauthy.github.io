@@ -35,6 +35,21 @@ Because it rests on the act-as rules and not on a consent, revoking the user's
 [consent](/functional/consent#revoking-consent) leaves a delegated token in service, and the acting
 client may exchange for another. Withdraw the act-as rule to stop it.
 
+## A delegation follows the actor's grant
+
+The exchange opens a [grant](/functional/grant) of its own, which records the grant of the ```subject_token``` the
+acting client presented — its own [client-credentials](/functional/client_authorization) grant. The delegation never
+outlives that grant:
+
+- the acting client **revoking the token it exchanged** takes every delegated token obtained from it out of service at
+  once, and the exchange cannot be repeated;
+- letting that grant **expire** — its tokens run out, or it reaches the end of the lifetime
+  [`auth.token.grant-expiration`](/technical/configuration/authorization#auth-token) gives it — refuses the delegated
+  tokens too.
+
+A delegated token refused for either reason is answered **401** with
+[`grant.actor_revoked` or `grant.actor_expired`](/technical/api/client#why-an-access-token-is-refused).
+
 ## Single level of delegation
 
 SympAuthy supports **only a single level of delegation**.

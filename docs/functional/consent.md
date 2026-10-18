@@ -58,14 +58,16 @@ A consent records:
 A consent can be revoked by an **administrator** through the [Admin API](/technical/api/admin). The consent is marked
 with `revoked_by = admin` and the administrator's identifier.
 
-When a consent is revoked, **every token issued to the user for that audience** — access, ID and refresh alike — is
-revoked at the same instant, whichever of the audience's clients holds it. Each of them acts under the one consent, so
-none goes on acting for the user once it is withdrawn: a revoked token is refused on the next request rather than
-lasting until it expires. As an additional safety net, the token refresh flow verifies that a valid consent still
-exists before issuing new tokens.
+When a consent is revoked, **every [grant](/functional/grant) the user holds for that audience** is revoked at the
+same instant, whichever of the audience's clients it was opened for — and with each grant, every token issued under it:
+access, ID and refresh alike. Each client of the audience acts under the one consent, so none goes on acting for the
+user once it is withdrawn: a token of a revoked grant is refused on the next request rather than lasting until it
+expires. An authorization code not yet exchanged is reached with its grant too, so a sign-in the user had just
+completed cannot be turned into tokens afterwards. As an additional safety net, the token refresh flow verifies that a
+valid consent still exists before issuing new tokens.
 
-A token a client obtained through [delegation](/functional/delegation) is the one exception: it rests on the
-[act-as rules](/functional/delegation#act-as-rules), not on a consent, so revoking the consent leaves it in
+A grant a client obtained through [delegation](/functional/delegation) is the one exception: it rests on the
+[act-as rules](/functional/delegation#act-as-rules), not on a consent, so revoking the consent leaves its token in
 service and the client may exchange for another.
 
 ## Relation to other concepts
@@ -80,4 +82,6 @@ service and the client may exchange for another.
   [consent-based access](/functional/claim_access) are only shared with the client when covered by the
   consented scopes.
 - **[Tokens](/functional/tokens)** — tokens issued by SympAuthy reflect the scopes recorded in the
-  consent. Revoking a consent revokes every token issued to the user for the audience, across all of its clients.
+  consent.
+- **[Grants](/functional/grant)** — a grant records the audience it was opened for. Revoking a consent revokes every
+  grant the user holds for that audience, across all of its clients, and every token issued under them.

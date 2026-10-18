@@ -112,13 +112,15 @@ clients:
 
 ### Removing a client
 
-**A token does not outlive its client.** When a client is no longer in the configuration, every unexpired access token
-naming it is refused with **401** `token.client_disabled`, on every API surface and on `/api/openid/userinfo` alike.
-The configuration is read at startup, so the removal takes effect when the server restarts.
+**A [grant](/functional/grant) does not outlive its client.** When a client is no longer in the configuration, every
+unexpired token of every grant opened for it is refused with **401** `grant.client_disabled`, on every API surface and
+on `/api/openid/userinfo` alike. The configuration is read at startup, so the removal takes effect when the server
+restarts.
 
-The tokens are **refused, not revoked**: nothing is written to them. Re-declaring the same `<id>` therefore serves
-those tokens again until they expire on their own. To end them for good, revoke them before removing the client — or
-remove the client and leave it removed until the longest `auth.token.access-expiration` has passed.
+The grants are **refused, not revoked**: nothing is written to them. Re-declaring the same `<id>` therefore serves
+their unexpired tokens again, refresh tokens included. To end them for good, revoke the grants while the client is
+still declared — see [a grant does not outlive its
+client](/functional/grant#a-grant-does-not-outlive-its-client).
 
 ## ```templates.clients.<id>```
 

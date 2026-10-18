@@ -80,7 +80,14 @@ export default defineConfig({
                 { text: 'Access Control', link: '/functional/claim_access' },
               ]
             },
-            { text: 'Tokens', link: '/functional/tokens' },
+            {
+              text: 'Grants &amp; Tokens',
+              collapsed: false,
+              items: [
+                { text: 'Grant', link: '/functional/grant' },
+                { text: 'Tokens', link: '/functional/tokens' },
+              ]
+            },
           ]
         }
       ],
