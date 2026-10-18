@@ -52,9 +52,7 @@ try (InteractiveFlowRegistry registry = InteractiveFlowRegistry.forClient(Client
 ```
 
 ::: tip
-`getBootstrapInvitationToken(id)` reads either log form — the raw `Token:` from
-`withBootstrapInvitation`, or the `Registration URL:` the built-in `first-admin` logs. Declare your
-own invitation for other audiences with `withBootstrapInvitation(...)` (see
-[Invitation](/testcontainers/invitation)). The token is only logged while no user has yet
-consented for the audience, so read it on a fresh container before redeeming.
+The token is only logged while no user has yet consented for the audience, so read it on a fresh
+container. [Invitation](/testcontainers/invitation) covers the log forms it reads and how to
+declare your own invitation for other audiences.
 :::

@@ -106,7 +106,6 @@ try (SympauthyContainer sympauthy = new SympauthyContainer()) {
 }
 ```
 
-Out of the box the container is minimal — SympAuthy's `default` Micronaut environment against an
-in-memory H2 database. Password authentication, claims, the `admin` environment, clients, providers
-and MFA are all opt-in; enable exactly what a test needs with the methods described under
-[Configuration](/testcontainers/configuration) and the feature pages that follow.
+The container starts [minimal](/testcontainers/): everything a test needs beyond the baseline is
+opt-in, through the methods described under [Configuration](/testcontainers/configuration) and the
+feature pages that follow.

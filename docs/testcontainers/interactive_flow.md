@@ -43,9 +43,8 @@ try (registry;
 }
 ```
 
-`withFlows(registry)` contributes only the `flows.<id>` definition (the mock frontend's pages),
-applied as program-argument overrides so it wins over any flow config you set elsewhere, and tells
-the frontend the container's URLs.
+`withFlows(registry)` applies that definition as program-argument overrides, so it wins over any
+flow config you set elsewhere, and tells the frontend the container's URLs.
 
 **You own the client:** give it `registry.clientId()`, set its `authorizationFlow` to
 `registry.flowId()`, and include `registry.redirectUri()` in its redirect URIs (see
