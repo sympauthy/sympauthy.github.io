@@ -66,8 +66,9 @@ Register only the pages a flow reaches — each callback is an independent funct
 [Multi-factor authentication](/testcontainers/mfa) adds three more callbacks for the
 confirm and TOTP steps.
 
-`run()` returns an `AuthorizationResult` (the authorization code, plus `exchange()` for tokens). To
-assert on the path a flow took, read `flow.stepTypes()` — the `List<FlowStep.Type>` it traversed
+`run()` returns an `AuthorizationResult`: the authorization `code()`, the `state()` echoed back on
+the client redirect, the PKCE `codeVerifier()` the run sent, and `exchange()` to trade the code for
+tokens (or [exchange it yourself](#exchanging-the-code-yourself)). To assert on the path a flow took, read `flow.stepTypes()` — the `List<FlowStep.Type>` it traversed
 (e.g. `[SIGN_UP, COMPLETED]`) — instead of accumulating them through a `StepListener`. For
 lower-level access, `FlowApiClient` wraps each Flow API endpoint directly.
 
@@ -94,9 +95,37 @@ The parameters the driver computes — `response_type`, `client_id`, `redirect_u
 (from the registry's `withScopes(...)`), `state`, `code_challenge` and `code_challenge_method` —
 are what make that exchange possible, so setting one raises `IllegalArgumentException` rather than
 being honoured; a test that needs one of them malformed has to issue the authorization request
-itself. `nonce` and `invitation_token` may be set this way too, but `withNonce(...)` and
-[`withInvitationToken(...)`](/testcontainers/invitation) spell them better; set both ways, the value
-given here wins.
+itself. A test that only needs to send the token request itself does not: it reads
+[`codeVerifier()`](#exchanging-the-code-yourself) instead. `nonce` and `invitation_token` may be set
+this way too, but `withNonce(...)` and [`withInvitationToken(...)`](/testcontainers/invitation) spell
+them better; set both ways, the value given here wins.
+
+## Exchanging the code yourself
+
+`exchange()` sends the token request through the module's own client. A test that has to prove
+something about that request sends it through a client of its own instead — a client generated from
+the server's OpenAPI document, for example. The result answers the `code()` and its
+`codeVerifier()`; the registry answers `clientId()`, `redirectUri()` and, for a
+[confidential client](/testcontainers/clients#confidential-client), `clientSecret()`:
+
+```java
+AuthorizationResult result = registry.newFlow()
+    .withSignInHandler(cfg -> Credentials.of(email, password))
+    .run();
+
+// grant_type=authorization_code, sent through the test's own client
+Map<String, String> form = Map.of(
+    "grant_type", "authorization_code",
+    "code", result.code(),
+    "redirect_uri", registry.redirectUri(),
+    "code_verifier", result.codeVerifier(),
+    "client_id", registry.clientId());
+```
+
+The token endpoint refuses the code without that verifier: it is the secret behind the `S256`
+`code_challenge` the run sent on `/authorize`. Reading it beats issuing `/authorize` by hand, because
+the run keeps everything it adds to the authorization request — the registry's scopes,
+`withNonce(...)`, `withAuthorizationParam(...)`, the invitation token.
 
 ## Chaining scenarios
 
