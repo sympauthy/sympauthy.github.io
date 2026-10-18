@@ -138,11 +138,10 @@ why.
 | `jwt.invalid_signature`       | The access token is not signed with the key this server signs access tokens with.                    |
 | `jwt.expired`                 | The access token has expired.                                                                        |
 | `token.invalid_token_id`      | This server issued no such access token.                                                             |
-| `token.revoked`               | The access token was revoked.                                                                        |
-| `token.client_disabled`       | The client the access token was issued to is [no longer in the configuration](/technical/configuration/client#removing-a-client). |
-| `token.actor_invalid`         | The access token was obtained by token exchange, and the token presented in that exchange no longer exists. |
-| `token.actor_revoked`         | The access token was obtained by token exchange, and the token presented in that exchange was revoked. |
-| `token.actor_expired`         | The access token was obtained by token exchange, and the token presented in that exchange has expired. |
+| `grant.revoked`               | The [grant](/functional/grant) the access token was issued under was revoked.                         |
+| `grant.client_disabled`       | The client the grant of the access token was opened for is [no longer in the configuration](/technical/configuration/client#removing-a-client). |
+| `grant.actor_revoked`         | The access token was obtained by token exchange, and the grant of the token presented in that exchange was revoked. |
+| `grant.actor_expired`         | The access token was obtained by token exchange, and the grant of the token presented in that exchange has expired. |
 
 A request presenting a DPoP-bound access token, or presenting one under the `DPoP` scheme, is refused with one of
 these instead. The proof is checked as
@@ -606,7 +605,7 @@ user, is rejected.
 | Error code | Description |
 |------------|-------------|
 | `client.mfa.enrollment.mfa_disabled` | This authorization server is not configured to support multi-factor authentication, so an enrollment cannot be started. Please contact the support of the application to report this issue. |
-| `client.mfa.enrollment.invalid_access_token` | The access token identifying the end-user is missing, expired, revoked, not associated with an end-user, or was not issued to your client. Obtain a fresh access token for the end-user and try again. |
+| `client.mfa.enrollment.invalid_access_token` | The access token identifying the end-user is missing, expired, issued under a revoked [grant](/functional/grant), not associated with an end-user, or was not issued to your client. Obtain a fresh access token for the end-user and try again. |
 
 An invalid `return_uri` or `cancel_uri` — one that does not match the client's registered redirect URIs — is rejected
 the same way.
@@ -716,7 +715,7 @@ user, is rejected.
 
 | Error code | Description |
 |------------|-------------|
-| `client.providers.link.invalid_access_token` | The access token identifying the end-user is missing, expired, revoked, not associated with an end-user, or was not issued to your client. Obtain a fresh access token for the end-user and try again. |
+| `client.providers.link.invalid_access_token` | The access token identifying the end-user is missing, expired, issued under a revoked [grant](/functional/grant), not associated with an end-user, or was not issued to your client. Obtain a fresh access token for the end-user and try again. |
 | `provider.missing` | The provider `{providerId}` does not exist. |
 | `provider.disabled` | The provider `{providerId}` is disabled by configuration. |
 

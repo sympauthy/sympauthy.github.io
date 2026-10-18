@@ -94,34 +94,66 @@ Tokens are intentionally short-lived. If a token is intercepted, it becomes usel
 | Token              | Default lifespan                         | Configuration key               |
 |--------------------|------------------------------------------|---------------------------------|
 | Access token       | 1 hour                                   | `auth.token.access-expiration`  |
-| Refresh token      | None (does not expire unless configured) | `auth.token.refresh-expiration` |
+| Refresh token      | 30 days                                  | `auth.token.refresh-expiration` |
 | Authorization code | Single use                               | Enforced                        |
+| Grant              | None (does not expire unless configured) | `auth.token.grant-expiration`   |
 
-It is strongly recommended to configure `auth.token.refresh-expiration` in production. Without it, a compromised refresh
-token remains valid indefinitely.
+Leaving `auth.token.refresh-expiration` out of the configuration entirely gives the refresh token no expiry at all, and
+a compromised one then remains valid indefinitely. The `default` environment sets 30 days; a deployment overriding the
+key in production should set a duration rather than clear it.
 
-For more detail on the purpose and lifecycle of each token, see the [Tokens](../functional/tokens) documentation.
+`auth.token.grant-expiration` is the one lifetime a refresh does not extend. It bounds the whole
+[grant](/functional/grant) — once it has passed, the refresh is refused however long the refresh token itself had left,
+and the end-user signs in again. **No token outlives the grant it was issued under**: an access token issued a minute
+before its grant ends states that minute as its `exp`, so a resource server that is not SympAuthy stops honouring it
+when the grant stops.
 
-## Token revocation
+For more detail on the purpose and lifecycle of each token, see the [Tokens](../functional/tokens) documentation, and
+on the record they are issued under, the [Grant](../functional/grant) documentation.
+
+## Revocation
 
 SympAuthy implements
 the [OAuth 2.0 Token Revocation specification (RFC 7009)](https://datatracker.ietf.org/doc/html/rfc7009) at
-`/api/oauth2/revoke`. Clients can proactively revoke tokens — for example, when a user signs out — so that they are
+`/api/oauth2/revoke`. Clients can proactively revoke — for example, when a user signs out — so that what they hold is
 rejected immediately rather than waiting for expiration.
 
+**What a revocation takes out of service is the [grant](/functional/grant), never a single token.** The endpoint
+revokes the grant the token it is given was issued under, whichever kind that token is: an access token takes the
+refresh token beside it, and every other token the same authorization produced, down with it.
+[RFC 7009 section 2.1](https://datatracker.ietf.org/doc/html/rfc7009#section-2.1) allows a server to revoke the refresh
+token when it is handed an access token, and a client revoking either is almost always signing the end-user out. The
+rare client that revokes an access token to discard it while keeping its refresh token loses both, and signs the
+end-user in again.
+
 A confidential client authenticates as it does elsewhere (Client Secret Basic or Client Secret Post), and a
-[public client](/functional/client#confidential-and-public-clients) sends its `client_id` alone, as
-[RFC 7009 section 2.1](https://datatracker.ietf.org/doc/html/rfc7009#section-2.1) has it. Either way a token is revoked
-only where it was issued to the client asking. The `token_type_hint` parameter is accepted and **ignored**: the server
-reads the type off the token itself, so a hint naming the wrong type no longer hides it.
+[public client](/functional/client#confidential-and-public-clients) sends its `client_id` alone, as RFC 7009 section
+2.1 has it. Either way only a grant opened for the client asking is revoked. The `token_type_hint` parameter is
+accepted and **ignored**: the server reads the type off the token itself, so a hint naming the wrong type no longer
+hides it.
 
-A revocation only touches a token still in service. One already revoked keeps the record of its first revocation, and
-an expired one is left as it was — so a count of what a revocation took out of service counts only that.
+::: warning
+A public client is authenticated by its `client_id` alone, and the endpoint reads no DPoP proof, so **whoever holds one
+of its access tokens can revoke the grant that token stands under** — a resource server it was presented to, a log it
+was written to, or a thief holding a token bound to a key nothing else honours. What that buys them is signing the
+end-user out of that client: the endpoint reveals nothing and acts as nobody, and a refresh token of the same public
+client in the same hands would cost the end-user as much.
+:::
 
-**A token does not outlive its client.** When a deployment removes a client from its configuration, every unexpired
-access token naming that client is refused with **401** `token.client_disabled` on every surface. The tokens are
-refused rather than revoked — nothing is written to them — so re-declaring the same client id serves them again until
-they expire. See [removing a client](/technical/configuration/client#removing-a-client).
+A revocation only touches a grant still in service. One already revoked keeps the record of its first revocation, and
+one whose tokens have all expired is left as it was — so a count of what a revocation took out of service counts only
+the grants it ended.
+
+Revoking a grant also revokes the grants opened by exchanging its tokens: a client revoking the token it presented to a
+[token exchange](/functional/delegation) takes every delegated token obtained from it out of service too.
+
+**A grant does not outlive its client.** When a deployment removes a client from its configuration, every unexpired
+token of every grant opened for that client is refused with **401** `grant.client_disabled` on every surface. The
+grants are refused rather than revoked — nothing is written to them — so re-declaring the same client id serves their
+unexpired tokens again until they expire. Moving a client to another audience ends its grants instead: a refresh is
+refused with `invalid_grant` and `grant.mismatching_audience`, because tokens issued for the new audience would rest on
+a consent whose revocation could not reach the grant they stand under. See
+[removing a client](/technical/configuration/client#removing-a-client).
 
 ## Token introspection
 
@@ -150,12 +182,15 @@ The authorization code is a short-lived, single-use credential. SympAuthy enforc
 
 - **One-time use**: Each authorization code is spent by the exchange that is issued tokens. A second exchange of the
   same code is refused with `invalid_grant` and, where it passes client authentication and the PKCE verifier, **revokes
-  every token that code was issued** — the first exchange's access and refresh tokens, and every token refreshed from
-  them. The end-user must sign in again, which is what
+  the [grant](/functional/grant) the code was issued under** — and with it the first exchange's access and refresh
+  tokens, and every token refreshed from them. The end-user must sign in again, which is what
   [RFC 6749 section 4.1.2](https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2) asks of a server that detects a
   replay. A client that retries an exchange whose response it lost therefore signs the end-user out: retry the
   authorization, not the exchange. A replay failing client authentication or the PKCE verifier is refused and revokes
   nothing.
+- **A code is reached by a revocation like any token**: the code names the grant its authorization opened, so an
+  end-user signed out, or a consent revoked, between the sign-in and the exchange leaves the code unspendable. The
+  exchange is refused with `invalid_grant` and `grant.revoked`.
 - **State parameter required**: The `state` parameter is mandatory on every authorization request, protecting against
   cross-site request forgery (CSRF)
   attacks ([RFC 6749 section 10.12](https://datatracker.ietf.org/doc/html/rfc6749#section-10.12)).

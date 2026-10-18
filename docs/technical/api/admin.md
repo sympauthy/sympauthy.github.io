@@ -115,7 +115,7 @@ grant_type=authorization_code
 > When using the `admin` Micronaut environment, the default admin client ID is pre-configured, and its allowed grant
 > types are `authorization_code` and `refresh_token` only. No client secret is needed — PKCE secures the exchange.
 > An authorization code is spent once: a second exchange of the same code is refused and
-> [revokes the tokens the first one was issued](/technical/security#authorization-code-security).
+> [revokes the grant the first one was issued under](/technical/security#authorization-code-security).
 
 **Response Format**:
 
@@ -195,7 +195,7 @@ An endpoint taking a JSON body may also answer:
 | `content_type.unsupported` | 415 | The operation does not read a body of the request's content type.               |
 
 A request carrying an access token this server will not accept is answered **401 Unauthorized** with the code saying
-why — `jwt.expired`, `token.revoked`, `token.client_disabled` and the rest are listed under
+why — `jwt.expired`, `grant.revoked`, `grant.client_disabled` and the rest are listed under
 [Why an access token is refused](/technical/api/client#why-an-access-token-is-refused), and they hold on this surface
 too. A request presenting a DPoP-bound access token, or presenting one under the `DPoP` scheme, may also be answered
 **401 Unauthorized** with one of these errors. The proof is checked as
@@ -1257,7 +1257,8 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 **Authentication**: Access token with `admin:consent:write` scope
 
-**Purpose**: Revokes all tokens for a specific user, forcing them to re-authenticate.
+**Purpose**: Revokes every [grant](/functional/grant) of a specific user, and every token issued under them, forcing
+them to re-authenticate on every client.
 
 **Path Parameters**:
 
@@ -1268,15 +1269,15 @@ are excluded — their status is represented by the `verified_at` field on the p
 ```json
 {
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "tokens_revoked": 3
+  "grants_revoked": 3
 }
 ```
 
 **Properties**:
 
 - `user_id`: Unique identifier of the user
-- `tokens_revoked`: Number of tokens this call revoked. A token already revoked or expired is left as it was and is
-  not counted, so calling again answers `0`
+- `grants_revoked`: Number of grants this call revoked, every token issued under each of them with it. A grant already
+  revoked, or whose every token has expired, is left as it was and is not counted, so calling again answers `0`
 
 **Use Cases**:
 
@@ -1294,8 +1295,8 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 **Authentication**: Access token with `admin:consent:write` scope
 
-**Purpose**: Revokes all tokens for a specific user on a specific client application, forcing them to re-authenticate on
-that client only.
+**Purpose**: Revokes every [grant](/functional/grant) of a specific user for a specific client application, and every
+token issued under them, forcing them to re-authenticate on that client only.
 
 **Path Parameters**:
 
@@ -1308,16 +1309,17 @@ that client only.
 {
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
   "client_id": "my-client-app",
-  "tokens_revoked": 2
+  "grants_revoked": 2
 }
 ```
 
 **Properties**:
 
 - `user_id`: Unique identifier of the user
-- `client_id`: Identifier of the client application whose tokens were revoked
-- `tokens_revoked`: Number of tokens this call revoked for the specified client. A token already revoked or expired
-  is left as it was and is not counted, so calling again answers `0`
+- `client_id`: Identifier of the client application whose grants were revoked
+- `grants_revoked`: Number of grants this call revoked for the specified client, every token issued under each of them
+  with it. A grant already revoked, or whose every token has expired, is left as it was and is not counted, so calling
+  again answers `0`
 
 **Use Cases**:
 
@@ -1861,15 +1863,17 @@ active consent exists for the user and audience pair.
 When a consent is revoked through this endpoint:
 
 1. The consent is marked as revoked (`revoked_by = admin`) with the administrator's identifier.
-2. Every token issued to the user for that audience — access, ID and refresh alike — is revoked at the same instant,
-   whichever of the audience's clients holds it, and is refused on the next request rather than lasting until it
-   expires.
-3. As a safety net, subsequent token refresh attempts also verify that a valid consent exists — so even if a refresh
+2. Every [grant](/functional/grant) the user holds for that audience is revoked at the same instant, whichever of the
+   audience's clients it was opened for — and with it every token issued under it, access, ID and refresh alike. Each
+   is refused on the next request rather than lasting until it expires.
+3. An authorization code not yet exchanged is reached with its grant too, so a sign-in completed just before the
+   revocation cannot be turned into tokens afterwards.
+4. As a safety net, subsequent token refresh attempts also verify that a valid consent exists — so even if a refresh
    token was missed, it cannot be used.
 
-A token obtained through [delegation](/functional/delegation) is the one exception: it rests on the
-[act-as rules](/functional/delegation#act-as-rules), not on a consent, so it is left in service and the acting client
-may exchange for another.
+A grant obtained through [delegation](/functional/delegation) is the one exception: it rests on the
+[act-as rules](/functional/delegation#act-as-rules), not on a consent, so its token is left in service and the acting
+client may exchange for another.
 
 **Use Cases**:
 

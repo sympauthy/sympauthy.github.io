@@ -47,3 +47,4 @@ Its main design concepts are:
 
 **Tokens**
 - [Tokens](tokens)
+- [Grant](grant)

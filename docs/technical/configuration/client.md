@@ -14,7 +14,7 @@ authorization server.
 | ```secret```                           | string          | Secret shared between the client and the authorization server. Required for confidential clients (`public: false`). Must be omitted for public clients.                                                                                                             | Conditional          |
 | ```allowed-grant-types```              | array of string | List of OAuth2 grant types this client is allowed to use. Supported values: `authorization_code`, `refresh_token`, `client_credentials`. See [this section](#clients-id-allowed-grant-types) for more details.                                                      | **YES**              |
 | ```allowed-scopes```                   | array of string | List of scopes the client is allowed to request. Any scope outside this list will be filtered out by this authorization server and will not be granted. <br>If not set or empty, **all scopes** are **allowed**.                                                    | NO                   |
-| ```audience```                         | string          | The [audience](/functional/audience) this client belongs to. Determines the consent grouping boundary and the `aud` claim in access tokens. Can be inherited from a [client template](#templates-clients-id).                                                       | **YES**              |
+| ```audience```                         | string          | The [audience](/functional/audience) this client belongs to. Determines the consent grouping boundary and the `aud` claim in access tokens. Moving a client to another audience ends the [grants](/functional/grant) it already holds: a refresh is refused with `grant.mismatching_audience` and the end-user signs in again. Can be inherited from a [client template](#templates-clients-id).                                                       | **YES**              |
 | ```default-scopes```                   | array of string | List of scopes that will be requested if the ```scope``` parameter is left when calling the authorize endpoint.                                                                                                                                                     | NO                   |
 | ```uris```                             | map of string   | Named URIs for this client, usable as `${client.uris.<key>}` templates in `allowed-redirect-uris`. Useful for defining base URLs once and referencing them in multiple redirect URIs.                                                                               | NO                   |
 | ```allowed-redirect-uris```            | array of string | A list of URIs where the client is allowed to ask the redirection of the end-user at the end of the OAuth2 authorize grant flow. See [this section](#clients-id-allowed-redirect-uris) for more details.                                                            | Conditional          |
@@ -112,13 +112,14 @@ clients:
 
 ### Removing a client
 
-**A token does not outlive its client.** When a client is no longer in the configuration, every unexpired access token
-naming it is refused with **401** `token.client_disabled`, on every API surface and on `/api/openid/userinfo` alike.
-The configuration is read at startup, so the removal takes effect when the server restarts.
+**A [grant](/functional/grant) does not outlive its client.** When a client is no longer in the configuration, every
+unexpired token of every grant opened for it is refused with **401** `grant.client_disabled`, on every API surface and
+on `/api/openid/userinfo` alike. The configuration is read at startup, so the removal takes effect when the server
+restarts.
 
-The tokens are **refused, not revoked**: nothing is written to them. Re-declaring the same `<id>` therefore serves
-those tokens again until they expire on their own. To end them for good, revoke them before removing the client — or
-remove the client and leave it removed until the longest `auth.token.access-expiration` has passed.
+The grants are **refused, not revoked**: nothing is written to them. Re-declaring the same `<id>` therefore serves
+their unexpired tokens again. To end them for good, revoke the grants before removing the client — or remove the client
+and leave it removed until the longest `auth.token.access-expiration` has passed.
 
 ## ```templates.clients.<id>```
 

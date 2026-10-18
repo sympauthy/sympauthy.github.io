@@ -35,11 +35,18 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 | Refresh Token                           | Supported     | [draft-ietf-oauth-v2-1 - section 1.5](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-1.5) |
 | ID Token (JWT)                          | Supported     | [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html)                               |
 | `auth_time` in ID, access and introspection | Supported | [OpenID Connect Core - section 2](https://openid.net/specs/openid-connect-core-1_0.html#IDToken), [RFC 9068 - section 2.2.1](https://www.rfc-editor.org/rfc/rfc9068#section-2.2.1), [RFC 9470 - section 6.2](https://www.rfc-editor.org/rfc/rfc9470#section-6.2) |
-| Refresh Token Rotation (Public Clients) | Supported     | [draft-ietf-oauth-v2-1 - section 6.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-6.1) |
+| Refresh Token Rotation                  | Not Supported | [draft-ietf-oauth-v2-1 - section 6.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-6.1) |
 | JWT Profile for Access Tokens           | Supported     | [RFC 9068](https://datatracker.ietf.org/doc/html/rfc9068)                                                      |
 | Sender-constrained Tokens (DPoP)        | Supported     | [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449)                                                      |
 | Sender-constrained Tokens (mTLS)        | Not Supported | [RFC 8705](https://datatracker.ietf.org/doc/html/rfc8705)                                                      |
 | Bearer Tokens in Query Strings          | Not Supported | [draft-ietf-oauth-v2-1 - section 5.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1#section-5.1) |
+
+> Refresh tokens are **not rotated**. A refresh token may be presented as often as its client likes until it expires,
+> and one replaced during a refresh is not refused afterwards — so a leaked refresh token is not detected as a replay
+> when the thief and the client both use it. A refresh reissues a refresh token only where the one presented would
+> otherwise outlive the access token it just produced, and the one presented stays valid. What a client holds is
+> withdrawn by revoking the [grant](/functional/grant) it was issued under, which the
+> [revocation endpoint](security#revocation) does whichever token it is given.
 
 > SympAuthy supports sender-constrained tokens via DPoP ([RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449)).
 > When a client sends a valid DPoP proof, the issued access token is bound to the client's key pair and returned with
@@ -80,8 +87,10 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 > for details.
 
 > An authorization code is spent by the exchange that is issued tokens. A second exchange of the same code is refused
-> with `invalid_grant` and, where it passes client authentication and the PKCE verifier, **revokes every token issued
-> for that code** — so a client that retries an exchange whose response it lost signs the end-user out. See
+> with `invalid_grant` and, where it passes client authentication and the PKCE verifier, **revokes the
+> [grant](/functional/grant) the code was issued under** — every token the first exchange was issued, and every token
+> refreshed from them — so a client that retries an exchange whose response it lost signs the end-user out. A code
+> whose grant was revoked before it was exchanged is refused for that too. See
 > [authorization code security](security#authorization-code-security).
 
 > `max_age` is satisfied by construction: SympAuthy keeps no session between authorizations, so every authorization
@@ -109,6 +118,7 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 | Request Object (`request`, `request_uri`) | Not Supported | [OpenID Connect Core - section 6](https://openid.net/specs/openid-connect-core-1_0.html#JWTRequests) |
 | `response_mode`             | Not Supported | [OAuth 2.0 Multiple Response Type Encoding Practices](https://openid.net/specs/oauth-v2-multiple-response-types-1_0.html#ResponseModes) |
 | Dynamic Client Registration | Not Supported | [RFC 7591](https://datatracker.ietf.org/doc/html/rfc7591)                                  |
+| Grant Management API        | Not Supported | [OpenID Grant Management 1.0](https://openid.net/specs/fapi-grant-management.html)         |
 
 > The `claims` request parameter is **partially** supported, and `claims_parameter_supported` is advertised as `true`.
 > A client may ask for a claim in the `id_token` or `userinfo` member, and the claim is carried there only where the
@@ -126,6 +136,12 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 
 > A `response_mode` in the authorization request is **ignored**: the authorization response is always sent in the query
 > string of `redirect_uri`, and `response_modes_supported` advertises `query` alone.
+
+> A grant is never put on the wire. SympAuthy records a [grant](/functional/grant) for every token it issues, but the
+> Grant Management API — which would return a `grant_id` for a client to query and revoke, and advertise
+> `grant_management_actions_supported` — is not served. A client withdraws what it holds through the
+> [revocation endpoint](security#revocation), which revokes the grant whichever token it is given, and an administrator
+> through the [Admin API](/technical/api/admin#force-logout).
 
 ### Scopes
 

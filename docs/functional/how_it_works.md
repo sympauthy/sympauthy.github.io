@@ -123,3 +123,4 @@ applications have access to their data.
 | Scope                | A named permission — consentable (protecting user claims), grantable (protecting resources), or client (protecting client operations) |
 | Consent              | The record that a user has authorized an audience to access specific scopes                           |
 | Token                | A credential the client receives after authentication, containing the user's identity and permissions |
+| Grant                | The record of what a client was allowed. Every token is issued under one, and revoking it signs the user out of that client |
