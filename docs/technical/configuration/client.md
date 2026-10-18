@@ -118,8 +118,9 @@ on `/api/openid/userinfo` alike. The configuration is read at startup, so the re
 restarts.
 
 The grants are **refused, not revoked**: nothing is written to them. Re-declaring the same `<id>` therefore serves
-their unexpired tokens again. To end them for good, revoke the grants before removing the client — or remove the client
-and leave it removed until the longest `auth.token.access-expiration` has passed.
+their unexpired tokens again, refresh tokens included. To end them for good, revoke the grants while the client is
+still declared — see [a grant does not outlive its
+client](/functional/grant#a-grant-does-not-outlive-its-client).
 
 ## ```templates.clients.<id>```
 

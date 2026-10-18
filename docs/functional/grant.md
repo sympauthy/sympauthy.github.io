@@ -16,7 +16,8 @@ A grant holds what every token under it has in common:
 - The **client** that was allowed, and the **[audience](/functional/audience)** the grant was opened for.
 - The **[scopes](/functional/scope)** — consented, granted and client scopes — and when and how each set was obtained.
 - **When the end-user authenticated**, which every token under the grant states as
-  [`auth_time`](/functional/tokens#when-the-user-authenticated).
+  [`auth_time`](/functional/tokens#when-the-user-authenticated) — absent from a `client_credentials` grant, which no
+  person is behind, and from a token exchange, which asserts an identity nobody proved.
 - The **[claims the authorization asked for](/functional/claims#asking-for-a-claim-in-the-request)** by name, so a
   token minted months later honours the same request the first one did.
 
@@ -56,7 +57,7 @@ A grant is revoked, never one token of it. Each of these signs the end-user out 
 - the client's own call to the **[revocation endpoint](/technical/security#revocation)** — whichever token it presents,
   an access token as surely as a refresh token;
 - the end-user's **[consent](/functional/consent#revoking-consent)** being revoked, which reaches every grant that
-  end-user holds for the audience;
+  end-user holds for the audience, act-as grants aside;
 - the **authorization code being presented a second time**, which
   [revokes the grant it was issued under](/technical/security#authorization-code-security).
 
@@ -67,11 +68,14 @@ between the sign-in and the exchange leaves the code unspendable.
 
 When a deployment [removes a client](/technical/configuration/client#removing-a-client) from its configuration, every
 token of every grant opened for that client is refused on every surface. The grants are **refused, not revoked** —
-nothing is written to them — so re-declaring the same client id serves their unexpired tokens again.
+nothing is written to them — so re-declaring the same client id serves their unexpired tokens again, refresh tokens
+included. Ending them for good means revoking them while the client is still declared: afterwards only a force logout
+of the person reaches them, since the per-client one needs a client the configuration still names.
 
-A grant also belongs to the audience it was opened for. Moving a client to another audience ends the grants it already
-holds: their tokens were issued for an audience the client has left, and a consent revoked for that audience could no
-longer reach them.
+A grant also belongs to the audience it was opened for. A client moved to another audience can no longer refresh the
+grants it already holds — their tokens were issued for an audience the client has left, and a consent revoked for that
+audience could no longer reach tokens issued for the new one — so the end-user signs in again once the access token in
+hand expires.
 
 ## Delegation follows the actor's grant
 
@@ -83,9 +87,10 @@ delegated token obtained from it out of service, and so does letting its grant e
 
 - **It is not shown to the client.** [Grant Management](/technical/oauth2_compatibility#features), which would let a
   client query and revoke a grant by identifier, is not served.
-- **It is not an audit trail.** A revoked grant is deleted with its tokens on the next
-  [scheduled sweep](/technical/configuration/advanced#scheduled-cleanups), and so is a grant left with no token and no
-  code. Who revoked it, and when, goes with it.
+- **It is not an audit trail.** The [scheduled sweep](/technical/configuration/advanced#scheduled-cleanups) deletes
+  the tokens of a revoked grant, and then every grant that no token and no authorization code names any longer — so
+  who revoked a grant, and when, goes with it. A grant whose code is still stored waits for that code, which is
+  collected with the interactive flow session it came from.
 
 ## Relation to other concepts
 

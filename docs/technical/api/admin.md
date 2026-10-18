@@ -1276,8 +1276,9 @@ them to re-authenticate on every client.
 **Properties**:
 
 - `user_id`: Unique identifier of the user
-- `grants_revoked`: Number of grants this call revoked, every token issued under each of them with it. A grant already
-  revoked, or whose every token has expired, is left as it was and is not counted, so calling again answers `0`
+- `grants_revoked`: Number of grants this call revoked, every token issued under each of them with it. A grant that is
+  no longer live — already revoked, past its lifetime, or left with neither an unexpired token nor a code still to
+  be exchanged — is left as it was and is not counted, so calling again answers `0`
 
 **Use Cases**:
 
@@ -1318,8 +1319,8 @@ token issued under them, forcing them to re-authenticate on that client only.
 - `user_id`: Unique identifier of the user
 - `client_id`: Identifier of the client application whose grants were revoked
 - `grants_revoked`: Number of grants this call revoked for the specified client, every token issued under each of them
-  with it. A grant already revoked, or whose every token has expired, is left as it was and is not counted, so calling
-  again answers `0`
+  with it. A grant that is no longer live — already revoked, past its lifetime, or left with neither an unexpired token
+  nor a code still to be exchanged — is left as it was and is not counted, so calling again answers `0`
 
 **Use Cases**:
 

@@ -99,18 +99,20 @@ Tokens are intentionally short-lived. If a token is intercepted, it becomes usel
 | Authorization code | Single use                               | Enforced                        |
 | Grant              | None (does not expire unless configured) | `auth.token.grant-expiration`   |
 
-Leaving `auth.token.refresh-expiration` out of the configuration entirely gives the refresh token no expiry at all, and
-a compromised one then remains valid indefinitely. The `default` environment sets 30 days; a deployment overriding the
-key in production should set a duration rather than clear it.
+The lifespans above are the ones the [`default` environment](/technical/configuration/environments) sets. A deployment
+that does not activate it, or that overrides `auth.token.refresh-expiration` with no value, issues refresh tokens that
+never expire — and a compromised one then stays valid indefinitely, which is why a production deployment sets a
+duration rather than clearing the key.
 
 `auth.token.grant-expiration` is the one lifetime a refresh does not extend. It bounds the whole
-[grant](/functional/grant) — once it has passed, the refresh is refused however long the refresh token itself had left,
-and the end-user signs in again. **No token outlives the grant it was issued under**: an access token issued a minute
-before its grant ends states that minute as its `exp`, so a resource server that is not SympAuthy stops honouring it
-when the grant stops.
+[grant](/functional/grant) — once it has passed, the refresh is refused with `invalid_grant` and `grant.expired`
+however long the refresh token itself had left, and the end-user signs in again. **No token outlives the grant it was
+issued under**: an access token issued a minute before its grant ends states that minute as its `exp`, so a resource
+server that is not SympAuthy stops honouring it when the grant stops — and so that no access token is ever refused for
+its grant's lifetime, only for its own expiry.
 
-For more detail on the purpose and lifecycle of each token, see the [Tokens](../functional/tokens) documentation, and
-on the record they are issued under, the [Grant](../functional/grant) documentation.
+For more detail on the purpose and lifecycle of each token, see the [Tokens](/functional/tokens) documentation, and on
+the record they are issued under, the [Grant](/functional/grant) documentation.
 
 ## Revocation
 
@@ -141,9 +143,10 @@ end-user out of that client: the endpoint reveals nothing and acts as nobody, an
 client in the same hands would cost the end-user as much.
 :::
 
-A revocation only touches a grant still in service. One already revoked keeps the record of its first revocation, and
-one whose tokens have all expired is left as it was — so a count of what a revocation took out of service counts only
-the grants it ended.
+A revocation only touches a grant still live: one not revoked already, not past its own lifetime, and holding either a
+token that has not expired or an authorization code still to be exchanged. Anything else is left exactly as it was — a
+grant already revoked keeps the record of its first revocation, and one that lapsed on its own is not recorded as
+revoked afterwards — so a count of what a revocation took out of service counts only the grants it ended.
 
 Revoking a grant also revokes the grants opened by exchanging its tokens: a client revoking the token it presented to a
 [token exchange](/functional/delegation) takes every delegated token obtained from it out of service too.
@@ -151,9 +154,10 @@ Revoking a grant also revokes the grants opened by exchanging its tokens: a clie
 **A grant does not outlive its client.** When a deployment removes a client from its configuration, every unexpired
 token of every grant opened for that client is refused with **401** `grant.client_disabled` on every surface. The
 grants are refused rather than revoked — nothing is written to them — so re-declaring the same client id serves their
-unexpired tokens again until they expire. Moving a client to another audience ends its grants instead: a refresh is
-refused with `invalid_grant` and `grant.mismatching_audience`, because tokens issued for the new audience would rest on
-a consent whose revocation could not reach the grant they stand under. See
+unexpired tokens again until they expire. Moving a client to another audience refuses nothing, but stops its grants
+being refreshed: the refresh answers `invalid_grant` and `grant.mismatching_audience` and the end-user signs in again,
+because tokens issued for the new audience would rest on a consent whose revocation could not reach the grant they
+stand under. The unexpired access tokens of those grants serve out their own lifetime. See
 [removing a client](/technical/configuration/client#removing-a-client).
 
 ## Token introspection

@@ -43,10 +43,11 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 
 > Refresh tokens are **not rotated**. A refresh token may be presented as often as its client likes until it expires,
 > and one replaced during a refresh is not refused afterwards — so a leaked refresh token is not detected as a replay
-> when the thief and the client both use it. A refresh reissues a refresh token only where the one presented would
-> otherwise outlive the access token it just produced, and the one presented stays valid. What a client holds is
-> withdrawn by revoking the [grant](/functional/grant) it was issued under, which the
-> [revocation endpoint](security#revocation) does whichever token it is given.
+> when the thief and the client both use it. The response carries a new refresh token only where the one presented
+> would otherwise expire before the access token issued with it, and the one presented stays valid either way; with
+> the shipped lifetimes a refresh answers with no refresh token at all. What a client holds is withdrawn by revoking
+> the [grant](/functional/grant) it was issued under, which the
+> [revocation endpoint](/technical/security#revocation) does whichever token it is given.
 
 > SympAuthy supports sender-constrained tokens via DPoP ([RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449)).
 > When a client sends a valid DPoP proof, the issued access token is bound to the client's key pair and returned with
@@ -140,8 +141,8 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 > A grant is never put on the wire. SympAuthy records a [grant](/functional/grant) for every token it issues, but
 > Grant Management — which would return a `grant_id` for a client to query and revoke, and advertise
 > `grant_management_actions_supported` — is not served. A client withdraws what it holds through the
-> [revocation endpoint](security#revocation), which revokes the grant whichever token it is given, and an administrator
-> through the [Admin API](/technical/api/admin#force-logout).
+> [revocation endpoint](/technical/security#revocation), which revokes the grant whichever token it is given, and an
+> administrator through the [Admin API](/technical/api/admin#force-logout).
 
 ### Scopes
 

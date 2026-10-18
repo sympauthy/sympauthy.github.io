@@ -37,9 +37,9 @@ client may exchange for another. Withdraw the act-as rule to stop it.
 
 ## A delegation follows the actor's grant
 
-The exchange opens a [grant](/functional/grant) of its own, which records the grant of the
-```subject_token``` the acting client presented — its own
-[client-credentials](/functional/client_authorization) grant. The delegation never outlives that grant:
+The exchange opens a [grant](/functional/grant) of its own, which records the grant of the ```subject_token``` the
+acting client presented — its own [client-credentials](/functional/client_authorization) grant. The delegation never
+outlives that grant:
 
 - the acting client **revoking the token it exchanged** takes every delegated token obtained from it out of service at
   once, and the exchange cannot be repeated;
