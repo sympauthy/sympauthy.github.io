@@ -132,8 +132,10 @@ names `id-token` reaches it too, but only for an authorization that
 
 ### Expiration
 
-ID tokens have the same lifespan as access tokens. Once expired, the client should use the refresh token to obtain a
-fresh set of tokens.
+ID tokens have the same lifespan as access tokens by default. A deployment may give them one of their own with
+[`auth.token.id-expiration`](/technical/configuration/authorization#auth-token), which falls back to
+[`auth.token.access-expiration`](/technical/configuration/authorization#auth-token) when it is not set. Once expired,
+the client should use the refresh token to obtain a fresh set of tokens.
 
 ## When the user authenticated
 

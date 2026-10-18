@@ -94,6 +94,7 @@ Tokens are intentionally short-lived. If a token is intercepted, it becomes usel
 | Token              | Default lifespan                         | Configuration key               |
 |--------------------|------------------------------------------|---------------------------------|
 | Access token       | 1 hour                                   | `auth.token.access-expiration`  |
+| ID token           | The access token's                       | `auth.token.id-expiration`      |
 | Refresh token      | 30 days                                  | `auth.token.refresh-expiration` |
 | Authorization code | Single use                               | Enforced                        |
 | Grant              | None (does not expire unless configured) | `auth.token.grant-expiration`   |
