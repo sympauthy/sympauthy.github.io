@@ -32,3 +32,8 @@ Map<String, Object> clientConfig = Map.of(
     "allowed-scopes", List.of("openid"),
     "allowed-redirect-uris", List.of(registry.redirectUri()));
 ```
+
+A test that [exchanges the code itself](/testcontainers/interactive_flow#exchanging-the-code-yourself)
+must send `registry.clientSecret()` the same way: as a `client_secret` form field
+(`client_secret_post`), or in an HTTP Basic `Authorization` header (`client_secret_basic`). A public
+client sends `client_id` alone with the verifier.
