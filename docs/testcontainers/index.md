@@ -9,8 +9,8 @@ It also ships a **browser-free driver for SympAuthy's interactive login flow**: 
 claim collection, confirmation and TOTP multi-factor steps can be scripted from test code to obtain
 real authorization codes and tokens end-to-end, without a headless browser.
 
-The library is published to GitHub Packages as `com.sympauthy:testcontainers-sympauthy`. It is a
-test-only dependency; the only transitive dependency you inherit is Testcontainers itself.
+It is a test-only dependency published to GitHub Packages — see
+[Getting started](/testcontainers/getting_started) to install it.
 
 ## Minimal by default
 
