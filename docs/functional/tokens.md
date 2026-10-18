@@ -78,7 +78,7 @@ Access tokens have a short lifespan — typically minutes to a few hours. The ex
 Once expired, the access token is rejected. The client must use the refresh token to obtain a new one.
 
 Expiry is not the only reason an access token is rejected. It is also refused when the
-[grant](/functional/grant) it was issued under has been [revoked](/technical/security#revocation), and when the
+[grant](/functional/grant) it was issued under has been [revoked](/technical/security#token-revocation), and when the
 deployment's configuration [no longer declares the client](/technical/configuration/client#removing-a-client) the
 grant was opened for — a grant does not outlive its client. A grant given a lifetime needs no refusal of its own: no
 access token under it is ever issued an expiry later than the grant's end.

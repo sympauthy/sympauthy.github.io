@@ -54,7 +54,7 @@ A grant is revoked, never one token of it. Each of these signs the end-user out 
 
 - an administrator's **force logout** through the [Admin API](/technical/api/admin#force-logout), for every client or
   for one;
-- the client's own call to the **[revocation endpoint](/technical/security#revocation)** — whichever token it presents,
+- the client's own call to the **[revocation endpoint](/technical/security#token-revocation)** — whichever token it presents,
   an access token as surely as a refresh token;
 - the end-user's **[consent](/functional/consent#revoking-consent)** being revoked, which reaches every grant that
   end-user holds for the audience, act-as grants aside;

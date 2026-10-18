@@ -114,7 +114,7 @@ its grant's lifetime, only for its own expiry.
 For more detail on the purpose and lifecycle of each token, see the [Tokens](/functional/tokens) documentation, and on
 the record they are issued under, the [Grant](/functional/grant) documentation.
 
-## Revocation
+## Revocation {#token-revocation}
 
 SympAuthy implements
 the [OAuth 2.0 Token Revocation specification (RFC 7009)](https://datatracker.ietf.org/doc/html/rfc7009) at
