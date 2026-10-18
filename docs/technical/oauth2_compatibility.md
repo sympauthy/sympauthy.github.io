@@ -118,7 +118,7 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 | Request Object (`request`, `request_uri`) | Not Supported | [OpenID Connect Core - section 6](https://openid.net/specs/openid-connect-core-1_0.html#JWTRequests) |
 | `response_mode`             | Not Supported | [OAuth 2.0 Multiple Response Type Encoding Practices](https://openid.net/specs/oauth-v2-multiple-response-types-1_0.html#ResponseModes) |
 | Dynamic Client Registration | Not Supported | [RFC 7591](https://datatracker.ietf.org/doc/html/rfc7591)                                  |
-| Grant Management API        | Not Supported | [OpenID Grant Management 1.0](https://openid.net/specs/fapi-grant-management.html)         |
+| Grant Management            | Not Supported | [Grant Management for OAuth 2.0](https://openid.net/specs/oauth-v2-grant-management.html)  |
 
 > The `claims` request parameter is **partially** supported, and `claims_parameter_supported` is advertised as `true`.
 > A client may ask for a claim in the `id_token` or `userinfo` member, and the claim is carried there only where the
@@ -137,8 +137,8 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 > A `response_mode` in the authorization request is **ignored**: the authorization response is always sent in the query
 > string of `redirect_uri`, and `response_modes_supported` advertises `query` alone.
 
-> A grant is never put on the wire. SympAuthy records a [grant](/functional/grant) for every token it issues, but the
-> Grant Management API — which would return a `grant_id` for a client to query and revoke, and advertise
+> A grant is never put on the wire. SympAuthy records a [grant](/functional/grant) for every token it issues, but
+> Grant Management — which would return a `grant_id` for a client to query and revoke, and advertise
 > `grant_management_actions_supported` — is not served. A client withdraws what it holds through the
 > [revocation endpoint](security#revocation), which revokes the grant whichever token it is given, and an administrator
 > through the [Admin API](/technical/api/admin#force-logout).

@@ -81,8 +81,8 @@ delegated token obtained from it out of service, and so does letting its grant e
 
 ## What a grant is not
 
-- **It is not shown to the client.** The [OpenID Grant Management API](/technical/oauth2_compatibility#features),
-  which would let a client query and revoke a grant by identifier, is not served.
+- **It is not shown to the client.** [Grant Management](/technical/oauth2_compatibility#features), which would let a
+  client query and revoke a grant by identifier, is not served.
 - **It is not an audit trail.** A revoked grant is deleted with its tokens on the next
   [scheduled sweep](/technical/configuration/advanced#scheduled-cleanups), and so is a grant left with no token and no
   code. Who revoked it, and when, goes with it.
