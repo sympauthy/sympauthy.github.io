@@ -44,7 +44,7 @@ outlives that grant:
 - the acting client **revoking the token it exchanged** takes every delegated token obtained from it out of service at
   once, and the exchange cannot be repeated;
 - letting that grant **expire** — its tokens run out, or it reaches the end of the lifetime
-  [`auth.token.grant-expiration`](/technical/configuration/authorization#auth-token) gives it — refuses the delegated
+  [`auth.grant.expiration`](/technical/configuration/authorization#auth-grant) gives it — refuses the delegated
   tokens too.
 
 A delegated token refused for either reason is answered **401** with

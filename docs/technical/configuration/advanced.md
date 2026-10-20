@@ -136,8 +136,8 @@ Four sweeps run every fifteen minutes, each on a schedule of its own: the one ex
 [interactive flow](/functional/interactive_flow) sessions and the records attached to them, the one collecting
 the accounts an abandoned sign-up left half-created, the one removing the places people sign in from once
 nobody has signed in from one for [`known-user-retention`](#advanced-security-context), and the one deleting
-expired tokens, the tokens of a revoked [grant](/functional/grant), and then every grant that no token and no
-authorization code names any longer.
+expired tokens and authorization codes, the tokens of a revoked [grant](/functional/grant), and then every grant
+that no token and no authorization code names any longer.
 
 How much a run takes is fixed in the server rather than configured, and nothing is lost by it: whatever a run
 leaves behind, the next one takes. The only key touching any of this is the retention above, which says when a

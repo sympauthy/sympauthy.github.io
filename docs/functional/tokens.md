@@ -109,7 +109,7 @@ If a refresh token itself expires, the user will need to sign in again from scra
 
 A refresh also ends with the [grant](/functional/grant) the refresh token was issued under. Where the deployment
 configures
-[`auth.token.grant-expiration`](/technical/configuration/authorization#auth-token), the grant has an absolute lifetime
+[`auth.grant.expiration`](/technical/configuration/authorization#auth-grant), the grant has an absolute lifetime
 no refresh extends: once it has passed, the refresh is refused however long the refresh token itself had left, and the
 user signs in again.
 
@@ -212,7 +212,7 @@ The user will be prompted to sign in again when:
   revoking either of its tokens, by the [consent](/functional/consent) for the user and
   [audience](/functional/audience) being revoked, or by the authorization code being presented a second time,
 - the grant has reached the end of the lifetime
-  [`auth.token.grant-expiration`](/technical/configuration/authorization#auth-token) gives it, which no refresh
+  [`auth.grant.expiration`](/technical/configuration/authorization#auth-grant) gives it, which no refresh
   extends,
 - the deployment removed the client from its configuration, or moved it to another audience
   ([a grant does not outlive its client](/functional/grant#a-grant-does-not-outlive-its-client)),
