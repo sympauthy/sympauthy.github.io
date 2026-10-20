@@ -42,7 +42,7 @@ Three things open a grant:
 By default a grant has no lifetime of its own. It lasts as long as its client keeps refreshing, and the end-user signs
 in again only once the [refresh token](/functional/tokens#refresh-token) expires.
 
-Setting [`auth.token.grant-expiration`](/technical/configuration/authorization#auth-token) gives every grant an
+Setting [`auth.grant.expiration`](/technical/configuration/authorization#auth-grant) gives every grant an
 **absolute lifetime that no refresh extends**. Once it has passed, the refresh is refused however long the refresh
 token itself had left, and the end-user signs in again. Every token issued under a grant also expires no later than the
 grant does — an access token issued a minute before the grant ends says so in its `exp`, so a resource server stops
@@ -90,7 +90,8 @@ delegated token obtained from it out of service, and so does letting its grant e
 - **It is not an audit trail.** The [scheduled sweep](/technical/configuration/advanced#scheduled-cleanups) deletes
   the tokens of a revoked grant, and then every grant that no token and no authorization code names any longer — so
   who revoked a grant, and when, goes with it. A grant whose code is still stored waits for that code, which is
-  collected with the interactive flow session it came from.
+  collected once [its own lifetime](/technical/configuration/authorization#auth-authorization-code) has passed,
+  exchanged or not.
 
 ## Relation to other concepts
 

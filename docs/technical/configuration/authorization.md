@@ -2,6 +2,8 @@
 
 This page covers authentication and authorization configuration: identity settings, token behaviour, feature flags, MFA, interactive flows, third-party providers, and scope granting rules.
 
+Every lifetime the server configures, here and on other pages, is gathered in [one table](/technical/security#lifetimes).
+
 ## ```auth```
 
 | Key                        | Type            | Description                                                                                                                                                                                                                                                                                                                                    | Required<br>Default      |
@@ -10,13 +12,26 @@ This page covers authentication and authorization configuration: identity settin
 | ```identifier-claims```    | array of string | List of [claim](/technical/configuration/claim) identifiers a person signs in with. A user types a single value and it is matched against every claim listed, so a value must be unique across the whole list rather than within one claim: no two accounts may hold the same value, under the same claim or under different ones. These claims are used as the login identifier for password authentication and, when [`user-merging-enabled`](#auth) is `true`, as the key for merging accounts across authentication methods. See [identifier claims](/functional/claims#identifier-claims).                                                 | NO<br>```[]```           |
 | ```user-merging-enabled``` | boolean         | When `true`, accounts that share the same value for **every** configured `identifier-claims` are automatically merged across authentication methods (password, third-party providers); a partial match merges nothing. When `false`, each authentication method creates a separate account.                                                                                          | NO<br>```false```        |
 | ```authorization-code```   | object          | Configuration for the authorization code grant flow. See [auth.authorization-code](#auth-authorization-code) for more details.                                                                                                                                                                                                                 | NO                       |
+| ```grant```                | object          | Configuration of the [grants](/functional/grant) tokens are issued under. See [auth.grant](#auth-grant) for more details.                                                                                                                                                                                                                       | NO                       |
+| ```interactive-flow```     | object          | Configuration of the [interactive flow](/functional/interactive_flow) a person goes through. See [auth.interactive-flow](#auth-interactive-flow) for more details.                                                                                                                                                                              | NO                       |
 | ```token```                | object          | Configuration related to authentication tokens issued by this app. See [auth.token](#auth-token) for more details.                                                                                                                                                                                                                             | NO                       |
 
 ### ```auth.authorization-code```
 
 | Key              | Type     | Description                                                                                                                                                              | Required<br>Default |
 |------------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```expiration``` | duration | Maximum duration an interactive flow session is valid before it expires. The end-user must complete the entire authorization flow (sign-in, claims collection, MFA, etc.) within this time. | YES<br>```30m```    |
+| ```expiration``` | duration | How long an authorization code can be exchanged for tokens, counted from when it is handed to the client. It does not depend on the interactive flow that issued the code, whose time is [`auth.interactive-flow.expiration`](#auth-interactive-flow). | YES<br>```1m```     |
+
+::: warning Upgrading an existing deployment
+`auth.authorization-code.expiration` used to hold the time a person has to get through a flow. A value written for
+that still binds, now as the code's lifetime, so move it to `auth.interactive-flow.expiration`.
+
+| Before                                                 | After                                                     |
+|--------------------------------------------------------|-----------------------------------------------------------|
+| `auth.authorization-code.expiration` (the flow's time) | `auth.interactive-flow.expiration`                        |
+| *(what was left of the flow's time)*                   | `auth.authorization-code.expiration` (the code's lifetime) |
+| `auth.token.grant-expiration`                          | `auth.grant.expiration`                                   |
+:::
 
 ### ```auth.by-password```
 
@@ -24,13 +39,24 @@ This page covers authentication and authorization configuration: identity settin
 |---------------|---------|---------------------------------------|---------------------|
 | ```enabled``` | boolean | Enable password-based authentication. | NO<br>```false```   |
 
+### ```auth.grant```
+
+| Key              | Type     | Description                                                                                                                                                                         | Required<br>Default |
+|------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
+| ```expiration``` | duration | Absolute lifetime of a [grant](/functional/grant), counted from the moment it is opened. Must be greater than zero. A grant has no lifetime of its own if this key is not present. | NO                  |
+
+### ```auth.interactive-flow```
+
+| Key              | Type     | Description                                                                                                                                                                                     | Required<br>Default |
+|------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
+| ```expiration``` | duration | How long a person has to get through a whole [interactive flow](/functional/interactive_flow) (sign-in, claims collection, MFA, etc.), counted from when it starts, whatever started it. | YES<br>```30m```    |
+
 ### ```auth.token```
 
 | Key                      | Type     | Description                                                                                                                                                                                                                                                  | Required<br>Default |
 |--------------------------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
 | ```access-expiration```  | duration | Amount of time the end-user can be considered authenticated after the access token has been issued.                                                                                                                                                          | YES<br>```1h```     |
 | ```dpop-required```      | boolean  | When `true`, all token requests must include a [DPoP](/technical/security#dpop-demonstrating-proof-of-possession) proof. When `false`, DPoP is opt-in: clients may send a proof to receive a sender-constrained token, or omit it to receive a bearer token. | NO<br>```false```   |
-| ```grant-expiration```   | duration | Absolute lifetime of a [grant](/functional/grant), counted from the moment it is opened. Must be greater than zero. A grant has no lifetime of its own if this key is not present. | NO                  |
 | ```id-expiration```      | duration | Amount of time an ID token is valid after it has been issued. | NO<br>```<access-expiration>``` |
 | ```refresh-enabled```    | boolean  | If set to ```true```, this app will issue refresh tokens that can be used to obtain a new access token without the end-user having to go through the authentication flow.                                                                                    | YES<br>```true```   |
 | ```refresh-expiration``` | duration | Amount of time the refresh token can be used to obtain an access token after it has been issued. | NO<br>```30d```     |

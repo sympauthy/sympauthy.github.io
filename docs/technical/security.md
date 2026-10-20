@@ -87,24 +87,29 @@ accepted as the other. The access token key uses the `kid` value `access`, while
 Both public keys are exposed through the OpenID Connect discovery endpoint (`/.well-known/openid-configuration`),
 allowing clients to verify tokens without a round-trip to SympAuthy.
 
-## Token expiration
+## Lifetimes
 
-Tokens are intentionally short-lived. If a token is intercepted, it becomes useless once it expires.
+What SympAuthy issues is intentionally short-lived. If a token or a code is intercepted, it becomes useless once it
+expires. Each lifetime is configured in the section of the thing it belongs to; this table gathers them.
 
-| Token              | Default lifespan                         | Configuration key               |
-|--------------------|------------------------------------------|---------------------------------|
-| Access token       | 1 hour                                   | `auth.token.access-expiration`  |
-| ID token           | The access token's                       | `auth.token.id-expiration`      |
-| Refresh token      | 30 days                                  | `auth.token.refresh-expiration` |
-| Authorization code | Single use                               | Enforced                        |
-| Grant              | None (does not expire unless configured) | `auth.token.grant-expiration`   |
+| Lifetime                  | What it bounds                                                                     | Default                    | Configuration key                                                                                                    |
+|---------------------------|------------------------------------------------------------------------------------|----------------------------|----------------------------------------------------------------------------------------------------------------------|
+| Interactive flow          | The time a person has to get through a whole flow, from when it starts             | 30 minutes                 | [`auth.interactive-flow.expiration`](/technical/configuration/authorization#auth-interactive-flow)                   |
+| Authorization code        | How long a code can be exchanged, from when it is handed to the client             | 1 minute                   | [`auth.authorization-code.expiration`](/technical/configuration/authorization#auth-authorization-code)               |
+| Access token              | How long an access token is accepted, from when it is issued                       | 1 hour                     | [`auth.token.access-expiration`](/technical/configuration/authorization#auth-token)                                  |
+| ID token                  | How long an ID token is valid, from when it is issued                              | The access token's         | [`auth.token.id-expiration`](/technical/configuration/authorization#auth-token)                                      |
+| Refresh token             | How long a refresh token can be used, from when it is issued                       | 30 days                    | [`auth.token.refresh-expiration`](/technical/configuration/authorization#auth-token)                                 |
+| Grant                     | Everything issued under a [grant](/functional/grant), from when it is opened       | None                       | [`auth.grant.expiration`](/technical/configuration/authorization#auth-grant)                                         |
+| Validation code           | How long an email validation code is accepted, from when it is sent                | 10 minutes                 | [`advanced.validation-code.expiration`](/technical/configuration/advanced#advanced-validation-code)                  |
+| Invitation                | How long an [invitation](/functional/invitation) can be accepted                   | 7 days, capped at 30 days  | [`advanced.invitation.default-expiration` and `max-expiration`](/technical/configuration/advanced#advanced-invitation) |
+| Known place of sign-in    | How long a place a person signs in from is remembered, from when they were last seen there | 180 days           | [`advanced.security-context.known-user-retention`](/technical/configuration/advanced#advanced-security-context)      |
 
-The lifespans above are the ones the [`default` environment](/technical/configuration/environments) sets. A deployment
+The defaults above are the ones the [`default` environment](/technical/configuration/environments) sets. A deployment
 that does not activate it, or that overrides `auth.token.refresh-expiration` with no value, issues refresh tokens that
 never expire — and a compromised one then stays valid indefinitely, which is why a production deployment sets a
 duration rather than clearing the key.
 
-`auth.token.grant-expiration` is the one lifetime a refresh does not extend. It bounds the whole
+`auth.grant.expiration` is the one lifetime a refresh does not extend. It bounds the whole
 [grant](/functional/grant) — once it has passed, the refresh is refused with `invalid_grant` and `grant.expired`
 however long the refresh token itself had left, and the end-user signs in again. **No token outlives the grant it was
 issued under**: an access token issued a minute before its grant ends states that minute as its `exp`, so a resource
@@ -185,6 +190,11 @@ own members is left out rather than written over it.
 
 The authorization code is a short-lived, single-use credential. SympAuthy enforces the following protections:
 
+- **Short lifetime**: A code can be exchanged for
+  [`auth.authorization-code.expiration`](/technical/configuration/authorization#auth-authorization-code) — a minute by
+  default — from when it is handed to the client, however long the interactive flow that issued it had left. A client
+  exchanges it as soon as the end-user is redirected back, so a code that leaked has little time to be used. A code
+  presented after that is refused with `invalid_grant`, and revokes nothing even if it was already exchanged.
 - **One-time use**: Each authorization code is spent by the exchange that is issued tokens. A second exchange of the
   same code is refused with `invalid_grant` and, where it passes client authentication and the PKCE verifier, **revokes
   the [grant](/functional/grant) the code was issued under** — and with it the first exchange's access and refresh
