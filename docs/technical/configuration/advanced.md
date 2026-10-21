@@ -33,8 +33,8 @@ Configuration for [invitation](/functional/invitation) token generation and expi
 
 | Key                        | Type     | Description                                                                                 | Required<br>Default |
 |----------------------------|----------|---------------------------------------------------------------------------------------------|---------------------|
-| ```default-expiration```   | duration | Default validity period when no `expires_at` is provided at creation.                       | YES<br>```7d```     |
-| ```max-expiration```       | duration | Maximum allowed validity period. `expires_at` values beyond this limit are capped.          | YES<br>```30d```    |
+| ```default-expiration```   | duration | Default validity period when no `expires_at` is provided at creation. Must be greater than zero. | YES<br>```7d```     |
+| ```max-expiration```       | duration | Maximum allowed validity period. `expires_at` values beyond this limit are capped. Must be greater than zero. | YES<br>```30d```    |
 | ```token-length```         | int      | Number of random bytes for token generation (before base64url encoding).                    | YES<br>```32```     |
 
 ### ```advanced.invitation.hash```
@@ -82,7 +82,7 @@ are on the [Security Context](/technical/configuration/security-context) page.
 |------------------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
 | ```geo```                    | object   | Where that address is. See [advanced.security-context.geo](#advanced-security-context-geo).                                                | NO                  |
 | ```ip```                     | object   | Where the address comes from. See [advanced.security-context.ip](#advanced-security-context-ip).                                           | NO                  |
-| ```known-user-retention```   | duration | How long a place a person signs in from is kept, measured from the last time they were seen there rather than the first. Must be positive. | NO<br>```180d```    |
+| ```known-user-retention```   | duration | How long a place a person signs in from is kept, measured from the last time they were seen there rather than the first. Must be greater than zero. | NO<br>```180d```    |
 
 ### ```advanced.security-context.geo```
 
@@ -116,7 +116,7 @@ Every key is a header name, read as it stands.
 
 | Key                | Type     | Description                                                                                      | Required<br>Default |
 |--------------------|----------|--------------------------------------------------------------------------------------------------|---------------------|
-| ```expiration```   | duration | Duration, after the validation code has been generated, where the server will accept it.         | YES<br>```10m```    |
+| ```expiration```   | duration | Duration, after the validation code has been generated, where the server will accept it. Must be greater than zero. | YES<br>```10m```    |
 | ```length```       | int      | Number of digit expected in validation code generate by this authorization server.               | YES<br>```6```      |
 | ```resend-delay``` | duration | Duration the end-user has to wait before being able to request a new validation code to be sent. | YES<br>```1m```     |
 
