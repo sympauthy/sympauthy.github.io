@@ -90,7 +90,8 @@ allowing clients to verify tokens without a round-trip to SympAuthy.
 ## Lifetimes
 
 What SympAuthy issues is intentionally short-lived. If a token or a code is intercepted, it becomes useless once it
-expires. Each lifetime is configured in the section of the thing it belongs to; this table gathers them.
+expires. Each lifetime is configured in the section of the thing it belongs to; this table gathers them. Every one of
+them must be greater than zero: given zero or less, the server refuses to start.
 
 | Lifetime                  | What it bounds                                                                     | Default                    | Configuration key                                                                                                    |
 |---------------------------|------------------------------------------------------------------------------------|----------------------------|----------------------------------------------------------------------------------------------------------------------|

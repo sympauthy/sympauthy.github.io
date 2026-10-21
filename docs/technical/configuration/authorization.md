@@ -20,7 +20,7 @@ Every lifetime the server configures, here and on other pages, is gathered in [o
 
 | Key              | Type     | Description                                                                                                                                                              | Required<br>Default |
 |------------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```expiration``` | duration | How long an authorization code can be exchanged for tokens, counted from when it is handed to the client. It does not depend on the interactive flow that issued the code, whose time is [`auth.interactive-flow.expiration`](#auth-interactive-flow). | YES<br>```1m```     |
+| ```expiration``` | duration | How long an authorization code can be exchanged for tokens, counted from when it is handed to the client. It does not depend on the interactive flow that issued the code, whose time is [`auth.interactive-flow.expiration`](#auth-interactive-flow). Must be greater than zero. | YES<br>```1m```     |
 
 ::: warning Upgrading an existing deployment
 `auth.authorization-code.expiration` used to hold the time a person has to get through a flow. A value written for
@@ -49,17 +49,17 @@ that still binds, now as the code's lifetime, so move it to `auth.interactive-fl
 
 | Key              | Type     | Description                                                                                                                                                                                     | Required<br>Default |
 |------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```expiration``` | duration | How long a person has to get through a whole [interactive flow](/functional/interactive_flow) (sign-in, claims collection, MFA, etc.), counted from when it starts, whatever started it. | YES<br>```30m```    |
+| ```expiration``` | duration | How long a person has to get through a whole [interactive flow](/functional/interactive_flow) (sign-in, claims collection, MFA, etc.), counted from when it starts, whatever started it. Must be greater than zero. | YES<br>```30m```    |
 
 ### ```auth.token```
 
 | Key                      | Type     | Description                                                                                                                                                                                                                                                  | Required<br>Default |
 |--------------------------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```access-expiration```  | duration | Amount of time the end-user can be considered authenticated after the access token has been issued.                                                                                                                                                          | YES<br>```1h```     |
+| ```access-expiration```  | duration | Amount of time the end-user can be considered authenticated after the access token has been issued. Must be greater than zero.                                                                                                                                       | YES<br>```1h```     |
 | ```dpop-required```      | boolean  | When `true`, all token requests must include a [DPoP](/technical/security#dpop-demonstrating-proof-of-possession) proof. When `false`, DPoP is opt-in: clients may send a proof to receive a sender-constrained token, or omit it to receive a bearer token. | NO<br>```false```   |
-| ```id-expiration```      | duration | Amount of time an ID token is valid after it has been issued. | NO<br>```<access-expiration>``` |
+| ```id-expiration```      | duration | Amount of time an ID token is valid after it has been issued. Must be greater than zero. | NO<br>```<access-expiration>``` |
 | ```refresh-enabled```    | boolean  | If set to ```true```, this app will issue refresh tokens that can be used to obtain a new access token without the end-user having to go through the authentication flow.                                                                                    | YES<br>```true```   |
-| ```refresh-expiration``` | duration | Amount of time the refresh token can be used to obtain an access token after it has been issued. | NO<br>```30d```     |
+| ```refresh-expiration``` | duration | Amount of time the refresh token can be used to obtain an access token after it has been issued. Must be greater than zero. | NO<br>```30d```     |
 
 ## ```features```
 
