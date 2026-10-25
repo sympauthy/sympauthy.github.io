@@ -135,12 +135,6 @@ opens both doors to `users:claims:read` and `users:claims:write`, whatever the e
 what a value a backend answers for needs. The shipped `personal` template opens no door, and each shipped
 claim opens its read doors under the scope the specification puts it in — never a client write.
 
-**On the Client API, the endpoint's scope comes before the door.** Reading claims there requires a token
-carrying `users:claims:read`, and writing them one carrying `users:claims:write`; a token without it is refused
-before any door is asked. A door opened by who the client is — `CLIENT("client_id") = "billing"` — or by
-`"true"` therefore lets a client through the Client API only once it holds that scope. In the ID token, the
-access token and the introspection response no such scope is asked, and the door alone decides.
-
 A client cannot write a personal claim that is shared across audiences. A client of one audience setting
 `name` would decide what every other audience is told the end-user is called, without the end-user being
 asked. When the claim is restricted to one [audience](/functional/audience), the value only reaches that

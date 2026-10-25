@@ -17,8 +17,8 @@ are granted.
 | `invitations:read`   | List and view [invitations](/functional/invitation) created by this client |
 | `invitations:write`  | Create and revoke [invitations](/functional/invitation)  |
 | `users:read`         | List users with consented scopes                         |
-| `users:claims:read`  | Read claims the client is authorized to access           |
-| `users:claims:write` | Write claims the client is authorized to modify          |
+| `users:claims:read`  | Read the claims whose `readable-by-client` door asks for it, as the shipped `application` template's does |
+| `users:claims:write` | Write the claims whose `writable-by-client` door asks for it, as the shipped `application` template's does |
 | `users:mfa:read`     | *(Reserved)* Read a user's MFA enrollment status — no endpoint consumes it yet |
 | `users:mfa:write`    | Start [MFA enrollment](#multi-factor-authentication-mfa) for a signed-in user |
 | `users:providers:write` | Start [provider linking](#provider-linking) for a signed-in user      |
@@ -375,8 +375,9 @@ It orders on nothing and searches nothing, so a `sort` or a `q` sent to it is re
 
 ### Claims
 
-Endpoints for reading and updating user claims. Requires `users:claims:read` for read operations and
-`users:claims:write` for modifications.
+Endpoints for reading and updating user claims. What a client may read or write is decided by each claim's
+[ACL](/functional/claim_access) alone: no scope is required to call them, and the scopes below matter only where a
+claim's door asks for them, as the shipped `application` template's do.
 
 #### Get User Claims
 
@@ -384,7 +385,8 @@ Endpoints for reading and updating user claims. Requires `users:claims:read` for
 
 **Method**: GET
 
-**Authentication**: Access token with `users:claims:read` scope
+**Authentication**: Access token of the client, obtained through `client_credentials`. Which claims it is told is
+decided by each claim's [`readable-by-client`](/technical/configuration/claim#claims-id-acl) door alone.
 
 **Purpose**: Retrieves claims associated with a specific end-user. Returns claims that the client is authorized to
 read based on each claim's [ACL](/technical/configuration/claim#claims-id-acl).
@@ -455,7 +457,8 @@ read based on each claim's [ACL](/technical/configuration/claim#claims-id-acl).
 
 **Method**: PATCH
 
-**Authentication**: Access token with `users:claims:write` scope
+**Authentication**: Access token of the client, obtained through `client_credentials`. Which claims it may write is
+decided by each claim's [`writable-by-client`](/technical/configuration/claim#claims-id-acl) door alone.
 
 **Purpose**: Updates claims for a specific end-user. Only claims that the client is authorized to write based on the
 claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified through this endpoint.
@@ -519,8 +522,6 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
   writable by a client holding `users:claims:write`. A [personal claim](/functional/claim_kinds#a-personal-claim) is
   writable only where it is restricted to this client's own [audience](/functional/audience): a shared one grants no
   client write at all, and a deployment configuring one is refused at startup.
-- The `users:claims:write` scope is checked before any claim's ACL: a token without it is refused with
-  `403 forbidden`, whatever the claim's [`writable-by-client`](/technical/configuration/claim#claims-id-acl) door says.
 - An [identifier claim](/functional/claims#identifier-claims) is refused to every client, whatever its scopes, with
   `client.identifier_claim`.
 - A claim the deployment has [disabled](/technical/configuration/claim#claims-id) is refused like one that does not
