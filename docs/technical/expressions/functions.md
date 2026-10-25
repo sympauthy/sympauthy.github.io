@@ -20,9 +20,10 @@ context, so a function is only available where it is meaningful, and each functi
 **Using a function anywhere else makes the configuration invalid** — SympAuthy rejects it when validating the
 configuration.
 
-Every function is named for its subject, then for what is asked of it. An accessor is the bare subject with
-the property as its argument — `CLIENT("audience")` — and a predicate is `<SUBJECT>_IS_<STATE>(…)` —
-`CLAIM_IS_VERIFIED("email")`. A scope is named by how it reached the token, never by who holds it.
+Every function is named for its subject, then for what is asked of it. A function returning a value is named
+for its subject alone, with what to return as its argument — `CLIENT("audience")`. A function answering yes or
+no is named `<SUBJECT>_IS_<STATE>(…)` — `CLAIM_IS_VERIFIED("email")`. The scope functions are named after how
+the scope reached the token — consented to by the end-user, or granted by the server — never after who holds it.
 
 None of the scope, authentication and token functions ever returns `NULL`: each answers `false` where the
 token has no such thing. **Their scope and duration arguments are string literals**, because they are
@@ -36,8 +37,9 @@ AUTHENTICATION_IS_YOUNGER_THAN("<duration>")
 ```
 
 Returns a **boolean**: `true` when the end-user's [authentication](/functional/tokens#when-the-user-authenticated)
-behind the token is no older than the duration, and `false` behind a `client_credentials` token, which has no
-end-user. The duration is written the way every duration key of the configuration is — `5m`, `1h`, `PT5M` —
+behind the token is no older than the duration, and `false` behind a token no end-user authenticated behind: a
+`client_credentials` token, or one obtained by [token exchange](/functional/delegation), which asserts an identity
+nobody proved. The duration is written the way every duration key of the configuration is — `5m`, `1h`, `PT5M` —
 and must be greater than zero. On the [Client API](/technical/api/client) the token is the calling client's own,
 which no end-user authenticated behind, so a door requiring this is shut there.
 
@@ -61,8 +63,8 @@ CLAIM("<claim-id>")
 
 Returns the value of a [claim](/functional/claims) as a **string**.
 
-- Returns `NULL` if the claim was not collected for the user, if it was collected without a value, or
-  if no argument is given. There is no case in which it answers an empty string, so testing
+- Returns `NULL` if the claim was not collected for the user, or if it was collected without a value.
+  `CLAIM()` with no argument is refused when the configuration is read. There is no case in which it answers an empty string, so testing
   `CLAIM("x") = ""` never matches.
 
 ```yaml

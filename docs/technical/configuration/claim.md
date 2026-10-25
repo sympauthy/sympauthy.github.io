@@ -4,8 +4,8 @@ This section documents the configuration of the claims this authorization server
 
 Every claim declares whose its value is: [`kind: personal`](#claims-id-kind) for the person's own, or
 `kind: application` for an application's. A claim takes that from the [template](#templates-claims-id) it
-names — the shipped templates are `personal` and `application`, one per kind — or declares `kind` itself,
-and **a claim saying it nowhere is refused at startup**. Each claim also has an
+names — the shipped templates are `personal` and `application`, one per kind — or declares `kind` itself. Each
+claim also has an
 [access control list (ACL)](#claims-id-acl) deciding who may read and write it, and the kind is what the
 ACL is held to.
 
@@ -13,18 +13,18 @@ ACL is held to.
 
 | Key                  | Type    | Description                                                                                                                                                                                                                                                                                                                   | Required<br>Default   |
 |----------------------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|
-| ```acl```            | object  | [Access control list](#claims-id-acl) that determines who can read and write this claim. See the [dedicated section](#claims-id-acl) below.                                                                                                                                                                                   | **NO**                |
-| ```allowed-values``` | array   | List of possible values an user can provide for this claim. If not specified or ```null```, all values will be accepted by the authorization server.<br> **Note**: Changing this configuration will not change the value collected for existing user.                                                                         | **NO**<br>```null```  |
+| ```acl```            | object  | [Access control list](#claims-id-acl) that determines who can read and write this claim. See the [dedicated section](#claims-id-acl) below. Each door the claim writes overrides its [template](#templates-claims-id)'s, door by door; one it writes nothing for takes the template's, and `"false"` — in any case — shuts a door the template opens. | **NO**                |
+| ```allowed-values``` | array   | List of possible values an user can provide for this claim. If not specified or ```null```, all values will be accepted by the authorization server.                                                                         | **NO**<br>```null```  |
 | ```audience```       | string  | The [audience](/functional/audience) this claim is scoped to. When set, the claim is only visible to clients within that audience. When `null`, the claim is shared across all audiences. Required on a `personal` claim whose ACL opens `writable-by-client`, and refused on an [identifier claim](/functional/claims#identifier-claims). | **NO**<br>```null```  |
-| ```enabled```        | boolean | Whether this claim is in use. A disabled claim is collected, written, read and published nowhere — it is never stored even when a client or a provider offers it, and it is served in no token, no `/userinfo` response and no API answer. Values already collected are kept untouched and served again if it is re-enabled. Every claim the OpenID Connect specification defines ships with ```false```, so a deployment enables the ones its applications ask for. | **NO**<br>```true```  |
+| ```enabled```        | boolean | Whether this claim is in use. A disabled claim is collected, written, read and published nowhere — it is never stored even when a client or a provider offers it, and it is served in no token, no `/userinfo` response and no API answer. Every claim the OpenID Connect specification defines ships with ```false```, so a deployment enables the ones its applications ask for. | **NO**<br>```true```  |
 | ```group```          | string  | Grouping identifier (e.g. `identity`, `address`). Used to associate related claims.                                                                                                                                                                                                                                           | **NO**<br>```null```  |
-| ```kind```           | string  | Whose this claim's value is: `personal` or `application` — see the [dedicated section](#claims-id-kind). Falls back to the one its `template` declares, and a claim declaring it neither way is refused at startup.                                                                                                             | Depends               |
+| ```kind```           | string  | Whose this claim's value is: `personal` or `application` — see the [dedicated section](#claims-id-kind). Falls back to the one its `template` declares.                                                                                                                                                                                | **YES**<br>on the claim or its `template` |
 | ```published-in```   | array   | The places this claim is exposed in — see the [dedicated section](#claims-id-published-in). Publication only narrows what the [ACL](#claims-id-acl) permits and never grants: a claim the ACL refuses the caller is exposed nowhere, whatever it names.                                                                       | **NO**<br>```[]```    |
 | ```published-in-when-requested``` | array | The places this claim is exposed in **only for an authorization that asked for it by name** — see the [dedicated section](#claims-id-published-in-when-requested). Only `id-token` and `userinfo` can be named, and a place named here and in `published-in` is refused at startup.                                      | **NO**<br>```[]```    |
 | ```required```       | boolean | The end-user must provide a value for this claim before being allowed to complete an authorization flow.                                                                                                                                                                                                                      | **NO**<br>```false``` |
 | ```template```       | string  | Name of a [claim template](#templates-claims-id) to apply. The referenced template provides default values for fields not explicitly set on this claim. A claim takes the template it names and no other, and one naming none is read from its own keys alone — so it must then declare `kind` itself. Naming a template that does not exist is refused at startup. | **NO**                |
 | ```type```           | string  | The data type of the claim — see the [dedicated section](#claims-id-type). Predefined for the claims the OpenID Connect specification defines; required for a claim of your own. It can be set on a claim only, never on a template.                                                                                           | Depends               |
-| ```verified-id```    | string  | The identifier of the associated boolean claim that indicates whether this claim's value has been verified (e.g. `email` has `verified-id: email_verified`). A write that changes the claim's value clears the verification, so the companion goes back to `false` until the new value is validated.                          | **NO**<br>```null```  |
+| ```verified-id```    | string  | The identifier of the boolean companion, published beside this claim, that indicates whether its value has been verified (e.g. `email` has `verified-id: email_verified`).                          | **NO**<br>```null```  |
 
 ### ```claims.<id>```
 
@@ -71,8 +71,8 @@ person and how two values are compared.
 ### ```claims.<id>.published-in```
 
 Where a claim is exposed is the deployment's decision, and this key answers it for every authorization alike —
-[`published-in-when-requested`](#claims-id-published-in-when-requested) answers it for the ones that ask. Four of
-the five places carry the claim's value; the fifth advertises its name.
+[`published-in-when-requested`](#claims-id-published-in-when-requested) answers it for the ones that ask. Every place
+but `discovery` carries the claim's value; `discovery` advertises its name.
 
 | Value           | Exposes the claim in                                                                                                                                                                                |
 |-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -136,17 +136,12 @@ readable under `profile` and writable only under `profile:write`.
 A door's value is a string. Write `"true"` and `"false"` quoted, and quote any expression that starts with `!` —
 unquoted, YAML reads `!SCOPE_IS_CONSENTED("profile")` as a tag rather than as the expression.
 
-Each door is named for itself, and none covers another. `collected-in-flow` is what the interactive flow asks
-the end-user to type; `readable-by-person` and `writable-by-person` are what the end-user's own **access
-token** may read and write. A claim the flow collects is not thereby writable through an API, and a claim an
-API may write is not thereby asked for during sign-in.
-
 Which doors a claim may open at all depends on [its kind](#claims-id-kind). Party by party and direction by
 direction, [claim access control](/functional/claim_access) is the whole of it.
 
 | Key                        | Type       | Description                                                                                                                                                                                                                                                                                                                                                                                                             | Required<br>Default    |
 |----------------------------|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|
-| ```collected-in-flow```    | expression | The [interactive flow](/functional/interactive_flow#collecting-additional-information-optional) asks the end-user to fill this claim in, and shows the stored value back through the same door. It offers `SCOPE_IS_CONSENTED` and `CLIENT` only — the flow has no token behind it, and grants its scopes after collecting. Refused on an `application` claim, and accepted but ignored on an [identifier claim](/functional/claims#identifier-claims), which sign-up collects in any case. | **NO**<br>*(shut)*     |
+| ```collected-in-flow```    | expression | The [interactive flow](/functional/interactive_flow#collecting-additional-information-optional) asks the end-user to fill this claim in, and shows the stored value back through the same door. Only `SCOPE_IS_CONSENTED` and `CLIENT` can be called in it — the flow has no token behind it, and grants its scopes after collecting. Refused on an `application` claim, and accepted but ignored on an [identifier claim](/functional/claims#identifier-claims), which sign-up collects in any case. | **NO**<br>*(shut)*     |
 | ```readable-by-client```   | expression | A client may read this claim: in the ID token, the access token, the introspection response and the [Client API](/technical/api/client).                                                                                                                                                                                                                                                                              | **NO**<br>*(shut)*     |
 | ```readable-by-person```   | expression | The end-user's own access token may read this claim, through `/api/openid/userinfo`.                                                                                                                                                                                                                                                                                                                                    | **NO**<br>*(shut)*     |
 | ```writable-by-client```   | expression | A client may write this claim through the [Client API](/technical/api/client). Refused on a `personal` claim naming no `audience`.                                                                                                                                                                                                                                                                                       | **NO**<br>*(shut)*     |
@@ -164,13 +159,6 @@ Each place evaluates a door against its own token and client:
 | Introspection response                 | the token being introspected                                  | the client it was issued to, not the one asking  |
 | `/api/openid/userinfo`                 | the end-user's access token presented                         | the client it was issued to                      |
 | [Client API](/technical/api/client)    | the calling client's own `client_credentials` token, with the consent the end-user recorded for its audience | the calling client |
-
-::: info
-A claim's key overrides its [template](#templates-claims-id)'s door by door, and a door the claim writes
-nothing for takes the template's. Removing a key from the claim falls back to the template's expression, so a
-door the template opens is shut by writing the literal `"false"` under the claim's own key. A door taken from
-the template is held to the claim's kind exactly like one written on the claim.
-:::
 
 ::: warning Nothing writes a claim through the end-user's own token yet
 `writable-by-person` is parsed and validated today, and nothing reads it: the endpoint that would let an
@@ -201,9 +189,7 @@ Claim templates provide default field values that are inherited by claims. Templ
 repeating the same configuration across many claims.
 
 **A claim takes the template it names and no other**, through its [`template`](#claims-id) key, and a claim
-naming none takes none. There is no template a claim falls back to: the one key a claim cannot be left to
-default is [`kind`](#claims-id-kind), so a claim says whose its value is by naming a template that declares
-one or by declaring it itself. A template takes no template of its own — one level resolves, and nothing
+naming none takes none. There is no template a claim falls back to. A template takes no template of its own — one level resolves, and nothing
 walks a chain to find out what a claim is.
 
 The server ships one template per kind, named for it:
@@ -211,7 +197,7 @@ The server ships one template per kind, named for it:
 | Template name | Declares             | What it carries                                                                                                            |
 |---------------|----------------------|----------------------------------------------------------------------------------------------------------------------------|
 | `application` | `kind: application`  | `readable-by-client` and `writable-by-client` opened to the client scopes `users:claims:read` and `users:claims:write`, whatever the person consented to, which is what a value a backend answers for needs. It names no place, so a claim taking it is exposed nowhere until its own file says where. |
-| `personal`    | `kind: personal`     | The two OpenID channels and the discovery document. It opens no door, because a door opens on a scope and the template names none, so a claim taking it opens its own under the scope it belongs to. |
+| `personal`    | `kind: personal`     | `published-in: [ id-token, userinfo, discovery ]` — the ID token, `/userinfo` and the discovery document. It opens no door, because a door opens on a scope and the template names none, so a claim taking it opens its own under the scope it belongs to. |
 
 Custom templates (any name not in the list above) can be defined and explicitly referenced by a claim
 via its `template` field. Fields set directly on a claim always override the corresponding template value.
@@ -219,7 +205,7 @@ via its `template` field. Fields set directly on a claim always override the cor
 | Key                  | Type    | Description                                                                     | Required<br>Default |
 |----------------------|---------|---------------------------------------------------------------------------------|---------------------|
 | ```<id>```           | string  | Unique identifier of the template.                                              | **YES**             |
-| ```acl.*```          |         | All [ACL fields](#claims-id-acl) can be set in the template as defaults.        | NO                  |
+| ```acl.*```          |         | All [ACL fields](#claims-id-acl) can be set in the template as defaults, each overridden by the claim's own key for the same door. | NO                  |
 | ```allowed-values``` | array   | Default allowed values, read under each claim's own `type`.                      | NO                  |
 | ```audience```       | string  | Default [audience](/functional/audience) for claims using this template.        | NO                  |
 | ```enabled```        | boolean | Default value for the claim's `enabled` field.                                  | NO                  |
@@ -285,12 +271,15 @@ production.
 | an `AUTHENTICATION_IS_YOUNGER_THAN` duration that does not read, or of zero or less                                                            | a duration greater than zero, written the way every duration key is — `5m`, `1h`, `PT5M`       |
 | a key `acl` no longer has — `consent-scope`, a `*-when-consented` flag, a `*-unconditionally` list or `write-max-authentication-age`           | its door, as [the upgrade table](#claims-id-acl) rewrites it                                   |
 | a claim naming `discovery` in `published-in` and no place that carries its value                                                               | a value-carrying place beside `discovery`, or `discovery` removed                              |
+| a `published-in-when-requested` naming `access-token`, `introspection` or `discovery`, on a claim or a template                                | `id-token` or `userinfo`, or the place removed — no request can name the others               |
+| a place named in both `published-in` and `published-in-when-requested`                                                                          | the place removed from one of the two                                                          |
 | any key under `claims.sub`, `claims.updated_at` or `claims.auth_time`                                                                          | the key removed — this server computes all three                                               |
 
 A name that does not resolve is refused the same way: an `audience` no `audiences` entry declares, a
 `SCOPE_IS_CONSENTED` scope that is not an enabled consentable scope, a `SCOPE_IS_GRANTED` scope that is not
 an enabled grantable or client scope — so a consentable scope written there is refused, since no rule grants it — or a `type` that
-is not one of [the types](#claims-id-type). Each refusal names the key the expression was written under.
+is not one of [the types](#claims-id-type). These checks run on every declared claim, enabled or not, and each
+refusal names the key the expression was written under.
 
 ## Examples
 
@@ -315,7 +304,8 @@ claims:
 Once the end-user consents to the `email` scope, the interactive flow collects it, the end-user can read it
 through `/api/openid/userinfo` and the client can read it; no door lets a client write it. The `personal`
 template [exposes](#claims-id-published-in) it in the ID token, in `/userinfo` and in `claims_supported`, and
-`enabled: true` is the claim's own key, because the template carries none.
+`enabled: true` is the claim's own key, because the template carries none. `verified-id: email_verified` names the
+boolean companion published beside `email`, which is not declared as a claim of its own.
 
 ### An application claim
 
@@ -348,10 +338,6 @@ claims:
     type: string
     published-in:
       - id-token
-    allowed-values:
-      - free
-      - premium
-      - enterprise
     acl:
       readable-by-client: SCOPE_IS_CONSENTED("account")
 ```

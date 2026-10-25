@@ -81,8 +81,9 @@ value. The [Admin API](/technical/api/admin) publishes `kind` beside `origin` fo
 A claim says whose its value is in one of two ways, and **a claim saying it nowhere is refused at startup**:
 
 - by naming the shipped [template](/technical/configuration/claim#templates-claims-id) of that kind —
-  `template: personal` or `template: application`, which also carry the exposure each kind usually wants
-  and, for an application claim, its client doors;
+  `template: personal` or `template: application`, which also carry
+  [where a claim of that kind is usually exposed](/functional/claims#where-a-claim-is-exposed) and, for an
+  application claim, its client doors;
 - or by declaring [`kind`](/technical/configuration/claim#claims-id-kind) on the claim itself, which
   overrides whatever its template says.
 

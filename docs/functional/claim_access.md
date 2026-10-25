@@ -12,11 +12,6 @@ it, or what the deployment chose to give it. This page covers:
 - what the end-user, a client and an administrator can each read and write;
 - how audiences restrict every one of those decisions.
 
-Two things decide the outcome: what the caller was authorized to do, and
-[which kind of claim](/functional/claim_kinds#two-kinds-of-claim) it is. The kind of claim determines who can
-**write** a value, never who can read one. An end-user can be shown their own credit score wherever the ACL
-allows it, because being told a value is disclosure, and disclosure is what the ACL decides.
-
 ## Doors
 
 The ACL is made of **doors**. A door is one way of reaching a claim: one party reading it or writing it.
@@ -26,8 +21,9 @@ one key of the ACL, named after who goes through it and in which direction — `
 `writable-by-client`, `readable-by-person` and so on — and [the table below](#who-can-access-what) lists
 them all.
 
-Each door holds an [expression](/technical/expressions/), the language scope granting rules and
-act-as rules are written in. **A door is open to a caller when its expression is true**, and shut to
+Each door holds an [expression](/technical/expressions/), the language
+[scope granting rules](/functional/user_authorization#scope-granting-rules) and
+[act-as rules](/functional/delegation#act-as-rules) are written in. **A door is open to a caller when its expression is true**, and shut to
 everybody when no expression opens it. A door usually asks about scopes, and may combine several conditions:
 
 ```
@@ -41,6 +37,11 @@ is sufficient, because they are joined by `||`.
 
 ## Who can access what
 
+Two things decide the outcome: what the caller was authorized to do, and
+[which kind of claim](/functional/claim_kinds#two-kinds-of-claim) it is. The kind of claim determines who can
+**write** a value, never who can read one. An end-user can be shown their own credit score wherever the ACL
+allows it, because being told a value is disclosure, and disclosure is what the ACL decides.
+
 The table below lists each party, the direction of access, and the door that decides it. **Refused** means
 the only value that door accepts on a claim of that kind is the literal `"false"`: any other expression refuses
 the server at startup rather than failing the request later.
@@ -48,7 +49,7 @@ the server at startup rather than failing the request later.
 | Party                                                                                                           | Direction      | A personal claim                                                                 | An application claim                          |
 |-----------------------------------------------------------------------------------------------------------------|----------------|----------------------------------------------------------------------------------|-----------------------------------------------|
 | The end-user, in the [interactive flow](/functional/interactive_flow#collecting-additional-information-optional) | read and write | `collected-in-flow`                                                              | **Refused** — nobody is asked to type one     |
-| The end-user, through their own access token, at `/api/openid/userinfo`                                          | read           | `readable-by-person`                                                             | `readable-by-person`                          |
+| The end-user, through their own access token, at `/api/openid/userinfo` — the endpoint an application calls for the end-user's profile | read           | `readable-by-person`                                                             | `readable-by-person`                          |
 | The end-user, through their own access token                                                                     | write          | `writable-by-person`                                                             | **Refused** — a backend answers for the value |
 | A [client](/functional/client)                                                                                   | read           | `readable-by-client`                                                             | `readable-by-client`                          |
 | A client                                                                                                         | write          | `writable-by-client`, and only when the claim names an [audience](#audience-restrictions) | `writable-by-client`                          |
@@ -71,19 +72,6 @@ to `profile:write`.
 A door written as the literal `"true"` is open to every caller that reaches it within the claim's
 [audience](#audience-restrictions), with nothing to consent to. That is the intended behavior for a claim
 every client of an audience may read without asking, and worth knowing before writing it on any other.
-
-### Which scopes a claim is listed under
-
-SympAuthy reads, out of each door's expression, the consentable scopes consent to which can open the door, and
-lists the claim under them: that is the `claims` the [Admin API](/technical/api/admin#list-scopes) returns for
-each consentable scope. A scope counts only where consenting to it can open the door — where nothing but `&&`
-and `||` joins it to the rest of the expression:
-
-- `SCOPE_IS_CONSENTED("profile") || SCOPE_IS_GRANTED("users:claims:read")` lists the claim under `profile`.
-- `!SCOPE_IS_CONSENTED("marketing")` does not list it under `marketing`: consenting to that scope shuts the
-  door.
-- `SCOPE_IS_CONSENTED("profile") = CLIENT("public")` does not list it under `profile` either: inside a
-  comparison, what consenting does is the expression's to say.
 
 ## End-user access
 
@@ -108,8 +96,9 @@ claim an API may write is not thereby asked for during sign-in.
 The flow reads a claim back through the same door it collects it through. One channel is one permission in
 both directions, so the claims the flow offers, the values it displays back, the required ones it holds the
 end-user to and the address it sends a validation code to are all governed by that single door. The flow has
-no token behind it, so its door asks about consent and the client and nothing else; it does not ask about a
-scope a rule grants either, because the rules grant their scopes after the flow has collected.
+no token behind it, so its door asks about consent and the client and nothing else; it does not offer
+`SCOPE_IS_GRANTED` either, because [grantable scopes](/functional/scope#grantable-scope) are granted after the flow
+has collected.
 
 `collected-in-flow` is accepted on an [identifier claim](/functional/claims#identifier-claims) and ignored there.
 An identifier claim is collected at sign-up because it is what the account signs in with, whether or not any
@@ -125,8 +114,9 @@ ago the end-user [authenticated](/functional/tokens#when-the-user-authenticated)
 how to obtain a token that would succeed — the scope its token lacks, or how recent an authentication it needs —
 so the client can send the end-user back through an authorization and retry. A read carries none: it is answered
 with the claims whose door is open and nothing about the others. A claim whose `readable-by-client` asks for an
-authentication younger than an hour is in the ID token the code exchange mints, and absent from the one a
-refresh mints a day later — a refresh reissues `auth_time` unchanged.
+authentication younger than an hour is in the ID token issued when the end-user signs in, and absent from the
+one a [refresh](/functional/tokens#refresh-token) issues a day later — a refresh
+[reissues `auth_time` unchanged](/functional/tokens#a-refresh-reissues-it-unchanged).
 
 ::: warning Nothing writes a claim through the end-user's own token yet
 `writable-by-person` is parsed and validated today, and nothing reads it: the endpoint that would let an
@@ -175,7 +165,7 @@ re-authorize for.
 Because a write verifies nothing, **a write that changes a value clears whatever verification the old one
 held**: the [`verified-id`](/technical/configuration/claim#claims-id) companion goes back to `false`, and
 the end-user is asked to validate the new value at their next authorization. This holds for every write there
-is — a client's, the flow's, and one collected from a provider — and will hold for the end-user's own once it
+is — a client's, the flow's, and one collected from a [third-party provider](/functional/authentication#third-party-providers) — and will hold for the end-user's own once it
 ships.
 
 ## Administrator access
@@ -188,6 +178,19 @@ audience a claim is restricted to is shown to an administrator rather than hidde
 The kind of claim decides nothing here, because it decides who writes. An application claim belongs to its
 application and a personal claim to the end-user, so neither belongs to an operator, and the administration
 surface exposes no claim write at all.
+
+### Which scopes a claim is listed under
+
+SympAuthy reads, out of each door's expression, the consentable scopes consent to which can open the door, and
+lists the claim under them: that is the `claims` the [Admin API](/technical/api/admin#list-scopes) returns for
+each consentable scope. A scope counts only where consenting to it can open the door — where nothing but `&&`
+and `||` joins it to the rest of the expression:
+
+- `SCOPE_IS_CONSENTED("profile") || SCOPE_IS_GRANTED("users:claims:read")` lists the claim under `profile`.
+- `!SCOPE_IS_CONSENTED("marketing")` does not list it under `marketing`: consenting to that scope shuts the
+  door.
+- `SCOPE_IS_CONSENTED("profile") = CLIENT("public")` does not list it under `profile` either: inside a
+  comparison, what consenting does is the expression's to say.
 
 ## Audience restrictions
 

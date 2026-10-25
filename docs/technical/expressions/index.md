@@ -17,8 +17,8 @@ Its functional documentation explains what it decides, and its configuration doc
 
 | Where                      | Decides                                                                                                                                       | Functional documentation                                                      | Configuration                                                                          |
 |----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
-| User scope granting rule   | Grant or deny [grantable scopes](/functional/scope#grantable-scope) during an `authorization_code` flow, based on the authenticating user.    | [User Authorization](/functional/user_authorization#scope-granting-rules)     | [```rules.user```](/technical/configuration/authorization#rules-user-rules-client)     |
-| Client scope granting rule | Grant or deny [client scopes](/functional/scope#client-scope) during a `client_credentials` flow, based on the requesting client.             | [Client Authorization](/functional/client_authorization#scope-granting-rules) | [```rules.client```](/technical/configuration/authorization#rules-user-rules-client)   |
+| User scope granting rule   | Grant or deny [grantable scopes](/functional/scope#grantable-scope) when an end-user signs in to an application (an `authorization_code` flow), based on the end-user. | [User Authorization](/functional/user_authorization#scope-granting-rules)     | [```rules.user```](/technical/configuration/authorization#rules-user-rules-client)     |
+| Client scope granting rule | Grant or deny [client scopes](/functional/scope#client-scope) when an application authenticates as itself (a `client_credentials` flow), based on that client. | [Client Authorization](/functional/client_authorization#scope-granting-rules) | [```rules.client```](/technical/configuration/authorization#rules-user-rules-client)   |
 | Act-as rule                | Allow or deny a client to [act on behalf of a user](/functional/delegation) through token exchange.                                           | [Delegation](/functional/delegation#act-as-rules)                             | [```rules.act_as```](/technical/configuration/authorization#rules-act-as)              |
 | Claim ACL door             | Let a caller read or write a [claim](/functional/claims) through one [door](/functional/claim_access#doors) of its ACL.                       | [Claim Access Control](/functional/claim_access)                              | [```claims.<id>.acl```](/technical/configuration/claim#claims-id-acl)                  |
 
@@ -30,6 +30,8 @@ operators most useful in rules are:
 
 - Comparison: `=` (equality), `!=`, `>`, `>=`, `<`, `<=`
 - Boolean: `&&` (and), `||` (or), `!` (not)
+
+`&&` binds tighter than `||`, so `A || B && C` reads `A || (B && C)`. Write the parentheses whenever both appear.
 
 See the [EvalEx documentation](https://ezylang.github.io/EvalEx/) for the full list of operators and
 functions.
