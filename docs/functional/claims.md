@@ -126,6 +126,13 @@ request objects of section 6 are the other way to send the parameter, and an aut
 carrying either is [refused](/technical/oauth2_compatibility) — this server reads `claims` from the query
 alone.
 
+## Changing a claim's configuration
+
+What a deployment changes about a claim applies from then on, and leaves the values already collected alone. A
+value stored before [`allowed-values`](/technical/configuration/claim#claims-id) changed stays as it is, and a claim that is disabled keeps the values
+collected for it, which are served again once it is re-enabled. Only a write changes a value, and a write that
+changes one [clears its verification](/functional/claim_access#a-write-clears-verification).
+
 ## Configuration
 
 A claim must be enabled in the configuration before SympAuthy uses it. Refer to the

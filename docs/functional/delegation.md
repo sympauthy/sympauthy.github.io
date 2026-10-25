@@ -88,7 +88,7 @@ rules:
 An expression may reference both the **acting client** — with ```CLIENT("client_id")``` or
 ```CLIENT("audience")``` — and the **target user's claims** — with ```CLAIM(...)``` and
 ```CLAIM_IS_VERIFIED(...)```. A rule is **matched** when all its ```expressions``` return ```true```
-for the (acting client, target user) pair. See [Rule Expressions](/technical/rule_expressions) for the
+for the (acting client, target user) pair. See [Functions](/technical/expressions/functions) for the
 full list of functions and which rule types they are available in.
 
 The ```behavior``` is one of the following:

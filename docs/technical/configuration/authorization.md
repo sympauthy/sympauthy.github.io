@@ -115,7 +115,7 @@ The flow may be completely customized and served by a completely different serve
 This section holds the configuration of scope granting rules and act-as rules.
 
 The ```expressions``` in every rule are evaluated with the same engine. See
-[Rule Expressions](/technical/rule_expressions) for the functions available in expressions
+[Functions](/technical/expressions/functions) for what an expression may call
 (```CLAIM```, ```CLAIM_IS_VERIFIED```, ```CLIENT```) and which rule types each one can be used in.
 
 | Key          | Type            | Description                                                                                                                                                                                                                                                                                   | Required<br>Default |

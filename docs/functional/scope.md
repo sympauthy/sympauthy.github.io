@@ -37,10 +37,11 @@ Examples of consentable scopes:
 - `profile`, `email`, `address`, `phone` — OpenID Connect scopes that protect OpenID Connect claims.
 
 An [application claim](/functional/claim_kinds#an-application-claim) is not protected by a consentable scope by
-default — it uses unconditional [client scope](/functional/scope#client-scope) access. It can still be made
-to require consent by setting a `consent-scope` in its
+default — its [doors](/functional/claim_access#doors) open to a [client scope](/functional/scope#client-scope), whatever the end-user agreed
+to. It can still be made to require consent by writing `SCOPE_IS_CONSENTED("<scope>")` on a door of its
 [ACL](/technical/configuration/claim#claims-id-acl): consent gates disclosure, and says nothing about whose
-the value is.
+the value is. The claim's door replaces the template's rather than adding to it, so a door that should also open
+to the client scope keeps it: `SCOPE_IS_CONSENTED("<scope>") || SCOPE_IS_GRANTED("users:claims:read")`.
 
 See [User Authorization](/functional/user_authorization) for details on how consentable scopes are granted
 during an authorization flow.
@@ -113,7 +114,7 @@ A scope is exposed in one place: `scopes_supported` on the discovery document
 (`/.well-known/openid-configuration`). A deployment says so with
 [`published-in`](/technical/configuration/scope#scopes-id) — the same key a
 [claim](/functional/claims#where-a-claim-is-exposed) answers *where is this exposed* with, where it names
-five places instead of one.
+several places instead of one.
 
 **Being advertised is not being served.** The discovery document is a hint to a client that has not been
 told what to ask for, and nothing consults it when an authorization request arrives. A scope is served
@@ -138,6 +139,9 @@ supported by SympAuthy is the following:
 |---------|-------------|---------|-------------------------------------------------------------------|
 | openid  | Grantable   | OpenID Connect | Protocol signal for OpenID Connect. Auto-granted by default rule. |
 | profile | Consentable | OpenID Connect |                                                                   |
+| email   | Consentable | OpenID Connect |                                                                   |
+| address | Consentable | OpenID Connect |                                                                   |
+| phone   | Consentable | OpenID Connect |                                                                   |
 
 ## Custom scopes
 
