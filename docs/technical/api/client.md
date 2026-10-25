@@ -501,13 +501,16 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
 
 | Error code | Description |
 |------------|-------------|
+| `client.identifier_claim` | The claim `{claim}` is what an end-user signs in with, and no scope allows a client to change it. |
 | `client.invalid_claim` | The claim `{claim}` cannot be modified by the client. Either the claim does not exist, the claim is disabled on this deployment, or the client does not hold the required scopes. |
+| `flow.claims.invalid` | One or more values are refused by the claim's [`type`](/technical/configuration/claim#claims-id-type) or [`allowed-values`](/technical/configuration/claim#claims-id). `properties` holds an entry per refused claim, under its identifier. |
 | `not_found` | The resource you are looking for is not available on this authorization server. |
 
 **Properties**:
 
 - `user_id`: Unique identifier of the end-user
-- `claims`: Object containing all of the user's claims after the update
+- `claims`: Object containing the user's claims this client may read after the update, as
+  [Get User Claims](#get-user-claims) returns them
 
 **Important Notes**:
 
@@ -516,7 +519,10 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
   writable by a client holding `users:claims:write`. A [personal claim](/functional/claim_kinds#a-personal-claim) is
   writable only where it is restricted to this client's own [audience](/functional/audience): a shared one grants no
   client write at all, and a deployment configuring one is refused at startup.
-- An [identifier claim](/functional/claims#identifier-claims) is refused to every client, whatever its scopes.
+- The `users:claims:write` scope is checked before any claim's ACL: a token without it is refused with
+  `403 forbidden`, whatever the claim's [`writable-by-client`](/technical/configuration/claim#claims-id-acl) door says.
+- An [identifier claim](/functional/claims#identifier-claims) is refused to every client, whatever its scopes, with
+  `client.identifier_claim`.
 - A claim the deployment has [disabled](/technical/configuration/claim#claims-id) is refused like one that does not
   exist.
 - Attempting to modify a claim the client is not authorized to write will result in an error.

@@ -85,6 +85,12 @@ The end-user reaches their own claims through two separate channels: the
 authenticated, and their own access token, which says only that a client was authorized to act within
 some scopes.
 
+The end-user's own [access token](/functional/tokens#access-token) is the one SympAuthy issues when they sign in
+to an application: the application holds it and presents it on the end-user's behalf, for instance to
+`/api/openid/userinfo`, the endpoint that answers with the claims of the person the token was issued for. The
+token proves the end-user's authorization and nothing about the application itself, which is why what it reads
+is the person's door rather than the client's.
+
 Each channel has its own door, and no door covers both. `collected-in-flow` is what the interactive flow
 asks the end-user to fill in; `readable-by-person` and `writable-by-person` are what the end-user's own
 access token may read and write. A claim the flow collects is not thereby writable through an API, and a
@@ -128,6 +134,12 @@ the client's audience. The shipped [`application` template](/technical/configura
 opens both doors to `users:claims:read` and `users:claims:write`, whatever the end-user consented to, which is
 what a value a backend answers for needs. The shipped `personal` template opens no door, and each shipped
 claim opens its read doors under the scope the specification puts it in — never a client write.
+
+**On the Client API, the endpoint's scope comes before the door.** Reading claims there requires a token
+carrying `users:claims:read`, and writing them one carrying `users:claims:write`; a token without it is refused
+before any door is asked. A door opened by who the client is — `CLIENT("client_id") = "billing"` — or by
+`"true"` therefore lets a client through the Client API only once it holds that scope. In the ID token, the
+access token and the introspection response no such scope is asked, and the door alone decides.
 
 A client cannot write a personal claim that is shared across audiences. A client of one audience setting
 `name` would decide what every other audience is told the end-user is called, without the end-user being

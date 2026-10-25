@@ -31,7 +31,6 @@ X-SympAuthy-Signature: sha256=<hmac-hex>
   "requested_scopes": ["read:orders", "write:orders"],
   "claims": {
     "email": "user@example.com",
-    "email_verified": true,
     "name": "Jane Doe",
     "custom_plan": "premium"
   }
@@ -46,10 +45,11 @@ X-SympAuthy-Signature: sha256=<hmac-hex>
   in the authorization request and the client's `allowed-scopes` configuration. Scopes outside that configured list are
   filtered out before the webhook is called, so the external server can trust that every scope in this list is a
   legitimate scope for this client.
-- `claims`: The user's claims available to the client, as each claim's [ACL](/functional/claim_access) decides —
-  for instance a claim whose [door](/functional/claim_access#doors) asks for consent to a scope the user consented to, or for a client scope the
-  client holds. This gives the external server the context it needs for authorization decisions
-  while respecting the minimal-disclosure principle.
+- `claims`: Every claim of the client's [audience](/functional/audience) the user holds a value for — those
+  restricted to that audience and those shared across audiences — keyed by claim identifier. They are sent
+  **regardless of consent and of each claim's [ACL](/functional/claim_access)**, so the external server can decide on
+  information the user never agreed to disclose to the client: treat it as a trusted backend of the deployment. A
+  claim's [`verified-id`](/technical/configuration/claim#claims-id) companion, such as `email_verified`, is not sent.
 
 ### Signature
 

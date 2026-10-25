@@ -41,6 +41,20 @@ Two rules apply to every expression, regardless of type:
 - A rule is **matched** only when **all** of its ```expressions``` evaluate to `true`; a door of a claim's
   ACL holds one expression, and is open when it does.
 
+## Writing an expression in YAML
+
+An expression is a YAML string, and most need no quotes. Quote one that YAML would otherwise read as something
+else: an expression that starts with `!`, which YAML reads as a tag, and the literals `"true"` and `"false"`.
+
+```yaml
+acl:
+  readable-by-person: SCOPE_IS_CONSENTED("profile")
+  readable-by-client: '!CLIENT("public")'
+  collected-in-flow: "false"
+```
+
+Single quotes keep the double quotes of a function's argument as they are.
+
 ## Examples
 
 A user scope granting rule that grants an admin scope to a specific verified email:

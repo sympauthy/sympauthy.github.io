@@ -18,7 +18,7 @@ A claim's **kind** is `personal` — the person's — or `application` — an ap
 |----------------------------|------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
 | Whose the value is         | the person's                                                                                               | an application's, attached to the person                          |
 | Examples                   | `name`, `email`, `birthdate`                                                                               | a credit score, a subscription tier, a flag a backend computes    |
-| Who writes it              | the person, in the [interactive flow](/functional/interactive_flow) or through their own access token      | a client, through the claim's `writable-by-client` [door](/functional/claim_access#doors) |
+| Who writes it              | the person, in the [interactive flow](/functional/interactive_flow) — and, [once that endpoint ships](/functional/claim_access#end-user-access), through their own access token | a client, through the claim's `writable-by-client` [door](/functional/claim_access#doors) |
 | A client write             | only where the claim names an [audience](/functional/audience)                                             | wherever the deployment put the claim                             |
 | The person typing it       | what the flow asks them for                                                                                | never — a backend answers for the value                           |
 

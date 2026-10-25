@@ -63,12 +63,12 @@ It is also the place a value travels furthest, and the trade is not the ID token
   issued under** — editing the configuration stops the next token carrying the value and does nothing to
   the ones already out.
 
-The claim's [ACL](/functional/claim_access) still decides who may be told: it is the client's
-half that is asked, exactly as the ID token asks it, and a claim restricted to another audience is left
-out. A claim a deployment happens to have named after one of the members above is left out rather than
+The claim's [ACL](/functional/claim_access) still decides who may be told: its `readable-by-client`
+[door](/functional/claim_access#doors) is asked, exactly as the ID token asks it, and a claim restricted to another
+audience is left out. A claim a deployment happens to have named after one of the members above is left out rather than
 written over it. A `client_credentials` token carries no claim of an end-user — there is none behind it —
-and neither does a [delegated](/functional/delegation) (act-as) one, which holds no scope and so satisfies
-no claim's ACL.
+and a [delegated](/functional/delegation) (act-as) one holds no scope, so a door asking for a scope never opens
+for it: it carries only a claim whose door asks for none, such as `"true"` or a `CLIENT(…)` condition.
 
 ### Expiration
 

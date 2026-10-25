@@ -133,6 +133,9 @@ front of it. **A door is open when its expression is true**, and a door no expre
 scope a door opens on is the door's own, so a claim's doors may name different scopes or none: a claim can be
 readable under `profile` and writable only under `profile:write`.
 
+A door's value is a string. Write `"true"` and `"false"` quoted, and quote any expression that starts with `!` —
+unquoted, YAML reads `!SCOPE_IS_CONSENTED("profile")` as a tag rather than as the expression.
+
 Each door is named for itself, and none covers another. `collected-in-flow` is what the interactive flow asks
 the end-user to type; `readable-by-person` and `writable-by-person` are what the end-user's own **access
 token** may read and write. A claim the flow collects is not thereby writable through an API, and a claim an
@@ -144,9 +147,9 @@ direction, [claim access control](/functional/claim_access) is the whole of it.
 | Key                        | Type       | Description                                                                                                                                                                                                                                                                                                                                                                                                             | Required<br>Default    |
 |----------------------------|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|
 | ```collected-in-flow```    | expression | The [interactive flow](/functional/interactive_flow#collecting-additional-information-optional) asks the end-user to fill this claim in, and shows the stored value back through the same door. It offers `SCOPE_IS_CONSENTED` and `CLIENT` only — the flow has no token behind it, and grants its scopes after collecting. Refused on an `application` claim, and it does not apply to an [identifier claim](/functional/claims#identifier-claims), which sign-up collects in any case. | **NO**<br>*(shut)*     |
-| ```readable-by-client```   | expression | A client may read this claim: in the ID token, the access token, the introspection response and the [Client API](/technical/api/client).                                                                                                                                                                                                                                                                              | **NO**<br>*(shut)*     |
+| ```readable-by-client```   | expression | A client may read this claim: in the ID token, the access token, the introspection response and the [Client API](/technical/api/client). On the Client API, it is asked only of a token carrying `users:claims:read`.                                                                                                                                                                                                                                                                              | **NO**<br>*(shut)*     |
 | ```readable-by-person```   | expression | The end-user's own access token may read this claim, through `/api/openid/userinfo`.                                                                                                                                                                                                                                                                                                                                    | **NO**<br>*(shut)*     |
-| ```writable-by-client```   | expression | A client may write this claim through the [Client API](/technical/api/client). Refused on a `personal` claim naming no `audience`.                                                                                                                                                                                                                                                                                       | **NO**<br>*(shut)*     |
+| ```writable-by-client```   | expression | A client may write this claim through the [Client API](/technical/api/client), asked only of a token carrying `users:claims:write`. Refused on a `personal` claim naming no `audience`.                                                                                                                                                                                                                                                                                       | **NO**<br>*(shut)*     |
 | ```writable-by-person```   | expression | The end-user's own access token may write this claim. Distinct from `collected-in-flow`, which is what the interactive flow collects. Refused on an `application` claim.                                                                                                                                                                                                                                                | **NO**<br>*(shut)*     |
 
 The doors a token comes through — every door but `collected-in-flow` — evaluate that token, so they offer
@@ -408,6 +411,8 @@ claims:
       writable-by-person: SCOPE_IS_CONSENTED("phone:write") && TOKEN_IS_BOUND() && AUTHENTICATION_IS_YOUNGER_THAN("5m")
   tier:
     template: application
+    type: string
+    published-in: [ id-token ]
     acl:
       readable-by-client: SCOPE_IS_GRANTED("users:claims:read") || CLIENT("client_id") = "billing"
 ```
@@ -415,4 +420,6 @@ claims:
 `phone_number` is read under `phone` and written only under `phone:write` — a
 [custom consentable scope](/functional/scope#custom-scopes) — through a token bound with
 [DPoP](/functional/tokens#sender-constrained-tokens-dpop), behind an authentication no older than five
-minutes. `tier` is read by a client holding `users:claims:read`, and by the `billing` client whatever it holds.
+minutes. `tier` is read through the Client API by a client holding `users:claims:read`, and carried in the ID token
+issued to the `billing` client: an end-user's token holds no client scope, so in the ID token the second term is the
+one that opens the door.
