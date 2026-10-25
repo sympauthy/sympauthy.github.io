@@ -426,8 +426,9 @@ read based on each claim's [ACL](/technical/configuration/claim#claims-id-acl).
 - `user_id`: Unique identifier of the end-user
 - `claims`: Object containing the user's claims. Which claims are included depends on each claim's
   [ACL](/technical/configuration/claim#claims-id-acl):
-    - Claims with consent-based access are included when the end-user has consented to the relevant scope
-    - Claims with unconditional access are included when the client holds the required client scope
+    - A claim is included when its `readable-by-client` expression is true for the client — for instance
+      when the end-user consented to the scope it names, or when the client holds the client scope it names
+    - `SCOPE_IS_CONSENTED` answers from the consent the end-user recorded for the client's audience
     - Verification status claims (email_verified, phone_number_verified) follow the same ACL rules
 
 **Important Notes**:
@@ -436,8 +437,8 @@ read based on each claim's [ACL](/technical/configuration/claim#claims-id-acl).
   claims that are unscoped or scoped to the client's audience are returned.
 - A claim on the shipped `personal` [template](/technical/configuration/claim#templates-claims-id) requires the
   end-user's consent to its scope; one on the `application` template is returned to any client holding
-  `users:claims:read`, whatever the end-user consented to. Either path is sufficient, and both are customizable
-  through [ACL configuration](/technical/configuration/claim#claims-id-acl).
+  `users:claims:read`, whatever the end-user consented to. Both are customizable through
+  [ACL configuration](/technical/configuration/claim#claims-id-acl).
 
 **Use Cases**:
 

@@ -1,10 +1,14 @@
 # Kinds of Claims
 
-Every [claim](/functional/claims) declares whose its value is: the person's, or an application's. It is the
-one thing about a claim that decides **who may write it**, and a claim that says it nowhere is refused at
-startup.
+A [claim](/functional/claims) is a piece of information about a person, but not every claim is theirs to set.
+A name is the person's own: they type it, and they agree to which applications are told it. A credit score or a
+subscription tier is about the person too, but an application computes it and the person never types it. A
+claim's **kind** says whose its value is, and that decides **who may write it**. This page covers:
 
-A name and a credit score are both claims about one person, and almost nothing else about them is alike.
+- the kinds of claim, and who writes each of them;
+- the claims SympAuthy computes itself, which are of no kind;
+- how the kind differs from where a claim's name comes from;
+- how a claim declares its kind.
 
 ## Two kinds of claim
 
@@ -14,7 +18,7 @@ A claim's **kind** is `personal` — the person's — or `application` — an ap
 |----------------------------|------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
 | Whose the value is         | the person's                                                                                               | an application's, attached to the person                          |
 | Examples                   | `name`, `email`, `birthdate`                                                                               | a credit score, a subscription tier, a flag a backend computes    |
-| Who writes it              | the person, in the [interactive flow](/functional/interactive_flow) or through their own access token      | a client, through the scopes the claim's ACL names                |
+| Who writes it              | the person, in the [interactive flow](/functional/interactive_flow) or through their own access token      | a client, through the claim's `writable-by-client` [door](/functional/claim_access#doors) |
 | A client write             | only where the claim names an [audience](/functional/audience)                                             | wherever the deployment put the claim                             |
 | The person typing it       | what the flow asks them for                                                                                | never — a backend answers for the value                           |
 
@@ -32,7 +36,8 @@ the way nothing an application computes is.
 A client of one audience writing a personal claim shared across audiences would be choosing what every
 other audience is told a person is called, over the person's head. So **a client writes a personal claim
 only where it is restricted to one [audience](/functional/audience)** — the value then leaves this server to
-that audience alone — and a shared personal claim granting a client write is refused at startup.
+that audience alone — and a shared personal claim whose `writable-by-client` is opened by anything but the
+literal `"false"` is refused at startup.
 
 An [identifier claim](/functional/claims#identifier-claims) is always a personal claim, because it is what
 the account signs in with and nobody but the person ever types it. Declaring one an application's is
@@ -42,13 +47,15 @@ refused at startup, and no client writes one whatever its scopes.
 
 An **application claim** is an application's, attached to the person: a credit score, a subscription tier,
 a flag a backend computes. The person never types it, because a backend answers for the value, and
-**no flow asks for one and no access token of the person's writes one**.
+**no flow asks for one and no access token of the person's writes one**: an application claim opening
+`collected-in-flow` or `writable-by-person` by anything but the literal `"false"` is refused at startup.
 
-It may still carry a consent scope, where the person has to agree before a client is told their score:
-consent gates disclosure and says nothing about whose the value is.
+Its read doors may still ask for consent to a scope, where the person has to agree before a client is told
+their score: consent gates disclosure and says nothing about whose the value is.
 
-A client reads and writes an application claim through the [client scopes](/functional/scope#client-scope)
-its ACL names, whether the deployment restricted the claim to an audience or left it shared — the value is
+A client reads and writes an application claim through whatever its `readable-by-client` and
+`writable-by-client` doors ask — on the shipped template, the [client scopes](/functional/scope#client-scope)
+`users:claims:read` and `users:claims:write` — whether the deployment restricted the claim to an audience or left it shared — the value is
 the application's, and the deployment chose which applications have it.
 
 ### A generated claim
@@ -72,10 +79,13 @@ value. The [Admin API](/technical/api/admin) publishes `kind` beside `origin` fo
 A claim says whose its value is in one of two ways, and **a claim saying it nowhere is refused at startup**:
 
 - by naming the shipped [template](/technical/configuration/claim#templates-claims-id) of that kind —
-  `template: personal` or `template: application`, which also carry the ACL and the exposure each kind
-  usually wants;
+  `template: personal` or `template: application`, which also carry the exposure each kind usually wants
+  and, for an application claim, its client doors;
 - or by declaring [`kind`](/technical/configuration/claim#claims-id-kind) on the claim itself, which
   overrides whatever its template says.
 
 There is no template a claim falls back to, and nothing the server could pick for a claim that names none:
 any value it chose would be a guess about whether a person is asked to type the claim.
+
+Each refusal of the kind is made on the resolved ACL, so a door a template opens is refused on the claim
+taking it, under the claim's own key — and `"false"` there is what shuts it.

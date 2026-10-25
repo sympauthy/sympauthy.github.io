@@ -78,9 +78,8 @@ service and the client may exchange for another.
   the same audience share the consent.
 - **[Clients](/functional/client)** — a client belongs to an audience. The client whose authorization
   last updated the consent is recorded for audit purposes.
-- **[Claims](/functional/claims)** — claims with
-  [consent-based access](/functional/claim_access) are only shared with the client when covered by the
-  consented scopes.
+- **[Claims](/functional/claims)** — a claim whose [ACL](/functional/claim_access) asks for consent to a
+  scope is only shared with the client when covered by the consented scopes.
 - **[Tokens](/functional/tokens)** — tokens issued by SympAuthy reflect the scopes recorded in the
   consent.
 - **[Grants](/functional/grant)** — a grant records the audience it was opened for. Revoking a consent revokes every

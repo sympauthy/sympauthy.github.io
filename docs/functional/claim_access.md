@@ -1,41 +1,82 @@
 # Claim Access Control
 
-Every [claim](/functional/claims) has an **access control list (ACL)** that determines who can read and
-write it. Two things decide the outcome: what the caller was authorized to do, and
-[which kind of claim](/functional/claim_kinds#two-kinds-of-claim) it is.
+A [claim](/functional/claims) — a name, an email address, a subscription tier — is reached by several parties:
+the end-user it is about, the applications they sign in to (the [clients](/functional/client)), and the
+administrators of the deployment. Each claim has an **access control list (ACL)** deciding which of them may
+read it and which may change it, so that an application is told only what the end-user agreed to share with
+it, or what the deployment chose to give it. This page covers:
 
-The ACL grants access through two paths, and either one is sufficient:
+- the [doors](#doors) an ACL is made of, and what opens one;
+- who can access what, for each kind of claim;
+- giving each door a scope of its own;
+- what the end-user, a client and an administrator can each read and write;
+- how audiences restrict every one of those decisions.
 
-- **Consent-based** — the end-user [consents](/functional/consent) to a
-  [scope](/functional/scope#consentable-scope), which unlocks the claim for the interactive flow, for the
-  end-user, for the client, or for any combination of them.
-- **Unconditional** — the client holds a [client scope](/functional/scope#client-scope) that grants access
-  directly, without end-user consent.
+Two things decide the outcome: what the caller was authorized to do, and
+[which kind of claim](/functional/claim_kinds#two-kinds-of-claim) it is. The kind of claim determines who can
+**write** a value, never who can read one. An end-user can be shown their own credit score wherever the ACL
+allows it, because being told a value is disclosure, and disclosure is what the ACL decides.
 
-The kind of claim determines who can **write** a value, never who can read one. An end-user can be shown
-their own credit score wherever the ACL allows it, because being told a value is disclosure, and disclosure
-is what the consent-based path decides.
+## Doors
+
+The ACL is made of **doors**. A door is one way of reaching a claim: one party reading it or writing it.
+A client reading the claim is a door, and a client writing it is another; the end-user reading it through
+their own access token is a door, and the interactive flow asking them to fill it in is another. Each door is
+one key of the ACL, named after who goes through it and in which direction — `readable-by-client`,
+`writable-by-client`, `readable-by-person` and so on — and [the table below](#who-can-access-what) lists
+them all.
+
+Each door holds an [expression](/technical/expressions/), the language scope granting rules and
+act-as rules are written in. **A door is open to a caller when its expression is true**, and shut to
+everybody when no expression opens it. A door usually asks about scopes, and may combine several conditions:
+
+```
+SCOPE_IS_CONSENTED("profile") || SCOPE_IS_GRANTED("users:claims:read")
+```
+
+The first condition lets through a caller the end-user [consented](/functional/consent) to disclose the
+claim to, under a [consentable scope](/functional/scope#consentable-scope); the second lets through a client
+holding a [client scope](/functional/scope#client-scope) of its own, whatever the end-user agreed to. Either
+is sufficient, because they are joined by `||`.
 
 ## Who can access what
 
-The table below lists each party, the direction of access, and the ACL key that grants it. **Refused**
-means the key cannot be set on a claim of that kind at all: the server refuses to start rather than
-failing the request later.
+The table below lists each party, the direction of access, and the door that decides it. **Refused**
+means the door cannot be opened on a claim of that kind at all — by anything but the literal `"false"` — and
+the server refuses to start rather than failing the request later.
 
-| Party                                                                                                           | Direction      | A personal claim                                                                       | An application claim                          |
-|-----------------------------------------------------------------------------------------------------------------|----------------|----------------------------------------------------------------------------------------|-----------------------------------------------|
-| The end-user, in the [interactive flow](/functional/interactive_flow#collecting-additional-information-optional) | read and write | `collected-in-flow-when-consented`                                                     | **Refused** — nobody is asked to type one     |
-| The end-user, through their own access token, at `/api/openid/userinfo`                                          | read           | `readable-by-person-when-consented`                                                    | `readable-by-person-when-consented`           |
-| The end-user, through their own access token                                                                     | write          | `writable-by-person-when-consented`                                                    | **Refused** — a backend answers for the value |
-| A [client](/functional/client), through the end-user's consent                                                   | read           | `readable-by-client-when-consented`                                                    | `readable-by-client-when-consented`           |
-| A client, through the end-user's consent                                                                         | write          | `writable-by-client-when-consented`, and only when the claim names an [audience](#audience-restrictions) | `writable-by-client-when-consented`           |
-| A client, through its own [client scopes](/functional/scope#client-scope)                                        | read           | `readable-with-client-scopes-unconditionally`                                           | `readable-with-client-scopes-unconditionally` |
-| A client, through its own client scopes                                                                          | write          | `writable-with-client-scopes-unconditionally`, and only when the claim names an audience | `writable-with-client-scopes-unconditionally` |
-| An administrator, through the [Admin API](/technical/api/admin)                                                  | read           | every claim of every audience                                                          | every claim of every audience                 |
-| An administrator                                                                                                 | write          | nothing                                                                                | nothing                                       |
+| Party                                                                                                           | Direction      | A personal claim                                                                 | An application claim                          |
+|-----------------------------------------------------------------------------------------------------------------|----------------|----------------------------------------------------------------------------------|-----------------------------------------------|
+| The end-user, in the [interactive flow](/functional/interactive_flow#collecting-additional-information-optional) | read and write | `collected-in-flow`                                                              | **Refused** — nobody is asked to type one     |
+| The end-user, through their own access token, at `/api/openid/userinfo`                                          | read           | `readable-by-person`                                                             | `readable-by-person`                          |
+| The end-user, through their own access token                                                                     | write          | `writable-by-person`                                                             | **Refused** — a backend answers for the value |
+| A [client](/functional/client)                                                                                   | read           | `readable-by-client`                                                             | `readable-by-client`                          |
+| A client                                                                                                         | write          | `writable-by-client`, and only when the claim names an [audience](#audience-restrictions) | `writable-by-client`                          |
+| An administrator, through the [Admin API](/technical/api/admin)                                                  | read           | every claim of every audience                                                    | every claim of every audience                 |
+| An administrator                                                                                                 | write          | nothing                                                                          | nothing                                       |
 
 [Generated claims](/functional/claim_kinds#a-generated-claim) appear in no row. SympAuthy computes `sub`,
 `updated_at` and `auth_time` itself, so there is no caller to authorize and nothing to configure.
+
+## A scope per door
+
+The scope a door opens on is the door's own, so a claim's doors may name different scopes or none. A claim can
+be read under `profile` and written only under `profile:write`: a client authorized for `profile` is told the
+name and refused the write, until the end-user also agrees to `profile:write`.
+
+### A door open to every caller
+
+A door written as the literal `"true"` is open to every caller that reaches it within the claim's
+[audience](#audience-restrictions), with nothing to consent to. That is the intended behavior for a claim
+every client of an audience may read without asking, and worth knowing before writing it on any other.
+
+### Which scopes a door is listed under
+
+**A condition opens a door only where nothing but `&&` and `||` stands above it.** Under `!`, meeting it shuts
+the door instead, so a scope written as `!SCOPE_IS_CONSENTED("…")` is neither one the
+[Admin API](/technical/api/admin) lists the claim under nor one a refused caller would be told to consent to.
+A condition under a comparison is evaluated like any other and counted neither way either, since what
+meeting it does is the expression's to say.
 
 ## End-user access
 
@@ -44,66 +85,74 @@ The end-user reaches their own claims through two separate channels: the
 authenticated, and their own access token, which says only that a client was authorized to act within
 some scopes.
 
-Each channel has its own ACL key, and no key covers both. `collected-in-flow-when-consented` is what the
-interactive flow asks the end-user to fill in; `readable-by-person-when-consented` and
-`writable-by-person-when-consented` are what the end-user's own access token may read and write. A claim the
-flow collects is not thereby writable through an API, and a claim an API may write is not thereby asked for
-during sign-in.
+Each channel has its own door, and no door covers both. `collected-in-flow` is what the interactive flow
+asks the end-user to fill in; `readable-by-person` and `writable-by-person` are what the end-user's own
+access token may read and write. A claim the flow collects is not thereby writable through an API, and a
+claim an API may write is not thereby asked for during sign-in.
 
-The flow reads a claim back through the same key it collects it with. One channel is one permission in both
-directions, so the claims the flow offers, the values it displays back, the required ones it holds the
-end-user to and the address it sends a validation code to are all governed by that single key.
+The flow reads a claim back through the same door it collects it through. One channel is one permission in
+both directions, so the claims the flow offers, the values it displays back, the required ones it holds the
+end-user to and the address it sends a validation code to are all governed by that single door. The flow has
+no token behind it, so its door asks about consent and the client and nothing else; it does not ask about a
+scope a rule grants either, because the rules grant their scopes after the flow has collected.
 
-A write through the end-user's own access token can be required to sit behind a recent authentication.
-`write-max-authentication-age` sets how old the authentication may be; presented with an older one,
-SympAuthy returns the [challenge defined by RFC 9470](/functional/tokens#when-the-user-authenticated) so
-the client can re-authorize and retry. Reads are never challenged, and neither is the flow's own write.
+The doors a token comes through can ask about the token as well: whether a rule granted it a scope, how long
+ago the end-user [authenticated](/functional/tokens#when-the-user-authenticated) behind it, and whether it is
+[bound to a key](/functional/tokens#sender-constrained-tokens-dpop).
+
+**A read narrows, and is never challenged.** A read is answered with the claims whose door is open and nothing
+about the others. A claim whose `readable-by-client` asks for an authentication younger than an hour is in the
+ID token the code exchange mints, and absent from the one a refresh mints a day later — a refresh reissues
+`auth_time` unchanged.
 
 ::: info
-`collected-in-flow-when-consented` does not apply to an
+`collected-in-flow` does not apply to an
 [identifier claim](/functional/claims#identifier-claims). An identifier claim is collected at sign-up
 because it is what the account signs in with, whether or not any scope was consented to, and the flow's
 claim-collection step leaves identifier claims out.
 :::
 
 ::: warning Nothing writes a claim through the end-user's own token yet
-`writable-by-person-when-consented` and `write-max-authentication-age` are parsed and validated today, and
-nothing reads them: the endpoint that would let an end-user write their own claim is
-[sympauthy#482](https://github.com/sympauthy/sympauthy/issues/482) and does not exist. A deployment may
-declare both now, and neither opens anything until that endpoint ships.
+`writable-by-person` is parsed and validated today, and nothing reads it: the endpoint that would let an
+end-user write their own claim is [sympauthy#482](https://github.com/sympauthy/sympauthy/issues/482) and does
+not exist. A deployment may open the door now, and it lets nothing through until that endpoint ships — and
+with it the challenge a refused write would carry, so the client can re-authorize and retry.
 :::
 
 ## Client access
 
-A client is granted access through the end-user's consent or through its own client scopes, and either path
-is sufficient. The consent-based path answers a client the end-user agreed to disclose to; the unconditional
-path answers a client holding `users:claims:read` or `users:claims:write`, whatever the end-user agreed to.
-The shipped [`application` template](/technical/configuration/claim#templates-claims-id) grants both
-unconditionally, which is what a value a backend answers for needs. The shipped `personal` template grants
-the consent-based path only, and no client write.
+A client is let through `readable-by-client` and `writable-by-client` by the end-user's consent, by its own
+client scopes, by who it is, or by any combination the expression writes. On the
+[Client API](/technical/api/client), `SCOPE_IS_CONSENTED` answers from the consent the end-user recorded for
+the client's audience. The shipped [`application` template](/technical/configuration/claim#templates-claims-id)
+opens both doors to `users:claims:read` and `users:claims:write`, whatever the end-user consented to, which is
+what a value a backend answers for needs. The shipped `personal` template opens no door, and each shipped
+claim opens its read doors under the scope the specification puts it in — never a client write.
 
 A client cannot write a personal claim that is shared across audiences. A client of one audience setting
 `name` would decide what every other audience is told the end-user is called, without the end-user being
 asked. When the claim is restricted to one [audience](/functional/audience), the value only reaches that
-audience, and the grant is allowed there. Reading is unaffected: a client is told a personal claim of its
+audience, and the door may be opened there. Reading is unaffected: a client is told a personal claim of its
 audience through consent or through its own scopes like any other claim.
 
 No client can write an [identifier claim](/functional/claims#identifier-claims), whatever its scopes.
 Nothing in a claim write verifies the value, so a client able to set one could repoint an account's sign-in
-at an address it controls. The [Client API](/technical/api/client) refuses such a claim by name.
+at an address it controls. The [Client API](/technical/api/client) refuses such a claim by name — as it
+refuses every write a door shuts, with no challenge, since a client refused a claim has nothing to
+re-authorize for.
 
 Because a write verifies nothing, **a write that changes a value clears whatever verification the old one
 held**: the [`verified-id`](/technical/configuration/claim#claims-id) companion goes back to `false`, and
 the end-user is asked to validate the new value at their next authorization. This holds for every write —
 a client's, an administrator's, the end-user's own, and one collected from a provider.
 
-Each place a claim is published in asks its own half of the ACL. The [ID token](/functional/tokens#id-token),
-the [access token](/functional/tokens#a-claim-in-an-access-token) and the
-[introspection response](/functional/tokens#token-introspection) are issued or answered to a client, so each
-asks whether the **client** may read the claim. `/api/openid/userinfo` asks whether the **end-user** may,
-because that endpoint is not client-authenticated. A claim can therefore be permitted in one place and
-refused in another: a claim a client holds a read scope for, with
-`readable-by-person-when-consented` disabled, is carried by the ID token and left out of `/userinfo`.
+Each place a claim is published in asks its own door. The [ID token](/functional/tokens#id-token), the
+[access token](/functional/tokens#a-claim-in-an-access-token), the
+[introspection response](/functional/tokens#token-introspection) and the Client API are issued or answered to
+a client, so each asks `readable-by-client`. `/api/openid/userinfo` asks `readable-by-person`, because that
+endpoint is not client-authenticated. A claim can therefore be permitted in one place and refused in another:
+a claim whose `readable-by-client` is open and whose `readable-by-person` is shut is carried by the ID token
+and left out of `/userinfo`.
 
 ## Administrator access
 
@@ -131,17 +180,11 @@ The audience a decision is made for is not always the caller's own:
 
 An administrator is the only reader that audience restrictions do not apply to.
 
-## Consent keys without a consent scope
-
-A consent-based key grants access when the end-user has consented to `consent-scope`. A claim that sets no
-`consent-scope` has nothing to consent to, so the key grants access unconditionally. That is the intended
-behavior for a claim every client of an audience may read without asking, but it is worth knowing before
-leaving `consent-scope` unset on a claim whose consent-based keys are enabled.
-
 ## Configuration
 
-Every key above is set under [`claims.<id>.acl`](/technical/configuration/claim#claims-id-acl), on the claim
-itself or on the [template](/technical/configuration/claim#templates-claims-id) it references. A grant
-inherited from a template is held to the claim's kind exactly like one set on the claim. Each refusal above,
+Every door above is set under [`claims.<id>.acl`](/technical/configuration/claim#claims-id-acl), on the claim
+itself or on the [template](/technical/configuration/claim#templates-claims-id) it references; a claim's key
+overrides its template's door by door. A door inherited from a template is held to the claim's kind exactly
+like one set on the claim. Each refusal above,
 and the line that fixes it, is listed in
 [startup refusals](/technical/configuration/claim#startup-refusals).

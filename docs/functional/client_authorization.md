@@ -33,7 +33,7 @@ The ```scopes```, ```behavior```, and ```order``` fields work identically to use
 detailed description of these fields.
 
 The key difference is in the ```expressions```: instead of evaluating user claims with ```CLAIM(...)```, client scope
-rules evaluate client attributes with ```CLIENT(...)```. See [Rule Expressions](/technical/rule_expressions) for the
+rules evaluate client attributes with ```CLIENT(...)```. See [Functions](/technical/expressions/functions) for the
 properties ```CLIENT(...)``` exposes and which rule types each function is available in.
 
 > There are no client scope granting rules defined in the out-of-the-box configuration.

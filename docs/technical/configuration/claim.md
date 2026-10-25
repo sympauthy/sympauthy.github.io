@@ -15,7 +15,7 @@ ACL is held to.
 |----------------------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|
 | ```acl```            | object  | [Access control list](#claims-id-acl) that determines who can read and write this claim. See the [dedicated section](#claims-id-acl) below.                                                                                                                                                                                   | **NO**                |
 | ```allowed-values``` | array   | List of possible values an user can provide for this claim. If not specified or ```null```, all values will be accepted by the authorization server.<br> **Note**: Changing this configuration will not change the value collected for existing user.                                                                         | **NO**<br>```null```  |
-| ```audience```       | string  | The [audience](/functional/audience) this claim is scoped to. When set, the claim is only visible to clients within that audience. When `null`, the claim is shared across all audiences. Required on a `personal` claim whose ACL grants a client write, and refused on an [identifier claim](/functional/claims#identifier-claims). | **NO**<br>```null```  |
+| ```audience```       | string  | The [audience](/functional/audience) this claim is scoped to. When set, the claim is only visible to clients within that audience. When `null`, the claim is shared across all audiences. Required on a `personal` claim whose ACL opens `writable-by-client`, and refused on an [identifier claim](/functional/claims#identifier-claims). | **NO**<br>```null```  |
 | ```enabled```        | boolean | Whether this claim is in use. A disabled claim is collected, written, read and published nowhere — it is never stored even when a client or a provider offers it, and it is served in no token, no `/userinfo` response and no API answer. Values already collected are kept untouched and served again if it is re-enabled. Every claim the OpenID Connect specification defines ships with ```false```, so a deployment enables the ones its applications ask for. | **NO**<br>```true```  |
 | ```group```          | string  | Grouping identifier (e.g. `identity`, `address`). Used to associate related claims.                                                                                                                                                                                                                                           | **NO**<br>```null```  |
 | ```kind```           | string  | Whose this claim's value is: `personal` or `application` — see the [dedicated section](#claims-id-kind). Falls back to the one its `template` declares, and a claim declaring it neither way is refused at startup.                                                                                                             | Depends               |
@@ -41,10 +41,10 @@ mean is refused at startup rather than accepted and ignored.
 
 | Value         | Whose the value is                                                        | What it refuses                                                                                                                                                              |
 |---------------|---------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `application` | an application's, attached to the person. A backend answers for it, and the person is never asked to type it. | `acl.collected-in-flow-when-consented` and `acl.writable-by-person-when-consented`.                                                                                          |
-| `personal`    | the person's. Collected in the flow, and disclosed by consent.            | `acl.writable-by-client-when-consented` and `acl.writable-with-client-scopes-unconditionally`, unless the claim names an `audience` — a client of one audience may not choose what every other audience is told. |
+| `application` | an application's, attached to the person. A backend answers for it, and the person is never asked to type it. | `acl.collected-in-flow` and `acl.writable-by-person`, opened by anything but the literal `"false"`.                                                                        |
+| `personal`    | the person's. Collected in the flow, and disclosed by consent.            | `acl.writable-by-client` opened by anything but the literal `"false"`, unless the claim names an `audience` — a client of one audience may not choose what every other audience is told. |
 
-The kind is read **resolved**, so a grant, a restriction or a kind reaching the claim through its
+The kind is read **resolved**, so a [door](/functional/claim_access#doors), a restriction or a kind reaching the claim through its
 [template](#templates-claims-id) is held to this exactly like one written on the claim. An
 [identifier claim](/functional/claims#identifier-claims) is always `personal`, and declaring one an
 application's is refused.
@@ -88,9 +88,9 @@ introspection, and it stays readable through the [Client API](/technical/api/cli
 [`personal` template](#templates-claims-id) names `[ id-token, userinfo, discovery ]`, and the shipped
 `application` template names nothing.
 
-Which half of the [ACL](#claims-id-acl) a place asks is the place's own question: the ID token, the access
-token and the introspection response ask whether the **client** may read the claim, and `/userinfo` asks
-whether the **end-user** may, because that endpoint is not client-authenticated. A claim restricted to
+Which door of the [ACL](#claims-id-acl) a place asks is the place's own question: the ID token, the access
+token and the introspection response ask `readable-by-client`, and `/userinfo` asks `readable-by-person`,
+because that endpoint is not client-authenticated. A claim restricted to
 another [audience](/functional/audience) is left out of every place.
 
 `claims_supported` lists exactly the claims naming `discovery`, whichever half of the specification the
@@ -127,49 +127,60 @@ three withhold stays withheld, whatever a request asks for.
 
 ## ```claims.<id>.acl```
 
-The ACL controls who can read and write the claim. There are two access paths, and either one is
-sufficient:
+The ACL has one key per **[door](/functional/claim_access#doors)** — a party reading or writing the claim —
+and each holds an [expression](/technical/expressions/) answering whether that door is open to the caller in
+front of it. **A door is open when its expression is true**, and a door no expression opens is shut to everybody. The
+scope a door opens on is the door's own, so a claim's doors may name different scopes or none: a claim can be
+readable under `profile` and writable only under `profile:write`.
 
-- **Consent-based** — the end-user [consents](/functional/consent) to a scope, which unlocks the claim
-  for the [interactive flow](/functional/interactive_flow), for the end-user, for the client, or for any
-  combination of them.
-- **Unconditional** — the client holds a [client scope](/functional/scope#client-scope) that grants
-  access directly, without end-user consent.
+Each door is named for itself, and none covers another. `collected-in-flow` is what the interactive flow asks
+the end-user to type; `readable-by-person` and `writable-by-person` are what the end-user's own **access
+token** may read and write. A claim the flow collects is not thereby writable through an API, and a claim an
+API may write is not thereby asked for during sign-in.
 
-Each consent-based key names **one door**, and none of them covers two. `collected-in-flow-when-consented`
-is what the interactive flow asks the end-user to type; `readable-by-person-when-consented` and
-`writable-by-person-when-consented` are what the end-user's own **access token** may read and write. A claim
-the flow collects is not thereby writable through an API, and a claim an API may write is not thereby asked
-for during sign-in. A consent-based key on a claim naming no `consent-scope` has nothing to agree to, and
-opens its door unconditionally.
-
-Which keys a claim may set at all depends on [its kind](#claims-id-kind). Party by party and direction by
+Which doors a claim may open at all depends on [its kind](#claims-id-kind). Party by party and direction by
 direction, [claim access control](/functional/claim_access) is the whole of it.
 
-| Key                                               | Type     | Description                                                                                                                                                                                                                                                                       | Required<br>Default   |
-|---------------------------------------------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|
-| ```collected-in-flow-when-consented```            | boolean  | The [interactive flow](/functional/interactive_flow#collecting-additional-information-optional) asks the end-user to fill this claim in when the `consent-scope` has been consented to, and shows the stored value back through the same key. Refused on an `application` claim, and it does not apply to an [identifier claim](/functional/claims#identifier-claims), which sign-up collects in any case. | **NO**<br>```false``` |
-| ```consent-scope```                               | string   | The [consentable scope](/functional/scope#consentable-scope) that gates consent-based access to this claim. Must be an OpenID Connect scope or a custom consentable scope.                                                                                                        | **NO**<br>```null```  |
-| ```readable-by-client-when-consented```           | boolean  | The client can read this claim when the end-user has consented to the `consent-scope`.                                                                                                                                                                                            | **NO**<br>```false``` |
-| ```readable-by-person-when-consented```           | boolean  | The end-user's own access token can read this claim, through `/api/openid/userinfo`, when the `consent-scope` has been consented to.                                                                                                                                              | **NO**<br>```false``` |
-| ```readable-with-client-scopes-unconditionally``` | array    | List of [client scopes](/functional/scope#client-scope). A client holding any of these scopes can read this claim unconditionally (without end-user consent).                                                                                                                     | **NO**<br>```[]```    |
-| ```writable-by-client-when-consented```           | boolean  | The client can write this claim when the end-user has consented to the `consent-scope`. Refused on a `personal` claim naming no `audience`.                                                                                                                                        | **NO**<br>```false``` |
-| ```writable-by-person-when-consented```           | boolean  | The end-user's own access token can write this claim when the `consent-scope` has been consented to. Distinct from `collected-in-flow-when-consented`, which is what the interactive flow collects. Refused on an `application` claim.                                            | **NO**<br>```false``` |
-| ```writable-with-client-scopes-unconditionally``` | array    | List of [client scopes](/functional/scope#client-scope). A client holding any of these scopes can write this claim unconditionally (without end-user consent). Refused on a `personal` claim naming no `audience`.                                                                | **NO**<br>```[]```    |
-| ```write-max-authentication-age```                | duration | How old the end-user's [authentication](/functional/tokens#when-the-user-authenticated) may be behind a write through their own access token. Unset, a write asks nothing of it. Must be greater than zero. Set on a claim `writable-by-person-when-consented` does not open, the server refuses to start. | **NO**<br>*(unset)*   |
+| Key                        | Type       | Description                                                                                                                                                                                                                                                                                                                                                                                                             | Required<br>Default    |
+|----------------------------|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|
+| ```collected-in-flow```    | expression | The [interactive flow](/functional/interactive_flow#collecting-additional-information-optional) asks the end-user to fill this claim in, and shows the stored value back through the same door. It offers `SCOPE_IS_CONSENTED` and `CLIENT` only — the flow has no token behind it, and grants its scopes after collecting. Refused on an `application` claim, and it does not apply to an [identifier claim](/functional/claims#identifier-claims), which sign-up collects in any case. | **NO**<br>*(shut)*     |
+| ```readable-by-client```   | expression | A client may read this claim: in the ID token, the access token, the introspection response and the [Client API](/technical/api/client).                                                                                                                                                                                                                                                                              | **NO**<br>*(shut)*     |
+| ```readable-by-person```   | expression | The end-user's own access token may read this claim, through `/api/openid/userinfo`.                                                                                                                                                                                                                                                                                                                                    | **NO**<br>*(shut)*     |
+| ```writable-by-client```   | expression | A client may write this claim through the [Client API](/technical/api/client). Refused on a `personal` claim naming no `audience`.                                                                                                                                                                                                                                                                                       | **NO**<br>*(shut)*     |
+| ```writable-by-person```   | expression | The end-user's own access token may write this claim. Distinct from `collected-in-flow`, which is what the interactive flow collects. Refused on an `application` claim.                                                                                                                                                                                                                                                | **NO**<br>*(shut)*     |
+
+The doors a token comes through — every door but `collected-in-flow` — evaluate that token, so they offer
+every function a claim's ACL may call; which ones those are, and what each answers, is
+[functions](/technical/expressions/functions).
 
 ::: info
-ACL values set directly on a claim always override values inherited from a [template](#templates-claims-id),
-and a grant a claim takes from its template is held to the claim's kind exactly like one written on the claim.
-Removing a key from the claim falls back to the template's value, so a grant the template carries is closed
-by writing `false`, or an empty list, under the claim's own key.
+A claim's key overrides its [template](#templates-claims-id)'s door by door, and a door the claim writes
+nothing for takes the template's. Removing a key from the claim falls back to the template's expression, so a
+door the template opens is shut by writing the literal `"false"` under the claim's own key. A door taken from
+the template is held to the claim's kind exactly like one written on the claim.
 :::
 
 ::: warning Nothing writes a claim through the end-user's own token yet
-`writable-by-person-when-consented` and `write-max-authentication-age` are parsed and validated today, and
-nothing reads them: the endpoint that would let an end-user write their own claim is
-[sympauthy#482](https://github.com/sympauthy/sympauthy/issues/482) and does not exist. A deployment may
-declare both now, and neither opens anything until that endpoint ships.
+`writable-by-person` is parsed and validated today, and nothing reads it: the endpoint that would let an
+end-user write their own claim is [sympauthy#482](https://github.com/sympauthy/sympauthy/issues/482) and does
+not exist. A deployment may open the door now, and it lets nothing through until that endpoint ships.
+:::
+
+::: warning Upgrading an existing deployment
+The ACL used to be a set of flags, a `consent-scope` and two lists of client scopes. None of those keys is
+bound any more, so a file still writing one is refused at startup until it is rewritten. The shipped claims
+and templates are rewritten already, and answer every place exactly as before.
+
+| Before                                                                     | After                                                                                                 |
+|----------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| `consent-scope: <scope>` with a `*-when-consented: true` flag              | `SCOPE_IS_CONSENTED("<scope>")` on that flag's door                                                   |
+| a `*-when-consented: true` flag on a claim naming no `consent-scope`       | `"true"` on that door                                                                                 |
+| `readable-with-client-scopes-unconditionally: [a, b]`                      | `SCOPE_IS_GRANTED("a") \|\| SCOPE_IS_GRANTED("b")` on `readable-by-client`, joined by `\|\|` to any consent term |
+| `writable-with-client-scopes-unconditionally: [a]`                         | the same on `writable-by-client`                                                                      |
+| `write-max-authentication-age: 5m`                                         | `&& AUTHENTICATION_IS_YOUNGER_THAN("5m")` on `writable-by-person`                                     |
+
+The doors map one to one: `collected-in-flow-when-consented` becomes `collected-in-flow`,
+`readable-by-person-when-consented` becomes `readable-by-person`, and so on for the other three.
 :::
 
 ## ```templates.claims.<id>```
@@ -187,8 +198,8 @@ The server ships one template per kind, named for it:
 
 | Template name | Declares             | What it carries                                                                                                            |
 |---------------|----------------------|----------------------------------------------------------------------------------------------------------------------------|
-| `application` | `kind: application`  | The client scopes that read and write the claim whatever the person consented to, which is what a value a backend answers for needs. It names no place, so a claim taking it is exposed nowhere until its own file says where. |
-| `personal`    | `kind: personal`     | The consent-based keys a profile claim wants, the two OpenID channels and the discovery document. It grants no client write, because it names no audience and a shared personal claim may not have one. |
+| `application` | `kind: application`  | `readable-by-client` and `writable-by-client` opened to the client scopes `users:claims:read` and `users:claims:write`, whatever the person consented to, which is what a value a backend answers for needs. It names no place, so a claim taking it is exposed nowhere until its own file says where. |
+| `personal`    | `kind: personal`     | The two OpenID channels and the discovery document. It opens no door, because a door opens on a scope and the template names none, so a claim taking it opens its own under the scope it belongs to. |
 
 Custom templates (any name not in the list above) can be defined and explicitly referenced by a claim
 via its `template` field. Fields set directly on a claim always override the corresponding template value.
@@ -215,22 +226,27 @@ templates:
   claims:
     personal:
       kind: personal
-      published-in:
-        - id-token
-        - userinfo
-        - discovery
-      acl:
-        readable-by-person-when-consented: true
-        collected-in-flow-when-consented: true
-        readable-by-client-when-consented: true
-        writable-by-client-when-consented: false
+      published-in: [ id-token, userinfo, discovery ]
     application:
       kind: application
       acl:
-        readable-with-client-scopes-unconditionally:
-          - "users:claims:read"
-        writable-with-client-scopes-unconditionally:
-          - "users:claims:write"
+        readable-by-client: SCOPE_IS_GRANTED("users:claims:read")
+        writable-by-client: SCOPE_IS_GRANTED("users:claims:write")
+```
+
+Each shipped claim opens its own doors on top of the template, under the scope the specification puts it in:
+
+```yaml
+claims:
+  given_name:
+    template: personal
+    enabled: "false"
+    type: string
+    group: identity
+    acl:
+      collected-in-flow:  SCOPE_IS_CONSENTED("profile")
+      readable-by-person: SCOPE_IS_CONSENTED("profile")
+      readable-by-client: SCOPE_IS_CONSENTED("profile")
 ```
 
 Neither names `enabled`: every claim the OpenID Connect specification defines carries `enabled: "false"` of
@@ -248,18 +264,21 @@ production.
 | a claim naming no `template` and no `kind`                                                                                                     | `template: personal`, `template: application`, or `kind` on the claim                          |
 | a `kind` that is neither `personal` nor `application`                                                                                          | one of the two values                                                                         |
 | a `template` no `templates.claims` entry declares                                                                                              | one of the declared template names                                                            |
-| a `personal` claim naming no `audience` and granting `acl.writable-by-client-when-consented` or `acl.writable-with-client-scopes-unconditionally` | an `audience` on the claim, the grant written off on the claim — `false`, or an empty list — or `kind: application` |
-| an `application` claim setting `acl.collected-in-flow-when-consented` or `acl.writable-by-person-when-consented`                                | the key set to `false`, a template that leaves it off, or `kind: personal`                     |
+| a `personal` claim naming no `audience` and opening `acl.writable-by-client`                                                                    | an `audience` on the claim, `"false"` under the claim's own key, or `kind: application`        |
+| an `application` claim opening `acl.collected-in-flow` or `acl.writable-by-person`                                                              | the key set to `"false"`, a template that leaves it shut, or `kind: personal`                  |
 | an [identifier claim](/functional/claims#identifier-claims) declared `kind: application`                                                        | `kind: personal` — an account signs in with what the person typed                              |
 | an identifier claim restricted to an `audience`                                                                                                | the restriction removed — a deployment signs people in across every audience                   |
-| `acl.write-max-authentication-age` on a claim `acl.writable-by-person-when-consented` does not open                                            | that key set to `true`, or the age removed                                                    |
-| an `acl.write-max-authentication-age` of zero or less                                                                                          | a duration greater than zero, or the age removed                                              |
+| an `acl` expression that does not parse, answers anything but a boolean, or calls a function its door does not offer                           | an expression of [the door's functions](/technical/expressions/functions)     |
+| a scope or a duration given to an `acl` function as anything but a string literal                                                              | the scope or the duration written as a literal — `SCOPE_IS_CONSENTED("profile")`               |
+| an `AUTHENTICATION_IS_YOUNGER_THAN` duration that does not read, or of zero or less                                                            | a duration greater than zero, written the way every duration key is — `5m`, `1h`, `PT5M`       |
+| a key `acl` no longer has — `consent-scope`, a `*-when-consented` flag, a `*-unconditionally` list or `write-max-authentication-age`           | its door, as [the upgrade table](#claims-id-acl) rewrites it                                   |
 | a claim naming `discovery` in `published-in` and no place that carries its value                                                               | a value-carrying place beside `discovery`, or `discovery` removed                              |
 | any key under `claims.sub`, `claims.updated_at` or `claims.auth_time`                                                                          | the key removed — this server computes all three                                               |
 
 A name that does not resolve is refused the same way: an `audience` no `audiences` entry declares, a
-`consent-scope` that is not an enabled consentable scope, a scope that is not a client scope in either
-unconditional list, or a `type` that is not one of [the types](#claims-id-type).
+`SCOPE_IS_CONSENTED` scope that is not an enabled consentable scope, a `SCOPE_IS_GRANTED` scope that is not
+an enabled grantable or client scope — a consentable one included, since no rule grants it — or a `type` that
+is not one of [the types](#claims-id-type). Each refusal names the key the expression was written under.
 
 ## Examples
 
@@ -276,14 +295,15 @@ claims:
     type: email
     verified-id: email_verified
     acl:
-      consent-scope: email
+      collected-in-flow:  SCOPE_IS_CONSENTED("email")
+      readable-by-person: SCOPE_IS_CONSENTED("email")
+      readable-by-client: SCOPE_IS_CONSENTED("email")
 ```
 
-This claim inherits the `personal` template defaults: the interactive flow collects it, the end-user can
-read it through `/api/openid/userinfo` and the client can read it — both after consent — and the client
-cannot write it. It is also [exposed](#claims-id-published-in) in the ID token, in `/userinfo` and in
-`claims_supported`. The `consent-scope: email` means the end-user must consent to the `email` scope for
-access to be granted, and `enabled: true` is the claim's own key, because the template carries none.
+Once the end-user consents to the `email` scope, the interactive flow collects it, the end-user can read it
+through `/api/openid/userinfo` and the client can read it; no door lets a client write it. The `personal`
+template [exposes](#claims-id-published-in) it in the ID token, in `/userinfo` and in `claims_supported`, and
+`enabled: true` is the claim's own key, because the template carries none.
 
 ### An application claim
 
@@ -297,8 +317,8 @@ claims:
     type: string
 ```
 
-Any client holding `users:claims:read` can read it, and any client holding `users:claims:write` can write
-it, without end-user consent. The person is never asked to type it, and the template names no place, so the
+The template's doors let any client holding `users:claims:read` read it, and any client holding
+`users:claims:write` write it, without end-user consent. The person is never asked to type it, and the template names no place, so the
 value leaves this server through the [Client API](/technical/api/client) alone until `published-in` says
 otherwise.
 
@@ -319,17 +339,15 @@ claims:
       - premium
       - enterprise
     acl:
-      consent-scope: account
-      readable-by-client-when-consented: true
-      readable-with-client-scopes-unconditionally: []
+      readable-by-client: SCOPE_IS_CONSENTED("account")
 ```
 
 The end-user must consent to the `account` scope — which must be defined as a
-[custom consentable scope](/functional/scope#custom-scopes) — before a client is told the value. Emptying
-`readable-with-client-scopes-unconditionally` is what closes the other path: either path is sufficient, so
-leaving the template's `users:claims:read` in place would answer a client holding it whatever the end-user
-consented to. The write stays unconditional, because the value is still the application's — and
-`collected-in-flow-when-consented` may not be set on it, so the flow never asks anybody to type it.
+[custom consentable scope](/functional/scope#custom-scopes) — before a client is told the value. The claim's
+`readable-by-client` replaces the template's, so `users:claims:read` no longer opens it; a deployment keeping
+both would write `SCOPE_IS_CONSENTED("account") || SCOPE_IS_GRANTED("users:claims:read")`. The write is still
+the template's, because the value is still the application's — and `collected-in-flow` may not be opened on
+it, so the flow never asks anybody to type it.
 
 ### A personal claim of your own
 
@@ -342,11 +360,14 @@ claims:
     template: personal
     type: string
     acl:
-      consent-scope: social
+      collected-in-flow:  SCOPE_IS_CONSENTED("social")
+      readable-by-person: SCOPE_IS_CONSENTED("social")
+      readable-by-client: SCOPE_IS_CONSENTED("social")
 ```
 
-Naming `personal` is what makes it the person's: the flow collects it, the person and the client read it
-after consenting to `social`, and no client writes it. Declaring `kind: personal` on a claim naming no
+Naming `personal` is what makes it the person's, and the three doors are what the template leaves to the
+claim: the flow collects it, the person and the client read it after consenting to `social`, and no client
+writes it. Declaring `kind: personal` on a claim naming no
 template says the same thing, and is what a deployment writes when it wants none of the template's other
 defaults.
 
@@ -364,12 +385,34 @@ claims:
       - access-token
       - introspection
     acl:
-      consent-scope: profile
-      readable-by-client-when-consented: true
+      readable-by-client: SCOPE_IS_CONSENTED("profile")
 ```
 
-The access token and the introspection response ask the client's half of the ACL, so
-`readable-by-client-when-consented` is what lets the value through — a user's access token carries no
-[client scope](/functional/scope#client-scope), so `readable-with-client-scopes-unconditionally` does not
-open either of them. What an access token costs in exchange is
+The access token and the introspection response ask `readable-by-client`, so consent to `profile` is what
+lets the value through — a user's access token carries no [client scope](/functional/scope#client-scope), so
+`SCOPE_IS_GRANTED("users:claims:read")` would open neither of them. What an access token costs in exchange is
 [the place a value travels furthest](/functional/tokens#a-claim-in-an-access-token).
+
+### A door opened on more than a scope
+
+A door's expression may ask more than one thing, and each door asks its own:
+
+```yaml
+claims:
+  phone_number:
+    template: personal
+    acl:
+      collected-in-flow:  SCOPE_IS_CONSENTED("phone")
+      readable-by-person: SCOPE_IS_CONSENTED("phone")
+      readable-by-client: SCOPE_IS_CONSENTED("phone")
+      writable-by-person: SCOPE_IS_CONSENTED("phone:write") && TOKEN_IS_BOUND() && AUTHENTICATION_IS_YOUNGER_THAN("5m")
+  tier:
+    template: application
+    acl:
+      readable-by-client: SCOPE_IS_GRANTED("users:claims:read") || CLIENT("client_id") = "billing"
+```
+
+`phone_number` is read under `phone` and written only under `phone:write` — a
+[custom consentable scope](/functional/scope#custom-scopes) — through a token bound with
+[DPoP](/functional/tokens#sender-constrained-tokens-dpop), behind an authentication no older than five
+minutes. `tier` is read by a client holding `users:claims:read`, and by the `billing` client whatever it holds.
