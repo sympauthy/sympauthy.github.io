@@ -95,14 +95,13 @@ rules:
         - CLIENT("client_id") = "discord-bot" && CLAIM_IS_VERIFIED("discord_id")
 ```
 
-A claim a client reads by its own scope or by the end-user's consent, and that the end-user writes only
-through a bound token behind a recent authentication:
+A claim a client is told by its own scope, or by the end-user's consent through a bound token behind a recent
+authentication:
 
 ```yaml
 claims:
   phone_number:
     template: personal
     acl:
-      readable-by-client: SCOPE_IS_CONSENTED("phone") || SCOPE_IS_GRANTED("users:claims:read")
-      writable-by-person: SCOPE_IS_CONSENTED("phone:write") && TOKEN_IS_BOUND() && AUTHENTICATION_IS_YOUNGER_THAN("5m")
+      readable-by-client: (SCOPE_IS_CONSENTED("phone") && TOKEN_IS_BOUND() && AUTHENTICATION_IS_YOUNGER_THAN("1h")) || SCOPE_IS_GRANTED("users:claims:read")
 ```

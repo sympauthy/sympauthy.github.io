@@ -146,7 +146,7 @@ direction, [claim access control](/functional/claim_access) is the whole of it.
 
 | Key                        | Type       | Description                                                                                                                                                                                                                                                                                                                                                                                                             | Required<br>Default    |
 |----------------------------|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|
-| ```collected-in-flow```    | expression | The [interactive flow](/functional/interactive_flow#collecting-additional-information-optional) asks the end-user to fill this claim in, and shows the stored value back through the same door. It offers `SCOPE_IS_CONSENTED` and `CLIENT` only — the flow has no token behind it, and grants its scopes after collecting. Refused on an `application` claim, and it does not apply to an [identifier claim](/functional/claims#identifier-claims), which sign-up collects in any case. | **NO**<br>*(shut)*     |
+| ```collected-in-flow```    | expression | The [interactive flow](/functional/interactive_flow#collecting-additional-information-optional) asks the end-user to fill this claim in, and shows the stored value back through the same door. It offers `SCOPE_IS_CONSENTED` and `CLIENT` only — the flow has no token behind it, and grants its scopes after collecting. Refused on an `application` claim, and accepted but ignored on an [identifier claim](/functional/claims#identifier-claims), which sign-up collects in any case. | **NO**<br>*(shut)*     |
 | ```readable-by-client```   | expression | A client may read this claim: in the ID token, the access token, the introspection response and the [Client API](/technical/api/client).                                                                                                                                                                                                                                                                              | **NO**<br>*(shut)*     |
 | ```readable-by-person```   | expression | The end-user's own access token may read this claim, through `/api/openid/userinfo`.                                                                                                                                                                                                                                                                                                                                    | **NO**<br>*(shut)*     |
 | ```writable-by-client```   | expression | A client may write this claim through the [Client API](/technical/api/client). Refused on a `personal` claim naming no `audience`.                                                                                                                                                                                                                                                                                       | **NO**<br>*(shut)*     |
@@ -155,6 +155,15 @@ direction, [claim access control](/functional/claim_access) is the whole of it.
 The doors a token comes through — every door but `collected-in-flow` — evaluate that token, so they offer
 every function a claim's ACL may call; which ones those are, and what each answers, is
 [functions](/technical/expressions/functions).
+
+Each place evaluates a door against its own token and client:
+
+| Place                                  | Token the door is evaluated against                           | Client `CLIENT` answers for                      |
+|----------------------------------------|---------------------------------------------------------------|--------------------------------------------------|
+| ID token, access token                 | the authorization they are issued for                         | the client they are issued to                    |
+| Introspection response                 | the token being introspected                                  | the client it was issued to, not the one asking  |
+| `/api/openid/userinfo`                 | the end-user's access token presented                         | the client it was issued to                      |
+| [Client API](/technical/api/client)    | the calling client's own `client_credentials` token, with the consent the end-user recorded for its audience | the calling client |
 
 ::: info
 A claim's key overrides its [template](#templates-claims-id)'s door by door, and a door the claim writes
@@ -252,8 +261,8 @@ claims:
       readable-by-client: SCOPE_IS_CONSENTED("profile")
 ```
 
-Neither names `enabled`: every claim the OpenID Connect specification defines carries `enabled: "false"` of
-its own, so a deployment turns them on one claim at a time, and a claim of your own on `personal` is enabled
+Neither template names `enabled`: every claim the OpenID Connect specification defines carries `enabled: "false"` of
+its own — quoted in the shipped file, though a bare `false` reads the same — so a deployment turns them on one claim at a time, and a claim of your own on `personal` is enabled
 rather than inheriting a flag it never asked for.
 
 ## Startup refusals
@@ -280,7 +289,7 @@ production.
 
 A name that does not resolve is refused the same way: an `audience` no `audiences` entry declares, a
 `SCOPE_IS_CONSENTED` scope that is not an enabled consentable scope, a `SCOPE_IS_GRANTED` scope that is not
-an enabled grantable or client scope — a consentable one included, since no rule grants it — or a `type` that
+an enabled grantable or client scope — so a consentable scope written there is refused, since no rule grants it — or a `type` that
 is not one of [the types](#claims-id-type). Each refusal names the key the expression was written under.
 
 ## Examples
@@ -321,9 +330,11 @@ claims:
 ```
 
 The template's doors let any client holding `users:claims:read` read it, and any client holding
-`users:claims:write` write it, without end-user consent. The person is never asked to type it, and the template names no place, so the
-value leaves this server through the [Client API](/technical/api/client) alone until `published-in` says
-otherwise.
+`users:claims:write` write it, without end-user consent. The person is never asked to type it, and the template
+names no place, so the value leaves this server through the [Client API](/technical/api/client) alone. Naming a
+place in `published-in` is not enough to change that: the template's doors ask for a client scope, which an
+end-user's token never holds, so a token carries the claim only once a door opens for it as well — as the next
+example does with consent.
 
 ### Consent-gating an application claim
 
@@ -382,18 +393,21 @@ or introspecting on every request:
 ```yaml
 claims:
   employee_number:
-    template: personal
+    template: application
     type: string
     published-in:
       - access-token
       - introspection
     acl:
-      readable-by-client: SCOPE_IS_CONSENTED("profile")
+      readable-by-client: SCOPE_IS_CONSENTED("profile") || SCOPE_IS_GRANTED("users:claims:read")
 ```
 
-The access token and the introspection response ask `readable-by-client`, so consent to `profile` is what
-lets the value through — a user's access token carries no [client scope](/functional/scope#client-scope), so
-`SCOPE_IS_GRANTED("users:claims:read")` would open neither of them. What an access token costs in exchange is
+A backend writes the value through the [Client API](/technical/api/client), under the template's
+`writable-by-client`. The access token and the introspection response ask `readable-by-client`, so consent to
+`profile` is what lets the value through — a user's access token carries no
+[client scope](/functional/scope#client-scope), so `SCOPE_IS_GRANTED("users:claims:read")` opens neither of them
+and is there for the backend reading it back. A claim's `published-in` replaces its template's list rather than
+adding to it. What an access token costs in exchange is
 [the place a value travels furthest](/functional/tokens#a-claim-in-an-access-token).
 
 ### A door opened on more than a scope
@@ -407,8 +421,7 @@ claims:
     acl:
       collected-in-flow:  SCOPE_IS_CONSENTED("phone")
       readable-by-person: SCOPE_IS_CONSENTED("phone")
-      readable-by-client: SCOPE_IS_CONSENTED("phone")
-      writable-by-person: SCOPE_IS_CONSENTED("phone:write") && TOKEN_IS_BOUND() && AUTHENTICATION_IS_YOUNGER_THAN("5m")
+      readable-by-client: SCOPE_IS_CONSENTED("phone") && TOKEN_IS_BOUND() && AUTHENTICATION_IS_YOUNGER_THAN("1h")
   tier:
     template: application
     type: string
@@ -417,9 +430,9 @@ claims:
       readable-by-client: SCOPE_IS_GRANTED("users:claims:read") || CLIENT("client_id") = "billing"
 ```
 
-`phone_number` is read under `phone` and written only under `phone:write` — a
-[custom consentable scope](/functional/scope#custom-scopes) — through a token bound with
-[DPoP](/functional/tokens#sender-constrained-tokens-dpop), behind an authentication no older than five
-minutes. `tier` is read by a client holding `users:claims:read`, and by the `billing` client whatever it holds. In
+`phone_number` is collected and shown to the end-user under `phone`, and told to a client only through a token
+bound with [DPoP](/functional/tokens#sender-constrained-tokens-dpop), behind an authentication no older than an
+hour: it is in the ID token the code exchange mints, absent from one a refresh mints later, and never answered
+through the Client API, whose token no end-user authenticated behind. `tier` is read by a client holding `users:claims:read`, and by the `billing` client whatever it holds. In
 the ID token issued to `billing`, the second term is the one that opens the door: an end-user's token holds no client
 scope.

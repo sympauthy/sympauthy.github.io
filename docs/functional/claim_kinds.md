@@ -19,7 +19,7 @@ A claim's **kind** is `personal` — the person's — or `application` — an ap
 | Whose the value is         | the person's                                                                                               | an application's, attached to the person                          |
 | Examples                   | `name`, `email`, `birthdate`                                                                               | a credit score, a subscription tier, a flag a backend computes    |
 | Who writes it              | the person, in the [interactive flow](/functional/interactive_flow) — and, [once that endpoint ships](/functional/claim_access#end-user-access), through their own access token | a client, through the claim's `writable-by-client` [door](/functional/claim_access#doors) |
-| A client write             | only where the claim names an [audience](/functional/audience)                                             | wherever the deployment put the claim                             |
+| A client write             | only where the claim names an [audience](/functional/audience)                                             | whether the claim is restricted to an audience or shared          |
 | The person typing it       | what the flow asks them for                                                                                | never — a backend answers for the value                           |
 
 **Reading is the same question for both.** The kind decides who may *write* a value; who may be told one is
@@ -36,8 +36,8 @@ the way nothing an application computes is.
 A client of one audience writing a personal claim shared across audiences would be choosing what every
 other audience is told a person is called, over the person's head. So **a client writes a personal claim
 only where it is restricted to one [audience](/functional/audience)** — the value then leaves this server to
-that audience alone — and a shared personal claim whose `writable-by-client` is opened by anything but the
-literal `"false"` is refused at startup.
+that audience alone. On a shared personal claim, the only value `writable-by-client` accepts is the literal
+`"false"`: anything else is refused at startup.
 
 An [identifier claim](/functional/claims#identifier-claims) is always a personal claim, because it is what
 the account signs in with and nobody but the person ever types it. Declaring one an application's is
@@ -47,16 +47,17 @@ refused at startup, and no client writes one whatever its scopes.
 
 An **application claim** is an application's, attached to the person: a credit score, a subscription tier,
 a flag a backend computes. The person never types it, because a backend answers for the value, and
-**no flow asks for one and no access token of the person's writes one**: an application claim opening
-`collected-in-flow` or `writable-by-person` by anything but the literal `"false"` is refused at startup.
+**no flow asks for one and no access token of the person's writes one**: on an application claim, the only
+value `collected-in-flow` and `writable-by-person` accept is the literal `"false"`, and anything else is refused
+at startup.
 
 Its read doors may still ask for consent to a scope, where the person has to agree before a client is told
 their score: consent gates disclosure and says nothing about whose the value is.
 
 A client reads and writes an application claim through whatever its `readable-by-client` and
-`writable-by-client` doors ask — on the shipped template, the [client scopes](/functional/scope#client-scope)
-`users:claims:read` and `users:claims:write` — whether the deployment restricted the claim to an audience or left it shared — the value is
-the application's, and the deployment chose which applications have it.
+`writable-by-client` doors ask; on the shipped template, those are the [client scopes](/functional/scope#client-scope)
+`users:claims:read` and `users:claims:write`. A client may write it whether the claim is restricted to an audience
+or shared: the value is the application's, and the deployment chose which applications have it.
 
 ### A generated claim
 
@@ -71,7 +72,8 @@ A claim's **origin** says whose its *name* is — the OpenID Connect specificati
 from whose the value is.
 
 The two are independent. A claim of your own can be the person's, and a standard-named one can be an
-application's once the deployment strips its scope — so the name's provenance never said who may write the
+application's once the deployment declares it `kind: application` and opens its doors to a client scope instead
+of to consent — so the name's provenance never said who may write the
 value. The [Admin API](/technical/api/admin) publishes `kind` beside `origin` for exactly that reason.
 
 ## Declaring a claim's kind
@@ -87,5 +89,6 @@ A claim says whose its value is in one of two ways, and **a claim saying it nowh
 There is no template a claim falls back to, and nothing the server could pick for a claim that names none:
 any value it chose would be a guess about whether a person is asked to type the claim.
 
-Each refusal of the kind is made on the resolved ACL, so a door a template opens is refused on the claim
-taking it, under the claim's own key — and `"false"` there is what shuts it.
+Each refusal of the kind is made on the ACL as the claim resolves it, its template included, so a door a template
+opens is refused on every claim taking it. The refusal names the claim, not the template, and writing `"false"`
+under the claim's own `acl.<door>` key is what shuts the inherited door.

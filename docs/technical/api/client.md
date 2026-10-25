@@ -437,9 +437,9 @@ read based on each claim's [ACL](/technical/configuration/claim#claims-id-acl).
 
 - Claims scoped to a different [audience](/functional/audience) than the requesting client are filtered out. Only
   claims that are unscoped or scoped to the client's audience are returned.
-- A claim on the shipped `personal` [template](/technical/configuration/claim#templates-claims-id) requires the
-  end-user's consent to its scope; one on the `application` template is returned to any client holding
-  `users:claims:read`, whatever the end-user consented to. Both are customizable through
+- Each shipped OpenID Connect claim requires the end-user's consent to the scope the specification puts it in; a
+  claim on the shipped `application` [template](/technical/configuration/claim#templates-claims-id) is returned to
+  any client holding `users:claims:read`, whatever the end-user consented to. Both are customizable through
   [ACL configuration](/technical/configuration/claim#claims-id-acl).
 
 **Use Cases**:
@@ -505,7 +505,7 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
 | Error code | Description |
 |------------|-------------|
 | `client.identifier_claim` | The claim `{claim}` is what an end-user signs in with, and no scope allows a client to change it. |
-| `client.invalid_claim` | The claim `{claim}` cannot be modified by the client. Either the claim does not exist, the claim is disabled on this deployment, or the client does not hold the required scopes. |
+| `client.invalid_claim` | The claim `{claim}` cannot be modified by the client: it is not configured, not enabled, restricted to another [audience](/functional/audience), or its `writable-by-client` door is shut to the client. |
 | `flow.claims.invalid` | One or more values are refused by the claim's [`type`](/technical/configuration/claim#claims-id-type) or [`allowed-values`](/technical/configuration/claim#claims-id). `properties` holds an entry per refused claim, under its identifier. |
 | `not_found` | The resource you are looking for is not available on this authorization server. |
 
@@ -518,15 +518,16 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
 **Important Notes**:
 
 - Only claims whose [ACL](/technical/configuration/claim#claims-id-acl) grants write access to the client can be
-  modified. An [application claim](/functional/claim_kinds#an-application-claim) — a value a backend answers for — is
-  writable by a client holding `users:claims:write`. A [personal claim](/functional/claim_kinds#a-personal-claim) is
+  modified. An [application claim](/functional/claim_kinds#an-application-claim) — a value a backend answers for — on the
+  shipped `application` template is writable by a client holding `users:claims:write`. A [personal claim](/functional/claim_kinds#a-personal-claim) is
   writable only where it is restricted to this client's own [audience](/functional/audience): a shared one grants no
   client write at all, and a deployment configuring one is refused at startup.
 - An [identifier claim](/functional/claims#identifier-claims) is refused to every client, whatever its scopes, with
   `client.identifier_claim`.
 - A claim the deployment has [disabled](/technical/configuration/claim#claims-id) is refused like one that does not
   exist.
-- Attempting to modify a claim the client is not authorized to write will result in an error.
+- Attempting to modify a claim the client is not authorized to write will result in an error, and the request is
+  refused as a whole: no claim in the body is written.
 - Claims can be set to `null` to remove them.
 - **A write that changes a claim's value clears its verification.** The
   [`verified-id`](/technical/configuration/claim#claims-id) companion — `email_verified` for `email`, for instance —
@@ -798,9 +799,10 @@ invitation token is returned only in this response — it cannot be retrieved la
   in the future is refused too. Defaults to `now + default-expiration`. Capped at `now + max-expiration`. See
   [advanced configuration](/technical/configuration/advanced#advanced-invitation) for these values.
 - `claims` (optional): Custom [claim](/functional/claims) values to pre-set on the user's account upon
-  registration. Only custom claims are accepted — OpenID Connect claims must come from the user. The client must
-  have unconditional write access to each claim via the claim's
-  [ACL](/technical/configuration/claim#claims-id-acl).
+  registration. Only custom claims are accepted — OpenID Connect claims must come from the user. Each claim's
+  [`writable-by-client`](/technical/configuration/claim#claims-id-acl) door must open with no consent behind it:
+  the account does not exist yet, so nobody has consented to anything, and a door opened only by
+  `SCOPE_IS_CONSENTED` refuses the claim.
 - `note` (optional): Note attached to the invitation.
 
 **Response Format**:
@@ -836,7 +838,7 @@ invitation token is returned only in this response — it cannot be retrieved la
 
 | Error code | Description |
 |------------|-------------|
-| `invitation.claim_not_writable` | The claim `{claim}` cannot be pre-assigned by this client. The client does not hold the required scopes. |
+| `invitation.claim_not_writable` | The claim `{claim}` cannot be pre-assigned by this client: its `writable-by-client` door is shut to the client with no consent behind it. |
 | `invitation.claim_of_another_audience` | The claim `{claim}` is restricted to another audience than `{audience}`. |
 | `invitation.expires_at.malformed` | The `expires_at` property expects a date and time in ISO-8601 with no zone and was sent `{value}`. |
 | `invitation.expires_at.past` | The `expires_at` property names `{expiresAt}`, which is not in the future. |

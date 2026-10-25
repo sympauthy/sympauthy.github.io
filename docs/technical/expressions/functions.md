@@ -12,7 +12,7 @@ the token a claim is read or written through.
 | [```CLAIM_IS_VERIFIED```](#claim-is-verified)                          | boolean | Whether one of the end-user's claims was collected and verified.            |
 | [```CLIENT```](#client)                                                | varies  | A property of the client.                                                   |
 | [```SCOPE_IS_CONSENTED```](#scope-is-consented)                        | boolean | Whether the end-user consented to a scope.                                  |
-| [```SCOPE_IS_GRANTED```](#scope-is-granted)                            | boolean | Whether a rule granted a scope to the token.                                |
+| [```SCOPE_IS_GRANTED```](#scope-is-granted)                            | boolean | Whether the server granted a scope to the token.                            |
 | [```TOKEN_IS_BOUND```](#token-is-bound)                                | boolean | Whether the token is bound to a key with DPoP.                              |
 
 Each rule type and each [door](/functional/claim_access#doors) of a claim's ACL is evaluated in its own
@@ -38,11 +38,12 @@ AUTHENTICATION_IS_YOUNGER_THAN("<duration>")
 Returns a **boolean**: `true` when the end-user's [authentication](/functional/tokens#when-the-user-authenticated)
 behind the token is no older than the duration, and `false` behind a `client_credentials` token, which has no
 end-user. The duration is written the way every duration key of the configuration is — `5m`, `1h`, `PT5M` —
-and must be greater than zero.
+and must be greater than zero. On the [Client API](/technical/api/client) the token is the calling client's own,
+which no end-user authenticated behind, so a door requiring this is shut there.
 
 ```yaml
 acl:
-  writable-by-person: SCOPE_IS_CONSENTED("profile:write") && AUTHENTICATION_IS_YOUNGER_THAN("5m")
+  readable-by-client: SCOPE_IS_CONSENTED("profile") && AUTHENTICATION_IS_YOUNGER_THAN("1h")
 ```
 
 | Available in             | Evaluated against                              |
@@ -69,10 +70,12 @@ expressions:
   - CLAIM("email") = "admin@example.com"
 ```
 
-| Available in       | Evaluated against       |
-|--------------------|-------------------------|
-| ```rules.user```   | the authenticating user |
-| ```rules.act_as``` | the target user         |
+| Available in       | Evaluated against                                                         |
+|--------------------|---------------------------------------------------------------------------|
+| ```rules.user```   | the authenticating user's claims of the audience the authorization is for |
+| ```rules.act_as``` | the target user's claims of the audience the token exchange names         |
+
+A claim restricted to another [audience](/functional/audience) answers as if it was never collected.
 
 ## ```CLAIM_IS_VERIFIED```
 
@@ -88,10 +91,12 @@ expressions:
   - CLAIM_IS_VERIFIED("email")
 ```
 
-| Available in       | Evaluated against       |
-|--------------------|-------------------------|
-| ```rules.user```   | the authenticating user |
-| ```rules.act_as``` | the target user         |
+| Available in       | Evaluated against                                                         |
+|--------------------|---------------------------------------------------------------------------|
+| ```rules.user```   | the authenticating user's claims of the audience the authorization is for |
+| ```rules.act_as``` | the target user's claims of the audience the token exchange names         |
+
+A claim restricted to another [audience](/functional/audience) answers as if it was never collected.
 
 ## ```CLIENT```
 
@@ -153,10 +158,13 @@ acl:
 SCOPE_IS_GRANTED("<scope>")
 ```
 
-Returns a **boolean**: `true` when a rule granted that scope to the token — the client's own
+Returns a **boolean**: `true` when the server granted that scope to the token — the client's own
 [client scope](/functional/scope#client-scope) on a `client_credentials` token, a
-[grantable scope](/functional/scope#grantable-scope) on an end-user's. It never answers for a scope the
-end-user consented to, so a door opened on it is opened to what the deployment decided, never to what a
+[grantable scope](/functional/scope#grantable-scope) on an end-user's, whether a
+[scope granting rule](/functional/user_authorization#scope-granting-rules), the
+[authorization webhook](/technical/authorization_webhook) or
+[`grant-unhandled-scopes`](/technical/configuration/authorization#features) granted it. It never answers for a scope
+the end-user consented to, so a door opened on it is opened to what the deployment decided, never to what a
 client asked for. `SCOPE_IS_GRANTED("users:claims:read")` is `false` on an end-user's token, which carries no
 client scope.
 
@@ -165,12 +173,12 @@ acl:
   readable-by-client: SCOPE_IS_GRANTED("users:claims:read")
 ```
 
-| Available in             | Evaluated against                   |
-|--------------------------|-------------------------------------|
-| ```readable-by-person``` | the scopes a rule granted the token |
-| ```writable-by-person``` | the scopes a rule granted the token |
-| ```readable-by-client``` | the scopes a rule granted the token |
-| ```writable-by-client``` | the scopes a rule granted the token |
+| Available in             | Evaluated against                |
+|--------------------------|----------------------------------|
+| ```readable-by-person``` | the scopes granted to the token  |
+| ```writable-by-person``` | the scopes granted to the token  |
+| ```readable-by-client``` | the scopes granted to the token  |
+| ```writable-by-client``` | the scopes granted to the token  |
 
 ## ```TOKEN_IS_BOUND```
 
@@ -179,11 +187,12 @@ TOKEN_IS_BOUND()
 ```
 
 Returns a **boolean**: `true` when the token is bound to a key with
-[DPoP](/functional/tokens#sender-constrained-tokens-dpop), `false` for a bearer token.
+[DPoP](/functional/tokens#sender-constrained-tokens-dpop), `false` for a bearer token. On the
+[Client API](/technical/api/client), it asks about the calling client's own token.
 
 ```yaml
 acl:
-  writable-by-person: SCOPE_IS_CONSENTED("profile:write") && TOKEN_IS_BOUND()
+  readable-by-client: SCOPE_IS_CONSENTED("profile") && TOKEN_IS_BOUND()
 ```
 
 | Available in             | Evaluated against |
