@@ -14,6 +14,10 @@ paths:
   set that is closed — the removed keys of a migration, the conditions of one example — is fine.
 - A term a newcomer to SympAuthy would not understand — one this project coined, like a claim ACL's *door* — links to
   its definition on the [functional page that owns it](functional.md) on its first use on every other page.
+- A change that only breaks a nightly is not documented as a change. While SympAuthy ships nightly builds only, a
+  renamed or removed key, a changed default or a changed behaviour gets no "Upgrading an existing deployment"
+  warning, no before/after table and no note that a file still writing the old key is refused: the page states
+  what is true now, and the rename goes in the PR description.
 - A new section is no longer than the sections around it on the same page. Material with no natural home — log
   lines an operator must act on, with no operations page — is compressed into a small table rather than quoted as
   prose blocks.
