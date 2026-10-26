@@ -22,17 +22,6 @@ Every lifetime the server configures, here and on other pages, is gathered in [o
 |------------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
 | ```expiration``` | duration | How long an authorization code can be exchanged for tokens, counted from when it is handed to the client. It does not depend on the interactive flow that issued the code, whose time is [`auth.interactive-flow.expiration`](#auth-interactive-flow). Must be greater than zero. | YES<br>```1m```     |
 
-::: warning Upgrading an existing deployment
-`auth.authorization-code.expiration` used to hold the time a person has to get through a flow. A value written for
-that still binds, now as the code's lifetime, so move it to `auth.interactive-flow.expiration`.
-
-| Before                                                 | After                                                     |
-|--------------------------------------------------------|-----------------------------------------------------------|
-| `auth.authorization-code.expiration` (the flow's time) | `auth.interactive-flow.expiration`                        |
-| *(what was left of the flow's time)*                   | `auth.authorization-code.expiration` (the code's lifetime) |
-| `auth.token.grant-expiration`                          | `auth.grant.expiration`                                   |
-:::
-
 ### ```auth.by-password```
 
 | Key           | Type    | Description                           | Required<br>Default |

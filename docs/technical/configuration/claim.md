@@ -166,23 +166,6 @@ end-user write their own claim is [sympauthy#482](https://github.com/sympauthy/s
 not exist. A deployment may open the door now, and it lets nothing through until that endpoint ships.
 :::
 
-::: warning Upgrading an existing deployment
-The ACL used to be a set of flags, a `consent-scope` and two lists of client scopes. None of those keys is
-bound any more, so a file still writing one is refused at startup until it is rewritten. The shipped claims
-and templates are rewritten already, and answer every place exactly as before.
-
-| Before                                                                     | After                                                                                                 |
-|----------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
-| `consent-scope: <scope>` with a `*-when-consented: true` flag              | `SCOPE_IS_CONSENTED("<scope>")` on that flag's door                                                   |
-| a `*-when-consented: true` flag on a claim naming no `consent-scope`       | `"true"` on that door                                                                                 |
-| `readable-with-client-scopes-unconditionally: [a, b]`                      | `SCOPE_IS_GRANTED("a") \|\| SCOPE_IS_GRANTED("b")` on `readable-by-client`, joined by `\|\|` to any consent term |
-| `writable-with-client-scopes-unconditionally: [a]`                         | the same on `writable-by-client`                                                                      |
-| `write-max-authentication-age: 5m`                                         | `&& AUTHENTICATION_IS_YOUNGER_THAN("5m")` on `writable-by-person`                                     |
-
-The doors map one to one: `collected-in-flow-when-consented` becomes `collected-in-flow`,
-`readable-by-person-when-consented` becomes `readable-by-person`, and so on for the other three.
-:::
-
 ## ```templates.claims.<id>```
 
 Claim templates provide default field values that are inherited by claims. Templates help avoid
@@ -269,7 +252,6 @@ production.
 | an `acl` expression that does not parse, answers anything but a boolean, or calls a function its door does not offer                           | an expression of [the door's functions](/technical/expressions/functions)     |
 | a scope or a duration given to an `acl` function as anything but a string literal                                                              | the scope or the duration written as a literal — `SCOPE_IS_CONSENTED("profile")`               |
 | an `AUTHENTICATION_IS_YOUNGER_THAN` duration that does not read, or of zero or less                                                            | a duration greater than zero, written the way every duration key is — `5m`, `1h`, `PT5M`       |
-| a key `acl` no longer has — `consent-scope`, a `*-when-consented` flag, a `*-unconditionally` list or `write-max-authentication-age`           | its door, as [the upgrade table](#claims-id-acl) rewrites it                                   |
 | a claim naming `discovery` in `published-in` and no place that carries its value                                                               | a value-carrying place beside `discovery`, or `discovery` removed                              |
 | a `published-in-when-requested` naming `access-token`, `introspection` or `discovery`, on a claim or a template                                | `id-token` or `userinfo`, or the place removed — no request can name the others               |
 | a place named in both `published-in` and `published-in-when-requested`                                                                          | the place removed from one of the two                                                          |
