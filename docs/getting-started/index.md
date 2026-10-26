@@ -154,7 +154,7 @@ XX:XX:XX.XXX [main] INFO  c.s.ApplicationReadinessStatusPrinter - - X templates 
 ```
 
 If the banner reports errors instead, the server has started but declares itself **unready**, and it
-names every key it could not accept — including
+names every key it could not accept, a misspelt one included — see
 [a key that binds to nothing](/technical/configuration/#a-key-that-binds-to-nothing).
 
 The server should be available on port ```8080```. You can verify the server is up and running by accessing to the API

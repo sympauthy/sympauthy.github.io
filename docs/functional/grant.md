@@ -1,11 +1,16 @@
 # Grant
 
 A **grant** is the record of what a client was allowed. Every token SympAuthy issues — access, refresh and ID alike —
-is issued under a grant, and a token is in service only while its grant is.
+is issued under a grant, and a token is in service only while its grant is. The grant is what makes signing an
+end-user out a single act: however often a client refreshed its tokens, everything it holds for one authorization
+stands under the one grant, so taking that grant out of service takes every one of those tokens with it, at the same
+instant. This page covers:
 
-The grant is what makes signing an end-user out a single act. However often a client refreshed its tokens, everything
-it holds for one authorization stands under the one grant, so taking that grant out of service takes every one of those
-tokens with it, at the same instant.
+- what a grant records, and when one is opened;
+- how long a grant lives, and what takes it out of service;
+- how a grant follows its client and, for a delegation, the actor's grant;
+- the places a grant is used from;
+- what a grant is not.
 
 ## What a grant records
 
@@ -20,8 +25,8 @@ A grant holds what every token under it has in common:
   person is behind, and from a token exchange, which asserts an identity nobody proved.
 - The **[claims the authorization asked for](/functional/claims#asking-for-a-claim-in-the-request)** by name, so a
   token minted months later honours the same request the first one did.
-- The **[places the end-user was seen at](/technical/configuration/security-context#what-is-kept)** under it — absent
-  from a grant no person is behind.
+- The **[places](#the-places-a-grant-is-used-from)** it was used from — absent from a `client_credentials` grant and
+  from a token exchange, as `auth_time` is.
 
 A token keeps only what is its own: its type, its expiry, and the
 [DPoP](/functional/tokens#sender-constrained-tokens-dpop) key it is bound to.
@@ -84,6 +89,21 @@ hand expires.
 A grant opened by a [token exchange](/functional/delegation) records the grant of the token the acting client
 presented — its own `client_credentials` grant. The delegation never outlives it: revoking that token takes every
 delegated token obtained from it out of service, and so does letting its grant expire.
+
+## The places a grant is used from
+
+A **place** is where a grant was used from: the address a request came from and the user agent it named — the
+`User-Agent` header a browser or an application sends — with the location the deployment's edge gave for that
+address. The same address and user agent seen again under the grant is the same place, even where the location
+differs.
+
+A grant opens with the place the end-user proved who they were at, and only a
+[public client](/functional/client#confidential-and-public-clients)'s successful code exchanges and refreshes add to
+it: a confidential client's come from its own backend. A `client_credentials` grant and a token exchange have none.
+An end-user's places are those of the grants they hold, so signing out and back in from the same device opens a new
+grant with a new place. No API serves them, no client is shown them, and no request is refused because of them —
+how they are read and how long they are kept is on the [Security Context](/technical/configuration/security-context#what-is-kept)
+page.
 
 ## What a grant is not
 

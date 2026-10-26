@@ -106,7 +106,7 @@ A place named here carries the claim's value **only for an authorization whose
 [`claims` request parameter](/functional/claims#asking-for-a-claim-in-the-request) asked for the claim in
 that place**. It is the deployment opening a door rather than the client forcing one: a request can add a
 claim to a place this list names and to no other, so a deployment that names nothing here answers every
-request exactly as before.
+request as if it had asked for nothing.
 
 | Value       | Exposes the claim in                       |
 |-------------|--------------------------------------------|
