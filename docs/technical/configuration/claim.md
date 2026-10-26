@@ -96,7 +96,7 @@ another [audience](/functional/audience) is left out of every place.
 `claims_supported` lists exactly the claims naming `discovery`, whichever half of the specification the
 name comes from — so a deployment may serve a claim it does not advertise, and advertise a claim of its
 own. The other direction is refused: a claim naming `discovery` and no place that carries the value would
-advertise a name no client could obtain a value for, and the server refuses to start on it. A place named
+advertise a name no client could obtain a value for, and the server starts unready on it. A place named
 in [`published-in-when-requested`](#claims-id-published-in-when-requested) counts as a carrier here — a
 client can reach it — so advertising such a claim is allowed.
 
@@ -106,7 +106,7 @@ A place named here carries the claim's value **only for an authorization whose
 [`claims` request parameter](/functional/claims#asking-for-a-claim-in-the-request) asked for the claim in
 that place**. It is the deployment opening a door rather than the client forcing one: a request can add a
 claim to a place this list names and to no other, so a deployment that names nothing here answers every
-request exactly as before.
+request as if it had asked for nothing.
 
 | Value       | Exposes the claim in                       |
 |-------------|--------------------------------------------|
@@ -116,7 +116,7 @@ request exactly as before.
 Those two are the whole of it — they are the places [OpenID Connect Core
 section 5.5](https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter) defines a member for.
 Naming `access-token`, `introspection` or `discovery` here states a condition no request could ever
-satisfy, and **the server refuses to start on it**. Naming the same place in both `published-in` and
+satisfy, and **the server starts unready on it**. Naming the same place in both `published-in` and
 `published-in-when-requested` is refused at startup too, naming the claim and the place: always and
 on request are two answers for one place, and only one of them can be meant.
 
@@ -164,23 +164,6 @@ Each place evaluates a door against its own token and client:
 `writable-by-person` is parsed and validated today, and nothing reads it: the endpoint that would let an
 end-user write their own claim is [sympauthy#482](https://github.com/sympauthy/sympauthy/issues/482) and does
 not exist. A deployment may open the door now, and it lets nothing through until that endpoint ships.
-:::
-
-::: warning Upgrading an existing deployment
-The ACL used to be a set of flags, a `consent-scope` and two lists of client scopes. None of those keys is
-bound any more, so a file still writing one is refused at startup until it is rewritten. The shipped claims
-and templates are rewritten already, and answer every place exactly as before.
-
-| Before                                                                     | After                                                                                                 |
-|----------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
-| `consent-scope: <scope>` with a `*-when-consented: true` flag              | `SCOPE_IS_CONSENTED("<scope>")` on that flag's door                                                   |
-| a `*-when-consented: true` flag on a claim naming no `consent-scope`       | `"true"` on that door                                                                                 |
-| `readable-with-client-scopes-unconditionally: [a, b]`                      | `SCOPE_IS_GRANTED("a") \|\| SCOPE_IS_GRANTED("b")` on `readable-by-client`, joined by `\|\|` to any consent term |
-| `writable-with-client-scopes-unconditionally: [a]`                         | the same on `writable-by-client`                                                                      |
-| `write-max-authentication-age: 5m`                                         | `&& AUTHENTICATION_IS_YOUNGER_THAN("5m")` on `writable-by-person`                                     |
-
-The doors map one to one: `collected-in-flow-when-consented` becomes `collected-in-flow`,
-`readable-by-person-when-consented` becomes `readable-by-person`, and so on for the other three.
 :::
 
 ## ```templates.claims.<id>```
@@ -269,7 +252,6 @@ production.
 | an `acl` expression that does not parse, answers anything but a boolean, or calls a function its door does not offer                           | an expression of [the door's functions](/technical/expressions/functions)     |
 | a scope or a duration given to an `acl` function as anything but a string literal                                                              | the scope or the duration written as a literal — `SCOPE_IS_CONSENTED("profile")`               |
 | an `AUTHENTICATION_IS_YOUNGER_THAN` duration that does not read, or of zero or less                                                            | a duration greater than zero, written the way every duration key is — `5m`, `1h`, `PT5M`       |
-| a key `acl` no longer has — `consent-scope`, a `*-when-consented` flag, a `*-unconditionally` list or `write-max-authentication-age`           | its door, as [the upgrade table](#claims-id-acl) rewrites it                                   |
 | a claim naming `discovery` in `published-in` and no place that carries its value                                                               | a value-carrying place beside `discovery`, or `discovery` removed                              |
 | a `published-in-when-requested` naming `access-token`, `introspection` or `discovery`, on a claim or a template                                | `id-token` or `userinfo`, or the place removed — no request can name the others               |
 | a place named in both `published-in` and `published-in-when-requested`                                                                          | the place removed from one of the two                                                          |

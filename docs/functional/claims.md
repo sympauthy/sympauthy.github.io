@@ -110,7 +110,7 @@ The request **only ever adds**, and only where the deployment has opened a door.
 - A claim reaches a place on the strength of
   [`published-in-when-requested`](/technical/configuration/claim#claims-id-published-in-when-requested)
   naming it, never on the strength of the request alone. A deployment that names nothing there answers
-  every request exactly as before.
+  every request as if it had asked for nothing.
 - Only `id_token` and `userinfo` can be asked for — they are the two members section 5.5 defines.
 - The request is asked **last**: access control, the audience and publication all decide first, and a
   claim they withhold stays withheld whatever the request asks for. So the parameter cannot be used to

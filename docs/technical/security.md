@@ -6,22 +6,23 @@ CORS restriction, and default safe configurations.
 
 ## Secure defaults
 
-The `default` [Micronaut environment](configuration/environments) enables only features considered safe.
+The `default` [Micronaut environment](/technical/configuration/environments) enables only features considered safe.
 Potentially risky options — such as automatically granting unhandled scopes — are explicitly disabled unless an operator
 turns them on.
 
-Configuration keys that have security implications are documented with warnings in the [Configuration](configuration/)
+Configuration keys that have security implications are documented with warnings in the [Configuration](/technical/configuration/)
 reference.
 
 ## What the server knows about a request
 
 SympAuthy reads the address a request came from, the user agent it declares, and the location the
-deployment's edge attributes to that address, and keeps where a signed-in person is seen from as one place
-per person. By default it trusts nothing: the address is the peer of the socket the request arrived on, no
-forwarded header is read, and no location is recorded.
+deployment's edge attributes to that address, and keeps where a signed-in person is seen from as a
+[place](/functional/grant#the-places-a-grant-is-used-from) on the grant they were seen under. By default it
+trusts nothing: the address is the peer of the socket the request arrived on, no forwarded header is read, and
+no location is recorded.
 
 A header is consulted only because an operator named the proxy that sets it, under
-[`advanced.security-context`](configuration/security-context). Naming one promises the server is only
+[`advanced.security-context`](/technical/configuration/security-context). Naming one promises the server is only
 reachable through it — there is no proxy allow-list, and nothing checks that a request carrying
 `CF-Connecting-IP` came from Cloudflare. **If the origin is reachable directly while a proxy is named,
 anyone can set that header and choose what gets recorded about them.** A deployment that cannot close its
@@ -64,7 +65,7 @@ The scrypt parameters are configurable under `advanced.hash`:
 
 ## Token signing
 
-SympAuthy issues [tokens](../functional/tokens) as JSON Web Tokens (JWTs). Each token is cryptographically signed so
+SympAuthy issues [tokens](/functional/tokens) as JSON Web Tokens (JWTs). Each token is cryptographically signed so
 that its integrity can be verified by any party holding the corresponding public key.
 
 Two categories of keys are used:
@@ -91,7 +92,7 @@ allowing clients to verify tokens without a round-trip to SympAuthy.
 
 What SympAuthy issues is intentionally short-lived. If a token or a code is intercepted, it becomes useless once it
 expires. Each lifetime is configured in the section of the thing it belongs to; this table gathers them. Every one of
-them must be greater than zero: given zero or less, the server refuses to start.
+them must be greater than zero: given zero or less, the server starts unready and names the key.
 
 | Lifetime                  | What it bounds                                                                     | Default                    | Configuration key                                                                                                    |
 |---------------------------|------------------------------------------------------------------------------------|----------------------------|----------------------------------------------------------------------------------------------------------------------|
@@ -103,7 +104,7 @@ them must be greater than zero: given zero or less, the server refuses to start.
 | Grant                     | Everything issued under a [grant](/functional/grant), from when it is opened       | None                       | [`auth.grant.expiration`](/technical/configuration/authorization#auth-grant)                                         |
 | Validation code           | How long an email validation code is accepted, from when it is sent                | 10 minutes                 | [`advanced.validation-code.expiration`](/technical/configuration/advanced#advanced-validation-code)                  |
 | Invitation                | How long an [invitation](/functional/invitation) can be accepted                   | 7 days, capped at 30 days  | [`advanced.invitation.default-expiration` and `max-expiration`](/technical/configuration/advanced#advanced-invitation) |
-| Known place of sign-in    | How long a place a person signs in from is remembered, from when they were last seen there | 180 days           | [`advanced.security-context.known-user-retention`](/technical/configuration/advanced#advanced-security-context)      |
+| Known place of sign-in    | How long a place a person signs in from is remembered, from when they were last seen there; it goes earlier with its [grant](/functional/grant) | 180 days           | [`advanced.security-context.retention`](/technical/configuration/advanced#advanced-security-context)                 |
 
 The defaults above are the ones the [`default` environment](/technical/configuration/environments) sets. A deployment
 that does not activate it, or that overrides `auth.token.refresh-expiration` with no value, issues refresh tokens that
@@ -138,8 +139,8 @@ end-user in again.
 A confidential client authenticates as it does elsewhere (Client Secret Basic or Client Secret Post), and a
 [public client](/functional/client#confidential-and-public-clients) sends its `client_id` alone, as RFC 7009 section
 2.1 has it. Either way only a grant opened for the client asking is revoked. The `token_type_hint` parameter is
-accepted and **ignored**: the server reads the type off the token itself, so a hint naming the wrong type no longer
-hides it.
+accepted and **ignored**: the server reads the type off the token itself, so a hint naming the wrong type does not
+hide it.
 
 ::: warning
 A public client is authenticated by its `client_id` alone, and the endpoint reads no DPoP proof, so **whoever holds one
@@ -308,7 +309,7 @@ port) unless the server explicitly permits it via CORS headers.
 
 SympAuthy disables the global Micronaut CORS filter and replaces it with a narrower, flow-aware policy scoped to the
 Flow API (`/api/v1/flow/**`). Only requests whose `Origin` header matches an origin derived from a registered
-[flow](configuration/authorization#flows-id) are granted CORS access. All other origins receive no CORS headers and their requests are
+[flow](/technical/configuration/authorization#flows-id) are granted CORS access. All other origins receive no CORS headers and their requests are
 blocked by the browser.
 
 The allowed origins are computed at startup by extracting the `scheme://host:port` from every URI declared in each
@@ -322,7 +323,7 @@ OPTIONS preflight requests from an allowed origin are short-circuited with a `20
 filter runs, so browsers receive the necessary permission headers even for endpoints that require a token.
 
 The request headers browsers may send across all CORS tiers are configurable — see the
-[CORS configuration](configuration/cors) reference.
+[CORS configuration](/technical/configuration/cors) reference.
 
 ## CSRF protection on flow POST endpoints
 
@@ -346,7 +347,7 @@ cross-origin request without triggering a CORS preflight. Combined with the
 strict [CORS policy](#cors-restriction-on-the-flow-api) that only allows origins derived from registered flow URIs, a
 forged cross-origin POST cannot carry a valid state header and is rejected before it reaches the application.
 
-See the [Flow API](api/flow#state-management) page for a description of how to pass the state in practice.
+See the [Flow API](/technical/api/flow#state-management) page for a description of how to pass the state in practice.
 
 ## Replay protection on the interactive flow
 
@@ -366,7 +367,7 @@ since that step was issued:
    replayed), so the stale update is rejected and changes nothing.
 
 A rejected step is an unrecoverable conflict, and the end-user is redirected to the flow's
-[error URI](configuration/authorization#flows-id). Where the session is still running, it is failed. Where a sibling
+[error URI](/technical/configuration/authorization#flows-id). Where the session is still running, it is failed. Where a sibling
 request has already ended it — an authorization that completed, for instance — the session is left as that sibling
 left it and the late request is simply routed to the error page: the authorization code went to the request that
 completed the authorization and is never handed out again. Either way, a replayed or stale request can never overwrite
@@ -429,8 +430,8 @@ the API is rejected rather than automatically granted. This setting does not aff
 [consentable scopes](/functional/scope#consentable-scope), which are always granted through
 end-user consent. Enabling this setting is marked as unsafe and intended for development use only.
 
-See the [User Authorization](../functional/user_authorization)
-and [Client Authorization](../functional/client_authorization) documentation for details on scope granting rules.
+See the [User Authorization](/functional/user_authorization)
+and [Client Authorization](/functional/client_authorization) documentation for details on scope granting rules.
 
 ## Client authentication
 
@@ -486,4 +487,4 @@ When a user authenticates through a third-party provider (such as Google or Disc
 client towards that provider. The user authenticates directly on the provider's login page — their credentials are never
 shared with SympAuthy or with the client application.
 
-See [Authentication](../functional/authentication#third-party-providers) for a description of the provider flow.
+See [Authentication](/functional/authentication#third-party-providers) for a description of the provider flow.

@@ -8,30 +8,19 @@ Every lifetime the server configures, here and on other pages, is gathered in [o
 
 | Key                        | Type            | Description                                                                                                                                                                                                                                                                                                                                    | Required<br>Default      |
 |----------------------------|-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------|
-| ```issuer```               | string          | The public URL of this authorization server, embedded as the [`iss`](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.1) claim in every JWT token it issues. Clients use it to verify that a token was issued by the expected server and to discover the OpenID Connect configuration at `<issuer>/.well-known/openid-configuration`. | YES<br>```<urls.root>``` |
-| ```identifier-claims```    | array of string | List of [claim](/technical/configuration/claim) identifiers a person signs in with. A user types a single value and it is matched against every claim listed, so a value must be unique across the whole list rather than within one claim: no two accounts may hold the same value, under the same claim or under different ones. These claims are used as the login identifier for password authentication and, when [`user-merging-enabled`](#auth) is `true`, as the key for merging accounts across authentication methods. See [identifier claims](/functional/claims#identifier-claims).                                                 | NO<br>```[]```           |
-| ```user-merging-enabled``` | boolean         | When `true`, accounts that share the same value for **every** configured `identifier-claims` are automatically merged across authentication methods (password, third-party providers); a partial match merges nothing. When `false`, each authentication method creates a separate account.                                                                                          | NO<br>```false```        |
-| ```authorization-code```   | object          | Configuration for the authorization code grant flow. See [auth.authorization-code](#auth-authorization-code) for more details.                                                                                                                                                                                                                 | NO                       |
+| ```authorization-code```   | object          | Configuration of the [authorization code](/functional/interactive_flow#returning-to-the-application) a completed flow hands the client. See [auth.authorization-code](#auth-authorization-code) for more details.                                                                                                                                                                                                                 | NO                       |
 | ```grant```                | object          | Configuration of the [grants](/functional/grant) tokens are issued under. See [auth.grant](#auth-grant) for more details.                                                                                                                                                                                                                       | NO                       |
+| ```identifier-claims```    | array of string | List of [claim](/technical/configuration/claim) identifiers a person signs in with. A user types a single value and it is matched against every claim listed, so a value must be unique across the whole list rather than within one claim: no two accounts may hold the same value, under the same claim or under different ones. These claims are used as the login identifier for password authentication and, when [`user-merging-enabled`](#auth) is `true`, as the key for merging accounts across authentication methods. See [identifier claims](/functional/claims#identifier-claims).                                                 | NO<br>```[]```           |
 | ```interactive-flow```     | object          | Configuration of the [interactive flow](/functional/interactive_flow) a person goes through. See [auth.interactive-flow](#auth-interactive-flow) for more details.                                                                                                                                                                              | NO                       |
+| ```issuer```               | string          | The public URL of this authorization server, embedded as the [`iss`](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.1) claim in every JWT token it issues. Clients use it to verify that a token was issued by the expected server and to discover the OpenID Connect configuration at `<issuer>/.well-known/openid-configuration`. | YES<br>```<urls.root>``` |
 | ```token```                | object          | Configuration related to authentication tokens issued by this app. See [auth.token](#auth-token) for more details.                                                                                                                                                                                                                             | NO                       |
+| ```user-merging-enabled``` | boolean         | When `true`, accounts that share the same value for **every** configured `identifier-claims` are automatically merged across authentication methods (password, third-party providers); a partial match merges nothing. When `false`, each authentication method creates a separate account.                                                                                          | NO<br>```false```        |
 
 ### ```auth.authorization-code```
 
 | Key              | Type     | Description                                                                                                                                                              | Required<br>Default |
 |------------------|----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
 | ```expiration``` | duration | How long an authorization code can be exchanged for tokens, counted from when it is handed to the client. It does not depend on the interactive flow that issued the code, whose time is [`auth.interactive-flow.expiration`](#auth-interactive-flow). Must be greater than zero. | YES<br>```1m```     |
-
-::: warning Upgrading an existing deployment
-`auth.authorization-code.expiration` used to hold the time a person has to get through a flow. A value written for
-that still binds, now as the code's lifetime, so move it to `auth.interactive-flow.expiration`.
-
-| Before                                                 | After                                                     |
-|--------------------------------------------------------|-----------------------------------------------------------|
-| `auth.authorization-code.expiration` (the flow's time) | `auth.interactive-flow.expiration`                        |
-| *(what was left of the flow's time)*                   | `auth.authorization-code.expiration` (the code's lifetime) |
-| `auth.token.grant-expiration`                          | `auth.grant.expiration`                                   |
-:::
 
 ### ```auth.by-password```
 
@@ -79,11 +68,7 @@ authenticated with their primary method (password or third-party provider).
 | Key                | Type    | Description                                                                                                             | Required<br>Default |
 |--------------------|---------|-------------------------------------------------------------------------------------------------------------------------|---------------------|
 | ```required```     | boolean | When ```true```, every user must complete MFA before the flow can proceed. When ```false```, users may skip MFA.        | NO<br>```false```   |
-| ```totp.enabled``` | boolean | Enable TOTP (Time-based One-Time Password, [RFC 6238](https://datatracker.ietf.org/doc/html/rfc6238)) as an MFA method. | NO<br>```false```   |
-
-> When `mfa.totp.enabled` is `true`, the corresponding flow URLs (`mfa`, `mfa-totp-enroll`, `mfa-totp-challenge`) must
-> be configured in the [`flows.<id>`](#flows-id) section. SympAuthy validates this at startup and refuses to start if
-> any required URL is missing.
+| ```totp.enabled``` | boolean | Enable TOTP (Time-based One-Time Password, [RFC 6238](https://datatracker.ietf.org/doc/html/rfc6238)) as an MFA method. When `true`, the `mfa`, `mfa-totp-enroll` and `mfa-totp-challenge` URLs of [`flows.<id>`](#flows-id) must be set. | NO<br>```false```   |
 
 ## ```flows.<id>```
 
@@ -101,14 +86,11 @@ The flow may be completely customized and served by a completely different serve
 | Key                      | Type | Description                                                                                                                                                                                                       | Required<br>Default |
 |--------------------------|------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
 | ```error```              | uri  | The URL where the end-user will be redirected if an error occurs during the authentication.                                                                                                                       | YES<br>/error       |
-| ```mfa```                | uri  | The URL of the MFA router/method-selection page.                                                                                                                                                                  | NO                  |
-| ```mfa-totp-challenge``` | uri  | The URL of the TOTP challenge page.                                                                                                                                                                               | NO                  |
-| ```mfa-totp-enroll```    | uri  | The URL of the TOTP enrollment page.                                                                                                                                                                              | NO                  |
+| ```mfa```                | uri  | The URL of the MFA router/method-selection page. Required when [`mfa.totp.enabled`](#mfa) is `true`. | NO                  |
+| ```mfa-totp-challenge``` | uri  | The URL of the TOTP challenge page. Required when [`mfa.totp.enabled`](#mfa) is `true`. | NO                  |
+| ```mfa-totp-enroll```    | uri  | The URL of the TOTP enrollment page. Required when [`mfa.totp.enabled`](#mfa) is `true`. | NO                  |
 | ```sign-in```            | uri  | The URL where the end-user will be enabled to sign-in using any supported methods (password or third party providers).                                                                                            | YES<br>/sign-in     |
 | ```sign-up```            | uri  | The URL of the sign-up page. Required when [`sign-up-enabled`](/technical/configuration/audience) or [`invitation-enabled`](/technical/configuration/audience) is `true` on any [audience](/functional/audience). | NO                  |
-
-> The `mfa`, `mfa-totp-enroll`, and `mfa-totp-challenge` URLs are required when [`mfa.totp.enabled`](#mfa) is `true`.
-> SympAuthy validates this at startup and fails fast if they are missing.
 
 ## ```rules```
 
@@ -121,8 +103,8 @@ The ```expressions``` in every rule are evaluated with the same engine. See
 | Key          | Type            | Description                                                                                                                                                                                                                                                                                   | Required<br>Default |
 |--------------|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
 | ```act_as``` | array of object | [Act-as rules](/functional/delegation#act-as-rules) evaluated during [OAuth 2.0 Token Exchange (RFC 8693)](https://datatracker.ietf.org/doc/html/rfc8693) to authorize a confidential client to obtain a token acting on behalf of a target user. Permission-only — they grant no scope. Expressions evaluate the acting client using ```CLIENT(...)``` and the target user's claims using ```CLAIM(...)``` and ```CLAIM_IS_VERIFIED(...)```. | NO |
-| ```user```   | array of object | [Scope granting rules](/functional/user_authorization#scope-granting-rules) evaluated during `authorization_code` flows to grant or deny [grantable scopes](/functional/scope#grantable-scope). Expressions evaluate **user claims** using ```CLAIM(...)``` and ```CLAIM_IS_VERIFIED(...)```. | NO                  |
 | ```client``` | array of object | [Scope granting rules](/functional/client_authorization#scope-granting-rules) evaluated during `client_credentials` flows to grant or deny [client scopes](/functional/scope#client-scope). Expressions evaluate **client attributes** using ```CLIENT(...)```.                               | NO                  |
+| ```user```   | array of object | [Scope granting rules](/functional/user_authorization#scope-granting-rules) evaluated during `authorization_code` flows to grant or deny [grantable scopes](/functional/scope#grantable-scope). Expressions evaluate **user claims** using ```CLAIM(...)``` and ```CLAIM_IS_VERIFIED(...)```. | NO                  |
 
 ### ```rules.user``` / ```rules.client```
 
@@ -130,10 +112,10 @@ Both ```user``` and ```client``` arrays share the same rule structure:
 
 | Key               | Type            | Description                                                                                                                                                                                                          | Required<br>Default |
 |-------------------|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```scopes```      | array of string | Scopes affected by this rule. Only requested scopes that appear in this list are granted or denied.                                                                                                                  | **YES**             |
 | ```behavior```    | string          | ```grant``` to include the scopes in tokens, ```deny``` to exclude them.                                                                                                                                             | **YES**             |
-| ```order```       | int             | Precedence when multiple rules affect the same scope. A matched rule with greater order overrides matched rules of lower order. A matched ```deny``` rule always wins over ```grant``` rules of same or lower order. | NO<br>```0```       |
 | ```expressions``` | array of string | Conditions that must all evaluate to ```true``` for the rule to match.                                                                                                                                               | **YES**             |
+| ```order```       | int             | Precedence when multiple rules affect the same scope. A matched rule with greater order overrides matched rules of lower order. A matched ```deny``` rule always wins over ```grant``` rules of same or lower order. | NO<br>```0```       |
+| ```scopes```      | array of string | Scopes affected by this rule. Only requested scopes that appear in this list are granted or denied.                                                                                                                  | **YES**             |
 
 **Example**:
 

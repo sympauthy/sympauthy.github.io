@@ -29,8 +29,8 @@ authenticate itself.
 | ```scopes```           | string[] | Scopes requested to the provider. The `openid` scope is always included automatically.                                                              | NO<br>```[openid]``` |
 | ```userinfo-enabled``` | boolean  | Whether to also call the provider's UserInfo endpoint to fetch additional claims. When `false`, claims are extracted from the ID token only.        | NO<br>```false```    |
 
-> The discovery document is fetched at startup. If the issuer URL is invalid or unreachable, SympAuthy will fail fast
-> with a clear error message.
+> The discovery document is fetched at startup. If the issuer URL is invalid or unreachable, the error is logged and
+> that provider is disabled; the rest of the server keeps running.
 
 > When `userinfo-enabled` is `false` (the default), SympAuthy extracts user claims directly from the ID token returned
 > by the provider. This is sufficient for most providers (Google, Microsoft, Auth0, etc.) and avoids an extra HTTP call.

@@ -1,8 +1,10 @@
 # Security Context
 
-SympAuthy reads three things off a request: the **address** it came from, the **user agent** it declares,
-and the **location** the deployment's edge attributes to that address. Where a person signs in from is
-then kept as one place per person, for as long as they keep returning to it.
+SympAuthy reads three things off a request: the **address** it came from, the **user agent** it declares
+— its `User-Agent` header, naming the browser or application — and the **location** the deployment's
+**edge**, the proxy or CDN in front of the server, attributes to that address. Where a person signs in from
+is then kept as a [place](/functional/grant#the-places-a-grant-is-used-from) on the grant it was seen
+under, for as long as that grant keeps being used from it.
 
 None of what is read can be known without knowing the deployment's topology, so all of it is
 configuration. The keys are listed under
@@ -16,9 +18,9 @@ no forwarded header is read at all, and no location is recorded. A header is con
 operator named the proxy that sets it.
 
 Behind any proxy that peer is the proxy's own address — the same one for every end-user — so a deployment
-that leaves this unconfigured keeps a place per person naming its own ingress. **Naming the proxy is what
-makes the record say anything about where a person is**, which is a reason to configure this domain rather
-than a property of it.
+that leaves this unconfigured keeps a place on every grant naming its own proxy. **Naming the proxy is what
+makes the record say anything about where a person is**, which is a reason to configure these keys rather
+than a property of them.
 
 ## Naming a proxy is a promise
 
@@ -56,15 +58,33 @@ caller chose. A name no request could carry, holding a space or a colon, is refu
 
 ## What is kept
 
-A place, not a request: signing in again from somewhere already known updates that place rather than
-adding another row. It expires once nobody has signed in from it for
-[`known-user-retention`](/technical/configuration/advanced#advanced-security-context), measured from
-the last sighting rather than the first, so a place someone keeps returning to is not deleted out from
-under them.
+A [place](/functional/grant#the-places-a-grant-is-used-from), not a request: an address and a user agent,
+with the location the edge gave for that address. The same address and user agent seen again under the
+same grant updates that place rather than adding another row, whatever the location says. A postal code an
+edge publishes is read and not kept.
 
-There is no unknown-user twin, because nothing unidentified is kept. What is observed before the server
-knows who is asking belongs to the [interactive flow](/functional/interactive_flow) session that observed
-it and is collected with that session, so a failed sign-in and an abandoned flow leave nothing behind.
+A grant opens with the place the person proved who they were at. Afterwards, every time a
+[public client](/functional/client#confidential-and-public-clients)'s
+[code exchange](/functional/interactive_flow#returning-to-the-application) or
+[refresh](/functional/tokens#refresh-token) succeeds, where it came from is a sighting of its grant; no
+other request is one. A confidential client's token requests record nothing, because they come from its own
+backend, and neither does a grant no person signed in for:
+[`client_credentials`](/functional/client_authorization), or a [token exchange](/functional/delegation).
+
+A person's places are the places of the grants they hold, and nothing else: signing out and back in from
+the same device is a new grant, with a new place. A place is deleted with its grant, or earlier once nobody
+has been seen there for [`retention`](/technical/configuration/advanced#advanced-security-context),
+measured from the last sighting rather than the first; deleting a place leaves the grant as it is, and
+nothing a client sends is refused for it. A grant holds at most
+[`max-places-per-grant`](/technical/configuration/advanced#advanced-security-context) distinct places, and
+the least recently seen makes room for a new one, the place the grant opened with included. No API serves a
+grant's places, and no client is shown them.
+
+Nothing unidentified is kept. What is observed before the server knows who is asking belongs to the
+[interactive flow](/functional/interactive_flow) session that observed it and is collected with that
+session, at a bound of its own that `max-places-per-grant` does not touch. So a failed sign-in, an abandoned flow and an
+[action started on the person's behalf](/functional/interactive_flow#an-action-started-on-the-user-s-behalf),
+which opens no grant, leave nothing behind.
 
 No anomaly is derived from any of it: no device fingerprint, no impossible-travel check, no risk score, and
 no geolocation from an IP database. Only what an edge said.
