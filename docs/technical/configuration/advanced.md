@@ -82,7 +82,8 @@ are on the [Security Context](/technical/configuration/security-context) page.
 |------------------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
 | ```geo```                    | object   | Where that address is. See [advanced.security-context.geo](#advanced-security-context-geo).                                                | NO                  |
 | ```ip```                     | object   | Where the address comes from. See [advanced.security-context.ip](#advanced-security-context-ip).                                           | NO                  |
-| ```known-user-retention```   | duration | How long a place a person signs in from is kept, measured from the last time they were seen there rather than the first. Must be greater than zero. | NO<br>```180d```    |
+| ```max-places-per-grant```   | int      | How many distinct places one [grant](/functional/grant) holds; past it, the least recently seen makes room for the new one. Must be greater than zero. | NO<br>```10```      |
+| ```retention```              | duration | How long a place a person signs in from is kept, measured from the last time they were seen there rather than the first. Must be greater than zero. | NO<br>```180d```    |
 
 ### ```advanced.security-context.geo```
 
@@ -134,10 +135,10 @@ key. This one only bounds how long the server waits for it.
 
 Four sweeps run every fifteen minutes, each on a schedule of its own: the one expiring
 [interactive flow](/functional/interactive_flow) sessions and the records attached to them, the one collecting
-the accounts an abandoned sign-up left half-created, the one removing the places people sign in from once
-nobody has signed in from one for [`known-user-retention`](#advanced-security-context), and the one deleting
-expired tokens and authorization codes, the tokens of a revoked [grant](/functional/grant), and then every grant
-that no token and no authorization code names any longer.
+the accounts an abandoned sign-up left half-created, the one removing a place people sign in from once
+nobody has been seen there for [`retention`](#advanced-security-context), and the one deleting expired tokens
+and authorization codes, the tokens of a revoked [grant](/functional/grant), and then every grant that no token
+and no authorization code names any longer, with the places kept against it.
 
 How much a run takes is fixed in the server rather than configured, and nothing is lost by it: whatever a run
 leaves behind, the next one takes. The only key touching any of this is the retention above, which says when a

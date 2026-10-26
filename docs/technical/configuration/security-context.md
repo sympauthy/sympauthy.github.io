@@ -2,7 +2,8 @@
 
 SympAuthy reads three things off a request: the **address** it came from, the **user agent** it declares,
 and the **location** the deployment's edge attributes to that address. Where a person signs in from is
-then kept as one place per person, for as long as they keep returning to it.
+then kept as a place against the [grant](/functional/grant) it was seen under, for as long as they keep
+returning to it.
 
 None of what is read can be known without knowing the deployment's topology, so all of it is
 configuration. The keys are listed under
@@ -16,7 +17,7 @@ no forwarded header is read at all, and no location is recorded. A header is con
 operator named the proxy that sets it.
 
 Behind any proxy that peer is the proxy's own address — the same one for every end-user — so a deployment
-that leaves this unconfigured keeps a place per person naming its own ingress. **Naming the proxy is what
+that leaves this unconfigured keeps a place on every grant naming its own ingress. **Naming the proxy is what
 makes the record say anything about where a person is**, which is a reason to configure this domain rather
 than a property of it.
 
@@ -56,15 +57,23 @@ caller chose. A name no request could carry, holding a space or a colon, is refu
 
 ## What is kept
 
-A place, not a request: signing in again from somewhere already known updates that place rather than
-adding another row. It expires once nobody has signed in from it for
-[`known-user-retention`](/technical/configuration/advanced#advanced-security-context), measured from
-the last sighting rather than the first, so a place someone keeps returning to is not deleted out from
-under them.
+A place, not a request: seeing an address and a user agent again under the same grant updates that place
+rather than adding another row. A grant opens with the place the person proved who they were at, and
+every time a [public client](/functional/client#confidential-and-public-clients) exchanges its code or
+refreshes from somewhere, that is a sighting of its grant. A confidential client's token requests record
+nothing, because they come from its own backend. A grant opened for no person — `client_credentials`, a
+token exchange — records nothing either.
 
-There is no unknown-user twin, because nothing unidentified is kept. What is observed before the server
-knows who is asking belongs to the [interactive flow](/functional/interactive_flow) session that observed
-it and is collected with that session, so a failed sign-in and an abandoned flow leave nothing behind.
+A person's places are the places of the grants they hold, and nothing else: signing out and back in from
+the same device is a new grant, with a new place. A place goes with its grant, or before it once nobody has
+been seen there for [`retention`](/technical/configuration/advanced#advanced-security-context), measured
+from the last sighting rather than the first; the grant itself is left alone. A grant holds at most
+[`max-places-per-grant`](/technical/configuration/advanced#advanced-security-context) distinct places, and
+the least recently seen makes room for a new one.
+
+Nothing unidentified is kept. What is observed before the server knows who is asking belongs to the
+[interactive flow](/functional/interactive_flow) session that observed it and is collected with that
+session, so a failed sign-in, an abandoned flow and a flow that opens no grant leave nothing behind.
 
 No anomaly is derived from any of it: no device fingerprint, no impossible-travel check, no risk score, and
 no geolocation from an IP database. Only what an edge said.

@@ -20,6 +20,8 @@ A grant holds what every token under it has in common:
   person is behind, and from a token exchange, which asserts an identity nobody proved.
 - The **[claims the authorization asked for](/functional/claims#asking-for-a-claim-in-the-request)** by name, so a
   token minted months later honours the same request the first one did.
+- The **[places the end-user was seen at](/technical/configuration/security-context#what-is-kept)** under it — absent
+  from a grant no person is behind.
 
 A token keeps only what is its own: its type, its expiry, and the
 [DPoP](/functional/tokens#sender-constrained-tokens-dpop) key it is bound to.

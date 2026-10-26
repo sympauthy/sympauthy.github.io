@@ -103,7 +103,7 @@ them must be greater than zero: given zero or less, the server refuses to start.
 | Grant                     | Everything issued under a [grant](/functional/grant), from when it is opened       | None                       | [`auth.grant.expiration`](/technical/configuration/authorization#auth-grant)                                         |
 | Validation code           | How long an email validation code is accepted, from when it is sent                | 10 minutes                 | [`advanced.validation-code.expiration`](/technical/configuration/advanced#advanced-validation-code)                  |
 | Invitation                | How long an [invitation](/functional/invitation) can be accepted                   | 7 days, capped at 30 days  | [`advanced.invitation.default-expiration` and `max-expiration`](/technical/configuration/advanced#advanced-invitation) |
-| Known place of sign-in    | How long a place a person signs in from is remembered, from when they were last seen there | 180 days           | [`advanced.security-context.known-user-retention`](/technical/configuration/advanced#advanced-security-context)      |
+| Known place of sign-in    | How long a place a person signs in from is remembered, from when they were last seen there | 180 days           | [`advanced.security-context.retention`](/technical/configuration/advanced#advanced-security-context)                 |
 
 The defaults above are the ones the [`default` environment](/technical/configuration/environments) sets. A deployment
 that does not activate it, or that overrides `auth.token.refresh-expiration` with no value, issues refresh tokens that
