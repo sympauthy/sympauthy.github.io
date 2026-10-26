@@ -138,8 +138,8 @@ end-user in again.
 A confidential client authenticates as it does elsewhere (Client Secret Basic or Client Secret Post), and a
 [public client](/functional/client#confidential-and-public-clients) sends its `client_id` alone, as RFC 7009 section
 2.1 has it. Either way only a grant opened for the client asking is revoked. The `token_type_hint` parameter is
-accepted and **ignored**: the server reads the type off the token itself, so a hint naming the wrong type no longer
-hides it.
+accepted and **ignored**: the server reads the type off the token itself, so a hint naming the wrong type does not
+hide it.
 
 ::: warning
 A public client is authenticated by its `client_id` alone, and the endpoint reads no DPoP proof, so **whoever holds one

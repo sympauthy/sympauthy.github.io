@@ -67,8 +67,8 @@ The message names the nearest key the server knows when it has one to offer: you
 segment replaced by the one or more the server declares in its place, offered only where that
 replacement makes the key bind. A key carrying more than one mistake is named alone.
 
-A misspelt *section* is caught the same way. Writing `scope:` where the key is `scopes:` used to drop
-the whole section without a word; every key under it is now reported with its correction.
+A misspelt *section* is caught the same way: writing `scope:` where the key is `scopes:` reports every
+key under it with its correction.
 
 Three limits are worth knowing:
 
@@ -79,16 +79,6 @@ Three limits are worth knowing:
   share a namespace with the whole machine.
 - **A prefix resembling none of SympAuthy's is left alone**, so a deployment may keep a top-level key
   of its own to interpolate out of, such as `${my-vars.issuer}`.
-
-::: warning Upgrading an existing deployment
-A configuration file that has always started may carry a key that never did anything — a typo, or a
-key a past version removed. From the version introducing this check onwards, that key takes readiness
-down on the next restart.
-
-Read the startup log or `/health`, then delete or correct every key either one names, and restart.
-Most of what they report was already having no effect; the rest are keys a version moved, and the
-message names the key that replaced them.
-:::
 
 ## ```urls```
 
