@@ -96,7 +96,7 @@ another [audience](/functional/audience) is left out of every place.
 `claims_supported` lists exactly the claims naming `discovery`, whichever half of the specification the
 name comes from — so a deployment may serve a claim it does not advertise, and advertise a claim of its
 own. The other direction is refused: a claim naming `discovery` and no place that carries the value would
-advertise a name no client could obtain a value for, and the server refuses to start on it. A place named
+advertise a name no client could obtain a value for, and the server starts unready on it. A place named
 in [`published-in-when-requested`](#claims-id-published-in-when-requested) counts as a carrier here — a
 client can reach it — so advertising such a claim is allowed.
 
@@ -116,7 +116,7 @@ request exactly as before.
 Those two are the whole of it — they are the places [OpenID Connect Core
 section 5.5](https://openid.net/specs/openid-connect-core-1_0.html#ClaimsParameter) defines a member for.
 Naming `access-token`, `introspection` or `discovery` here states a condition no request could ever
-satisfy, and **the server refuses to start on it**. Naming the same place in both `published-in` and
+satisfy, and **the server starts unready on it**. Naming the same place in both `published-in` and
 `published-in-when-requested` is refused at startup too, naming the claim and the place: always and
 on request are two answers for one place, and only one of them can be meant.
 

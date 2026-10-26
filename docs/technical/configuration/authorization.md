@@ -71,7 +71,7 @@ authenticated with their primary method (password or third-party provider).
 | ```totp.enabled``` | boolean | Enable TOTP (Time-based One-Time Password, [RFC 6238](https://datatracker.ietf.org/doc/html/rfc6238)) as an MFA method. | NO<br>```false```   |
 
 > When `mfa.totp.enabled` is `true`, the corresponding flow URLs (`mfa`, `mfa-totp-enroll`, `mfa-totp-challenge`) must
-> be configured in the [`flows.<id>`](#flows-id) section. SympAuthy validates this at startup and refuses to start if
+> be configured in the [`flows.<id>`](#flows-id) section. SympAuthy validates this at startup and starts unready if
 > any required URL is missing.
 
 ## ```flows.<id>```
@@ -97,7 +97,7 @@ The flow may be completely customized and served by a completely different serve
 | ```sign-up```            | uri  | The URL of the sign-up page. Required when [`sign-up-enabled`](/technical/configuration/audience) or [`invitation-enabled`](/technical/configuration/audience) is `true` on any [audience](/functional/audience). | NO                  |
 
 > The `mfa`, `mfa-totp-enroll`, and `mfa-totp-challenge` URLs are required when [`mfa.totp.enabled`](#mfa) is `true`.
-> SympAuthy validates this at startup and fails fast if they are missing.
+> SympAuthy validates this at startup and starts unready if they are missing.
 
 ## ```rules```
 

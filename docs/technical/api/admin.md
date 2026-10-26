@@ -2550,7 +2550,7 @@ sent it. See [Security Context](/technical/configuration/security-context) for h
 Every request against a session writes a place, and the signed state a flow travels under carries no identity — so
 anybody holding a state URL can have an entry recorded. An entry **with** a `proven_date` is one where a credential
 verified *and* resolved that session's user; an entry **without** one says a request arrived and nothing more. Only
-a proven place is ever folded into the person's own record.
+a proven place is ever kept on the grant the flow opens.
 
 Reading an entry with no `proven_date` as the person's own is reading an attacker's user agent as theirs.
 :::

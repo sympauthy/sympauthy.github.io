@@ -16,9 +16,9 @@ reference.
 ## What the server knows about a request
 
 SympAuthy reads the address a request came from, the user agent it declares, and the location the
-deployment's edge attributes to that address, and keeps where a signed-in person is seen from as one place
-per person. By default it trusts nothing: the address is the peer of the socket the request arrived on, no
-forwarded header is read, and no location is recorded.
+deployment's edge attributes to that address, and keeps where a signed-in person is seen from as a place on
+the [grant](/functional/grant) they were seen under. By default it trusts nothing: the address is the peer of
+the socket the request arrived on, no forwarded header is read, and no location is recorded.
 
 A header is consulted only because an operator named the proxy that sets it, under
 [`advanced.security-context`](configuration/security-context). Naming one promises the server is only
@@ -91,7 +91,7 @@ allowing clients to verify tokens without a round-trip to SympAuthy.
 
 What SympAuthy issues is intentionally short-lived. If a token or a code is intercepted, it becomes useless once it
 expires. Each lifetime is configured in the section of the thing it belongs to; this table gathers them. Every one of
-them must be greater than zero: given zero or less, the server refuses to start.
+them must be greater than zero: given zero or less, the server starts unready and names the key.
 
 | Lifetime                  | What it bounds                                                                     | Default                    | Configuration key                                                                                                    |
 |---------------------------|------------------------------------------------------------------------------------|----------------------------|----------------------------------------------------------------------------------------------------------------------|

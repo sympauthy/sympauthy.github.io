@@ -89,7 +89,7 @@ are on the [Security Context](/technical/configuration/security-context) page.
 
 | Key                 | Type        | Description                                                                                                                                                                    | Required<br>Default |
 |---------------------|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
-| ```auto-detect```   | boolean     | Read every edge that publishes a location, sorted by name, instead of the ones `providers` lists.                                                                               | NO<br>```false```   |
+| ```auto-detect```   | boolean     | Read every edge that publishes a location, sorted by name, before the ones `providers` lists; a listed edge still overrides the fields a detected one answered.                                                                               | NO<br>```false```   |
 | ```headers```       | object      | Header each location field is read from, overriding every edge for that field. See [advanced.security-context.geo.headers](#advanced-security-context-geo-headers).             | NO                  |
 | ```providers```     | string list | Edges whose location headers are read, applied in order; each overrides the fields the ones before it answered. Only an edge publishing a location may be named, and only once. | NO<br>```[]```      |
 
