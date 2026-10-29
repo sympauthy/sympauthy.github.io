@@ -27,7 +27,7 @@ export MICRONAUT_SERVER_PORT=9090
 ```
 
 ```sh [Command-line argument]
-java -jar sympauthy.jar --micronaut.server.port=9090
+docker run ghcr.io/sympauthy/sympauthy-nightly:latest '-micronaut.server.port=9090'
 ```
 
 :::
