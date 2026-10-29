@@ -16,14 +16,15 @@ This page covers:
 
 [Conditions](/technical/monitoring/conditions) says how the server reports a dependency that stops answering, on its
 console and on its `/health` endpoint, whether telemetry is on or not. Every metric the server exports is listed on the
-[Metrics](/technical/monitoring/metrics) page.
+[Metrics](/technical/monitoring/metrics) page, and what a trace holds, down to each query a request sent its database,
+on the [Traces](/technical/monitoring/traces) page.
 
 ## What telemetry is made of
 
 The server sends these kinds of telemetry, called **signals**:
 
 - a **trace** is the record of one request: the route it came in on, how long it took, and each call the server made
-  outside itself to answer it, such as a call to a provider. Each part of it is a **span**.
+  outside itself to answer it, such as a call to a provider or a query to its database. Each part of it is a **span**.
 - a **metric** is a number measured over time, such as the duration of token requests or the count of failed
   sign-ins. One metric is split into **series** by its attributes, as the [Metrics](/technical/monitoring/metrics#attributes)
   page explains.
@@ -145,7 +146,7 @@ the readings that move are queue lengths and wait times, not the thread count. T
 | a person's account | `sympauthy.lock.wait.duration` | several changes waiting on one account |
 | password hashing | `sympauthy.password.hash.active` | the CPU that sign-ins cost right now. A sudden rise is often password guessing |
 | a [provider](/technical/configuration/provider), an [authorization webhook](/technical/authorization_webhook), the mail server, the database, the collector | `sympauthy.condition.degraded` | a dependency that is failing: `1` exactly while `/health` lists its [condition](/technical/monitoring/conditions) |
-| a provider, an authorization webhook, the mail server | `sympauthy.remote_call.duration` | a call outside the process that is slow, or failing. The database and the collector are not timed here |
+| a provider, an authorization webhook, the mail server | `sympauthy.remote_call.duration` | a call outside the process that is slow, or failing. The database and the collector are not timed here: a query's [span](/technical/monitoring/traces#what-a-query-span-carries) says how long it took |
 | scheduled jobs | `sympauthy.job.run.duration` | not a rise, but its `outcome`: `error` is a job that fails, and `skipped` on every instance with `success` on none is a job no instance gets to run |
 
 ## What the runtime metrics say
