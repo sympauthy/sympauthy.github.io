@@ -8,6 +8,13 @@ SympAuthy is designed with security as a first-class concern. See the [Security]
 description of the measures in place, including password hashing, token signing, OAuth 2.1 flow protections, and safe
 configuration defaults.
 
+## Monitoring
+
+SympAuthy can export its traces, metrics and log records to an OpenTelemetry collector. See the
+[Monitoring](/technical/monitoring/) documentation for how to turn it on, which readings show an instance struggling,
+and how to size an instance's memory, and the [Metrics](/technical/monitoring/metrics) page for every metric the server
+exports.
+
 ## Configuration
 
 Sympauthy is configured through a configuration file that defines how the authorization server behaves. The

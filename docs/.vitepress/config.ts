@@ -140,6 +140,15 @@ export default defineConfig({
             },
             { text: 'Well-known Providers', link: '/technical/well-known_providers' },
             { text: 'Security', link: '/technical/security' },
+            {
+              text: 'Monitoring',
+              link: '/technical/monitoring/',
+              collapsed: false,
+              items: [
+                { text: 'Conditions', link: '/technical/monitoring/conditions' },
+                { text: 'Metrics', link: '/technical/monitoring/metrics' },
+              ]
+            },
           ]
         }
       ],
