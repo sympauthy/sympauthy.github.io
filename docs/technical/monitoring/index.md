@@ -20,14 +20,16 @@ console and on its `/health` endpoint, whether telemetry is on or not. Every met
 
 ## What telemetry is made of
 
-The server sends three kinds of telemetry, called **signals**:
+The server sends these kinds of telemetry, called **signals**:
 
 - a **trace** is the record of one request: the route it came in on, how long it took, and each call the server made
   outside itself to answer it, such as a call to a provider. Each part of it is a **span**.
 - a **metric** is a number measured over time, such as the duration of token requests or the count of failed
   sign-ins. One metric is split into **series** by its attributes, as the [Metrics](/technical/monitoring/metrics#attributes)
   page explains.
-- a **log record** is a line of the server's log, sent with the id of the trace it was written under.
+- a **log record** is a line of the server's log, sent with the id of the trace it was written under when it was
+  written while serving a request. [Logs](/technical/monitoring/logs#log-records-sent-through-telemetry) says which
+  lines are sent, and how to change their level or stop sending them.
 
 **The server does not store or display any of it.** It sends every signal to a **collector**, a separate program you
 run, such as the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/). The collector passes them on to
@@ -52,18 +54,20 @@ otel:
 
 **Nothing is exported while `micronaut.otel.enabled` is `false`**, which is the default: no request is traced and no
 connection is opened. The flag sits under `micronaut` because it switches on the server framework's telemetry module.
-Set the endpoint with it: without one, the exporter sends to its own default, `http://localhost:4318`, which inside a
-container is the container itself.
+Set the endpoint with it: without one, the **exporter**, the part of the server that sends a signal to the collector,
+sends to its own default, `http://localhost:4318`, which inside a container is the container itself.
 
-**The server sends over OTLP's HTTP transport only**, `http/protobuf`, so point the endpoint at the collector's HTTP
-port, `4318` by convention. A collector's gRPC port, `4317`, is never reached: the server ships no gRPC sender, so
-setting `otel.exporter.otlp.protocol` to `grpc` makes every export fail.
+**The server sends over the HTTP transport of OTLP, OpenTelemetry's protocol for sending telemetry, only**,
+`http/protobuf`, so point the endpoint at the collector's HTTP port, `4318` by convention. A collector's gRPC port,
+`4317`, is never reached: the server ships no gRPC sender, so setting `otel.exporter.otlp.protocol` to `grpc` makes
+every export fail.
 
 **Every signal goes to that one endpoint.** A deployment that wants to leave one out sets its exporter to `none`, as in
 `otel.traces.exporter: none`. Metrics are sent every ten seconds (`otel.metric.export.interval`, set by the server; the
-OpenTelemetry default is a minute). Every request is traced, and a request that arrives with a W3C `traceparent` header
-is traced as part of the caller's trace, or not at all if that header says the caller's trace is not recorded. The calls the server makes to a provider or an authorization webhook carry a
-`traceparent` of their own.
+OpenTelemetry default is a minute). Every request is traced, and a request that arrives with a W3C `traceparent`
+header, the header a caller passes its own trace on in, is traced as part of the caller's trace, or not at all if that
+header says the caller's trace is not recorded. The calls the server makes to a provider or an authorization webhook
+carry a `traceparent` of their own.
 
 **The server names itself in every signal.** Its `service.name` is `sympauthy`, and each instance adds a
 `service.instance.id` drawn at random when it starts, so the series of several instances do not merge. A restart draws
@@ -129,15 +133,15 @@ that the endpoint is the HTTP port.
 
 **An instance that falls behind makes work wait; it does not add threads to take it on.** A **thread** is one task the
 server can run at a time, and the server runs its work on a few **pools** of threads whose size is set by the number
-of processors: the **event loops**, which read requests and write answers, and the pool requests continue on after
-they waited on a call. When more work arrives than those threads can take, it waits in a queue. So under load the
-readings that move are queue lengths and wait times, not the thread count. These are the ones to watch:
+of processors: the **event loops**, which read requests and write answers, and the pool a request resumes on once a
+call it waited on has answered. When more work arrives than those threads can take, it waits in a queue. So under load
+the readings that move are queue lengths and wait times, not the thread count. These are the ones to watch:
 
 | Where work waits | Metric | What a rise means |
 | --- | --- | --- |
 | requests served | `http.server.request.duration` | slower answers. Read it per **route**, the URL pattern a request matched (`http.route`): if many routes that share nothing slow down together, the cause is something they all use, such as the database or the CPU |
 | the event loops | `netty.eventexecutor.tasks.pending` | a loop falling behind, usually one blocked call stalling every connection that loop serves. One series per loop, named by its thread: the loops the HTTP server and client share and, on PostgreSQL, the database driver's. Near `0` on a healthy instance |
-| the pool requests continue on after they waited on a call | `executor.active` | how many of its threads are busy. The pool has as many threads as the instance has processors (`jvm.cpu.count`), so a value that stays at that count means requests wait for a thread |
+| the pool a request resumes on once a call it waited on has answered | `executor.active` | how many of its threads are busy. The pool has as many threads as the instance has processors (`jvm.cpu.count`), so a value that stays at that count means requests wait for a thread |
 | a person's account | `sympauthy.lock.wait.duration` | several changes waiting on one account |
 | password hashing | `sympauthy.password.hash.active` | the CPU that sign-ins cost right now. A sudden rise is often password guessing |
 | a [provider](/technical/configuration/provider), an [authorization webhook](/technical/authorization_webhook), the mail server, the database, the collector | `sympauthy.condition.degraded` | a dependency that is failing: `1` exactly while `/health` lists its [condition](/technical/monitoring/conditions) |

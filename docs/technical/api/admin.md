@@ -2453,7 +2453,8 @@ A session that has already been collected answers `not_found` like one that neve
 **Use Cases**:
 
 - See which step a stalled session is stopped at, and what the handler driving it is looking at
-- Read the message identifiers a failed session carries, to find the failure in the logs
+- Read the message identifiers a failed session carries, to see why it failed: the failure is recorded on the session,
+  not written to the [log](/technical/monitoring/logs#what-is-not-logged)
 - Confirm whether a session signed a new account up or identified an existing one
 
 #### List Session Security Contexts
