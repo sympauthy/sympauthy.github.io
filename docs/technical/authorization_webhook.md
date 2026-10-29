@@ -24,6 +24,7 @@ SympAuthy sends the following request to the configured URL:
 POST https://my-app.example.com/sympauthy/authorize
 Content-Type: application/json
 X-SympAuthy-Signature: sha256=<hmac-hex>
+traceparent: 00-<trace id>-<span id>-01
 
 {
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -36,6 +37,9 @@ X-SympAuthy-Signature: sha256=<hmac-hex>
   }
 }
 ```
+
+The `traceparent` header is sent only when [telemetry](/technical/monitoring/) is on: it carries the trace of the
+request that made the call, so a webhook that is traced too can continue it.
 
 ### Properties
 
@@ -78,12 +82,20 @@ The external server must respond with HTTP 2xx and a JSON body:
 
 Any scope present in `requested_scopes` but absent from the response is treated as `deny`.
 
+To refuse a person, answer `2xx` with `deny` decisions. A `4xx` is not a refusal: it is a failure of the webhook,
+handled as the next section describes.
+
 ## Failure behavior
 
-If the external server is unreachable, times out, or returns a non-2xx status, SympAuthy applies the `on-failure`
-policy configured for the webhook:
+If the external server is unreachable, does not answer within its
+[`timeout`](/technical/configuration/advanced#advanced-webhooks-authorization) (five seconds by default), or returns a
+non-2xx status, SympAuthy applies the `on-failure` policy configured for the webhook:
 
 | Value                  | Behavior                                                                                                                                                                                                |
 |------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `deny_all` *(default)* | All requested grantable scopes are denied. The authorization flow completes but no grantable scopes are granted. Fail-safe: users may lose access but the system does not grant unintended permissions. |
 | `fallback_to_rules`    | SympAuthy evaluates scope granting rules as if no webhook were configured. Keeps users working during outages, but may grant permissions that the external server would have denied.                    |
+
+The server keeps calling the webhook after a failure, and the first failure degrades the webhook's
+[condition](/technical/monitoring/conditions): the operator sees it on the console and on `/health` until the webhook
+answers again.

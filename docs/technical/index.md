@@ -10,10 +10,11 @@ configuration defaults.
 
 ## Monitoring
 
-SympAuthy can export its traces, metrics and log records to an OpenTelemetry collector. See the
-[Monitoring](/technical/monitoring/) documentation for how to turn it on, which readings show an instance struggling,
-and how to size an instance's memory, and the [Metrics](/technical/monitoring/metrics) page for every metric the server
-exports.
+SympAuthy reports whether it is healthy on its console and its `/health` endpoint, and, once you turn telemetry on,
+sends traces, metrics and log records to an OpenTelemetry collector you run. See the
+[Monitoring](/technical/monitoring/) documentation for how to turn it on and which readings show an instance
+struggling, [Conditions](/technical/monitoring/conditions) for a dependency that stops answering, and
+[Metrics](/technical/monitoring/metrics) for every metric the server exports.
 
 ## Configuration
 
