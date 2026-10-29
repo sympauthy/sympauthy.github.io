@@ -10,14 +10,14 @@ This page covers:
 
 - [what telemetry is made of](#what-telemetry-is-made-of), and what you need to run beside the server,
 - [how to turn telemetry on](#turning-telemetry-on), and [how to try it locally](#trying-it-locally),
-- [what a trace holds](#what-a-trace-holds), down to each query a request sent its database,
 - [the readings that show an instance struggling](#what-shows-an-instance-struggling),
 - [what the runtime metrics say, and what they do not](#what-the-runtime-metrics-say),
 - [how to size an instance's memory](#sizing-an-instance-s-memory).
 
 [Conditions](/technical/monitoring/conditions) says how the server reports a dependency that stops answering, on its
 console and on its `/health` endpoint, whether telemetry is on or not. Every metric the server exports is listed on the
-[Metrics](/technical/monitoring/metrics) page.
+[Metrics](/technical/monitoring/metrics) page, and what a trace holds, down to each query a request sent its database,
+on the [Traces](/technical/monitoring/traces) page.
 
 ## What telemetry is made of
 
@@ -126,44 +126,6 @@ If nothing arrives, the server could not reach the collector: its console shows 
 collector is failing, as [Conditions](/technical/monitoring/conditions) describes. Check that otel-tui is running and
 that the endpoint is the HTTP port.
 
-## What a trace holds
-
-**A trace holds a span for the request, and under it a span for each call the server waited on**: every query it
-sent its database, in the order it sent them, and every call to a [provider](/technical/configuration/provider) or an
-[authorization webhook](/technical/authorization_webhook). A request that spent its time in the database shows it,
-query by query, beside the calls it made elsewhere.
-
-**A query span carries OpenTelemetry's
-[attributes for a database call](https://opentelemetry.io/docs/specs/semconv/database/database-spans/)**, and is
-named by its summary:
-
-| Attribute | What it holds |
-| --- | --- |
-| `db.system.name` | `postgresql`, or `h2database` for H2 |
-| `db.namespace` | the database's name |
-| `server.address`, `server.port` | the database server's. H2 runs inside the server and has none |
-| `db.query.text` | the statement. A value it binds stays a placeholder, such as `$1`, and a value written into it is replaced by `?` |
-| `db.query.summary` | the operation and the tables it names, such as `SELECT "grants"` |
-| `db.operation.batch.size` | the number of rows a statement was sent for at once, when more than one |
-| `db.response.status_code`, `error.type` | for a query the database refused, its SQL state. A query cancelled before it returned anything, because its request timed out or its caller went away, ends as an error too |
-
-**No value a query compares against reaches the collector.** The server binds its values rather than writing them into
-a statement, so the statement it sends holds none, and a value written into one is replaced by `?` before the span is
-started. An email address, an authorization code, a token or its hash is never in a span; the tables and columns a
-statement names are. The database's user is not exported.
-
-**Only a request's queries are traced.** A scheduled job's queries and the work the server does at startup have no
-request around them, and open no span: a job sweeping a table every few seconds would otherwise be the most traced
-thing in the collector. The migration at startup is not traced either. One query a request makes is missing from its
-trace: the first load of the signing keys, made by the first request that needs a key, and cached for every later one.
-Any other query a request's trace does not show was not made.
-
-**Database spans are exported with every other signal**, to the same collector, once `micronaut.otel.enabled` is
-`true`. While it is `false`, nothing is placed between the server and its database. To leave them out alone, set
-`otel.instrumentation.r2dbc.enabled` to `false` (default `true`): the rest of the telemetry is still exported. A
-database that stops answering is reported as its [condition](/technical/monitoring/conditions) says, on `/health` and
-in the log, whether its queries are traced or not.
-
 ## What shows an instance struggling
 
 **An instance that falls behind makes work wait; it does not add threads to take it on.** A **thread** is one task the
@@ -180,7 +142,7 @@ readings that move are queue lengths and wait times, not the thread count. These
 | a person's account | `sympauthy.lock.wait.duration` | several changes waiting on one account |
 | password hashing | `sympauthy.password.hash.active` | the CPU that sign-ins cost right now. A sudden rise is often password guessing |
 | a [provider](/technical/configuration/provider), an [authorization webhook](/technical/authorization_webhook), the mail server, the database, the collector | `sympauthy.condition.degraded` | a dependency that is failing: `1` exactly while `/health` lists its [condition](/technical/monitoring/conditions) |
-| a provider, an authorization webhook, the mail server | `sympauthy.remote_call.duration` | a call outside the process that is slow, or failing. The database and the collector are not timed here: a query's [span](#what-a-trace-holds) says how long it took |
+| a provider, an authorization webhook, the mail server | `sympauthy.remote_call.duration` | a call outside the process that is slow, or failing. The database and the collector are not timed here: a query's [span](/technical/monitoring/traces#what-a-query-span-carries) says how long it took |
 | scheduled jobs | `sympauthy.job.run.duration` | not a rise, but its `outcome`: `error` is a job that fails, and `skipped` on every instance with `success` on none is a job no instance gets to run |
 
 ## What the runtime metrics say

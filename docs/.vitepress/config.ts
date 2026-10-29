@@ -147,6 +147,7 @@ export default defineConfig({
               items: [
                 { text: 'Conditions', link: '/technical/monitoring/conditions' },
                 { text: 'Metrics', link: '/technical/monitoring/metrics' },
+                { text: 'Traces', link: '/technical/monitoring/traces' },
               ]
             },
           ]
