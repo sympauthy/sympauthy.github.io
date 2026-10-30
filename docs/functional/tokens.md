@@ -208,7 +208,7 @@ The user will be prompted to sign in again when:
 - the refresh token has expired (controlled by
   [`auth.token.refresh-expiration`](/technical/configuration/authorization#auth-token)),
 - the [grant](/functional/grant) the tokens were issued under has been
-  [revoked](/functional/grant#what-takes-a-grant-out-of-service) — by an administrator's force logout, by the client
+  [revoked](/functional/grant#what-takes-a-grant-out-of-service) — by an administrator, by the client
   revoking either of its tokens, by the [consent](/functional/consent) for the user and
   [audience](/functional/audience) being revoked, or by the authorization code being presented a second time,
 - the grant has reached the end of the lifetime

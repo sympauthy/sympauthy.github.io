@@ -59,8 +59,8 @@ honouring it when the grant stops.
 
 A grant is revoked, never one token of it. Each of these signs the end-user out of everything the grant covers:
 
-- an administrator's **force logout** through the [Admin API](/technical/api/admin#force-logout), for every client or
-  for one;
+- an **administrator** through the [Admin API](/technical/api/admin#revoke-grants), naming one grant, every grant of a
+  person — signing them out — or every grant of a client or an audience;
 - the client's own call to the **[revocation endpoint](/technical/security#token-revocation)** — whichever token it presents,
   an access token as surely as a refresh token;
 - the end-user's **[consent](/functional/consent#revoking-consent)** being revoked, which reaches every grant that
@@ -76,8 +76,9 @@ between the sign-in and the exchange leaves the code unspendable.
 When a deployment [removes a client](/technical/configuration/client#removing-a-client) from its configuration, every
 token of every grant opened for that client is refused on every surface. The grants are **refused, not revoked** —
 nothing is written to them — so re-declaring the same client id serves their unexpired tokens again, refresh tokens
-included. Ending them for good means revoking them while the client is still declared: afterwards only a force logout
-of the person reaches them, since the per-client one needs a client the configuration still names.
+included. Ending them for good means revoking them: an administrator can
+[revoke every grant of the client](/technical/api/admin#revoke-grants) by its identifier, whether the configuration
+still declares it or not.
 
 A grant also belongs to the audience it was opened for. A client moved to another audience can no longer use the
 grants it already holds: their tokens are refused on every surface and cannot be refreshed, so the end-user signs in
@@ -109,9 +110,10 @@ page.
 
 - **It is not shown to the client.** [Grant Management](/technical/oauth2_compatibility#features), which would let a
   client query and revoke a grant by identifier, is not served.
-- **It is not an audit trail.** The [scheduled sweep](/technical/configuration/advanced#scheduled-cleanups) deletes
-  the tokens of a revoked grant, and then every grant that no token and no authorization code names any longer — so
-  who revoked a grant, and when, goes with it. A grant whose code is still stored waits for that code, which is
+- **It is not an audit trail.** An administrator [reads](/technical/api/admin#grant-management) who revoked a grant
+  and when only until the [scheduled sweep](/technical/configuration/advanced#scheduled-cleanups) collects it: the
+  sweep deletes the tokens of a revoked grant, and then every grant that no token and no authorization code names any
+  longer, and the record goes with it. A grant whose code is still stored waits for that code, which is
   collected once [its own lifetime](/technical/configuration/authorization#auth-authorization-code) has passed,
   exchanged or not.
 

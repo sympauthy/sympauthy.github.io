@@ -41,7 +41,9 @@ grant only the minimum necessary privileges.
 |-----------------------------|----------------------------------------------------------------------------|
 | `admin:config:read`         | List and view configuration resources (audiences, clients, claims, scopes) |
 | `admin:consent:read`        | View consents                                                              |
-| `admin:consent:write`       | Revoke consents, force logout                                              |
+| `admin:consent:write`       | Revoke consents                                                            |
+| `admin:grants:read`         | List and view [grants](/functional/grant)                                  |
+| `admin:grants:write`        | Revoke [grants](/functional/grant)                                         |
 | `admin:interactive-flow-sessions:read` | Read the [interactive flow](/functional/interactive_flow) sessions currently in flight, and the places each one was driven from |
 | `admin:invitations:read`    | List and view [invitations](/functional/invitation)                        |
 | `admin:invitations:write`   | Create and revoke [invitations](/functional/invitation)                    |
@@ -241,7 +243,8 @@ configuration. The fields each listing offers are named with it below.
 ## Endpoints
 
 > **Work in progress** — [Client Management](#client-management), [Claim Management](#claim-management),
-> [Scope Management](#scope-management), [Audience Management](#audience-management), and
+> [Scope Management](#scope-management), [Audience Management](#audience-management),
+> [Grant Management](#grant-management), and
 > [Interactive Flow Session Management](#interactive-flow-session-management) endpoints are implemented.
 > The remaining endpoints below are planned but not yet implemented. The paths and response formats shown are
 > preliminary and may change. See [GitHub issue #109](https://github.com/sympauthy/sympauthy/issues/109) for progress.
@@ -1249,87 +1252,6 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 ---
 
-#### Force Logout
-
-**Path**: `/api/v1/admin/users/{user_id}/logout`
-
-**Method**: POST
-
-**Authentication**: Access token with `admin:consent:write` scope
-
-**Purpose**: Revokes every [grant](/functional/grant) of a specific user, and every token issued under them, forcing
-them to re-authenticate on every client.
-
-**Path Parameters**:
-
-- `user_id`: Unique identifier of the user
-
-**Response Format**:
-
-```json
-{
-  "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "grants_revoked": 3
-}
-```
-
-**Properties**:
-
-- `user_id`: Unique identifier of the user
-- `grants_revoked`: Number of grants this call revoked, every token issued under each of them with it. A grant that is
-  no longer live — already revoked, past its lifetime, or left with neither an unexpired token nor a code still to
-  be exchanged — is left as it was and is not counted, so calling again answers `0`
-
-**Use Cases**:
-
-- Respond to a compromised account by terminating all sessions
-- Enforce re-authentication after a password reset
-- Remove access for a departing employee immediately
-
----
-
-#### Force Client Logout
-
-**Path**: `/api/v1/admin/users/{user_id}/logout/{client_id}`
-
-**Method**: POST
-
-**Authentication**: Access token with `admin:consent:write` scope
-
-**Purpose**: Revokes every [grant](/functional/grant) of a specific user for a specific client application, and every
-token issued under them, forcing them to re-authenticate on that client only.
-
-**Path Parameters**:
-
-- `user_id`: Unique identifier of the user
-- `client_id`: Unique identifier of the client application
-
-**Response Format**:
-
-```json
-{
-  "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "client_id": "my-client-app",
-  "grants_revoked": 2
-}
-```
-
-**Properties**:
-
-- `user_id`: Unique identifier of the user
-- `client_id`: Identifier of the client application whose grants were revoked
-- `grants_revoked`: Number of grants this call revoked for the specified client, every token issued under each of them
-  with it. A grant that is no longer live — already revoked, past its lifetime, or left with neither an unexpired token
-  nor a code still to be exchanged — is left as it was and is not counted, so calling again answers `0`
-
-**Use Cases**:
-
-- Revoke access for a user on a specific application without affecting their other sessions
-- Respond to a client-specific security incident
-- Remove access to a particular service for a departing team member
-
----
-
 ### MFA Management
 
 Endpoints for viewing and managing a user's registered
@@ -1866,7 +1788,8 @@ When a consent is revoked through this endpoint:
 1. The consent is marked as revoked (`revoked_by = admin`) with the administrator's identifier.
 2. Every [grant](/functional/grant) the user holds for that audience is revoked at the same instant, whichever of the
    audience's clients it was opened for — and with it every token issued under it, access, ID and refresh alike. Each
-   is refused on the next request rather than lasting until it expires.
+   is refused on the next request rather than lasting until it expires, and each grant is then
+   [listed](#list-grants) as `revoked`, with `revoked_by` set to `consent_revoked`.
 3. An authorization code not yet exchanged is reached with its grant too, so a sign-in completed just before the
    revocation cannot be turned into tokens afterwards.
 4. As a safety net, subsequent token refresh attempts also verify that a valid consent exists — so even if a refresh
@@ -1881,6 +1804,246 @@ client may exchange for another.
 - Revoke access for a decommissioned audience
 - Respond to user requests to disconnect an application
 - Enforce access policies during security incidents
+
+---
+
+### Grant Management
+
+Endpoints for viewing and revoking the [grants](/functional/grant) every token is issued under. Requires the
+`admin:grants:read` scope for read operations and `admin:grants:write` to revoke.
+
+A person's grants are the ones filtered on `user_id`, and a client's the ones filtered on `client_id`: grants are one
+collection rather than one nested under each user, so a `client_credentials` grant, which no user holds, is listed
+too.
+
+#### List Grants
+
+**Path**: `/api/v1/admin/grants`
+
+**Method**: GET
+
+**Authentication**: Access token with `admin:grants:read` scope
+
+**Purpose**: Retrieves every grant this server still holds, whoever it was opened for. A grant that is revoked,
+expired or lapsed is listed until it is [collected](/functional/grant#what-a-grant-is-not), each with where it
+stands.
+
+**Query Parameters**:
+
+- `page`, `size`, `sort`, `q` and every filter criterion — see [Collections](#collections)
+
+**Fields**:
+
+| Field | Type | Sortable | Searchable |
+|---|---|---|---|
+| `actor_grant_id` | `uuid` | — | — |
+| `audience_id` | `enum` — the audiences this deployment configures, and those stored grants were opened for | — | Yes |
+| `client_id` | `enum` — the clients this deployment configures, and those stored grants were opened for | — | Yes |
+| `created_at` | `date_time` | Yes | — |
+| `expires_at` | `date_time` | Yes | — |
+| `grant_type` | `enum` — `authorization_code`, `client_credentials`, `urn:ietf:params:oauth:grant-type:token-exchange` | — | — |
+| `id` | `uuid` | — | — |
+| `revoked_at` | `date_time` | Yes | — |
+| `revoked_by` | `enum` — `client`, `admin`, `consent_revoked`, `authorization_code_replayed` | — | — |
+| `scope` | `enum` — the scopes this deployment enables | — | — |
+| `status` | `enum` — `live`, `revoked`, `expired`, `lapsed` | — | — |
+| `user_id` | `uuid` | — | — |
+
+`q` also matches every [identifier claim](/functional/claims#identifier-claims) of the user the grant was opened for, so a person's
+grants are found by typing their email address. `actor_grant_id`, `expires_at`, `revoked_at`, `revoked_by` and
+`user_id` may be absent, so each also admits `is_null`. A client or an audience the configuration no longer declares
+is still offered under `client_id` and `audience_id` while a stored grant names it.
+
+**Default order**: `created_at`, ascending.
+
+**Response Format**:
+
+```json
+{
+  "grants": [
+    {
+      "grant_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "user_id": "550e8400-e29b-41d4-a716-446655440000",
+      "client_id": "my-client-app",
+      "audience_id": "default",
+      "grant_type": "authorization_code",
+      "status": "live",
+      "created_at": "2026-03-28T10:00:00"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "total": 1
+}
+```
+
+**Properties**:
+
+- `grants`: Array of grants
+    - `grant_id`: Unique identifier of the grant
+    - `user_id`: The user the grant was opened for — on an act-as grant, the user the client acts as. Absent on a
+      `client_credentials` grant
+    - `client_id`, `audience_id`: The client and the [audience](/functional/audience) the grant was opened for
+    - `grant_type`: The grant type that opened the grant. A refresh opens none
+    - `status`: Where the grant stands:
+        - `live`: not revoked, not past its lifetime, and holding a token that has not expired or a code still to be
+          exchanged — what a revocation made now would reach
+        - `revoked`: revoked, whatever else holds of it
+        - `expired`: past the lifetime [`auth.grant.expiration`](/technical/configuration/authorization#auth-grant)
+          gave it
+        - `lapsed`: neither revoked nor expired, but left with no token that has not expired and no code still to be
+          exchanged
+    - `created_at`: When the grant was opened
+    - `expires_at`: When the grant's lifetime ends. Absent when it has none
+    - `revoked_at`, `revoked_by`: When the grant was revoked, and what revoked it — `client` through the
+      [revocation endpoint](/technical/security#token-revocation), `admin`, `consent_revoked`, or
+      `authorization_code_replayed`. Absent unless `status` is `revoked`
+    - `actor_grant_id`: On a grant obtained through a [token exchange](/functional/delegation), the grant of the token
+      the acting client presented
+- `page`: Current page number
+- `size`: Number of results per page
+- `total`: Total number of grants matching the filters
+
+**Use Cases**:
+
+- List where a person is signed in, one grant per device and client
+- Check that a revocation took
+- Find what a client removed from the configuration still holds
+
+---
+
+#### Get Grant
+
+**Path**: `/api/v1/admin/grants/{grant_id}`
+
+**Method**: GET
+
+**Authentication**: Access token with `admin:grants:read` scope
+
+**Purpose**: Retrieves everything a grant records: the properties [List Grants](#list-grants) returns, and what the
+authorization behind it decided.
+
+**Path Parameters**:
+
+- `grant_id`: Unique identifier of the grant
+
+**Response Format**:
+
+```json
+{
+  "grant_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "client_id": "my-client-app",
+  "audience_id": "default",
+  "grant_type": "authorization_code",
+  "status": "revoked",
+  "created_at": "2026-03-28T10:00:00",
+  "revoked_at": "2026-03-30T11:05:00",
+  "revoked_by": "admin",
+  "revoked_by_user_id": "1f0e2d3c-4b5a-6978-8a9b-0c1d2e3f4a5b",
+  "granted_scopes": ["openid"],
+  "granted_at": "2026-03-28T10:00:00",
+  "granted_by": "rule",
+  "consented_scopes": ["profile", "email"],
+  "consented_at": "2026-03-28T10:00:00",
+  "consented_by": "user",
+  "client_scopes": [],
+  "authenticated_at": "2026-03-28T09:59:40",
+  "requested_claims": {
+    "id_token": ["email"],
+    "userinfo": []
+  }
+}
+```
+
+**Errors**:
+
+| Error code | Description |
+|------------|-------------|
+| `not_found` | The resource you are looking for is not available on this authorization server. |
+
+A grant already collected is answered `not_found` too.
+
+**Properties** — besides those of [List Grants](#list-grants):
+
+- `revoked_by_user_id`: The administrator who revoked the grant. Absent unless `revoked_by` is `admin`
+- `granted_scopes`, `granted_at`, `granted_by`: The scopes the
+  [scope granting rules](/functional/user_authorization#scope-granting-rules) granted, when, and how — `auto`, `rule`,
+  or `webhook` for the [authorization webhook](/technical/authorization_webhook)
+- `consented_scopes`, `consented_at`, `consented_by`: The scopes the end-user [consented](/functional/consent) to,
+  when, and how — `auto` without being asked, or `user` on the consent step
+- `client_scopes`: The scopes a `client_credentials` grant gave the client on its own behalf
+- `authenticated_at`: When the end-user authenticated in the flow that opened the grant — the `auth_time` every token
+  under it states
+- `requested_claims`: The claims the `claims` parameter of the authorization request asked for, under `id_token` and
+  `userinfo`. Absent when it asked for none
+
+`granted_at`, `granted_by`, `consented_at`, `consented_by` and `authenticated_at` are absent on a `client_credentials`
+grant and on a token exchange, which no authorization request is behind.
+
+---
+
+#### Revoke Grants
+
+**Path**: `/api/v1/admin/grants/revoke`
+
+**Method**: POST
+
+**Authentication**: Access token with `admin:grants:write` scope
+
+**Purpose**: Revokes every grant the body names, and every token issued under them: each is refused on its next
+request. A grant a client obtained by [exchanging](/functional/delegation) one of their tokens is revoked with it.
+
+**Request Body**:
+
+```json
+{
+  "user_ids": ["550e8400-e29b-41d4-a716-446655440000"],
+  "client_ids": ["my-client-app"]
+}
+```
+
+- `grant_ids`: Identifiers of the grants to revoke
+- `user_ids`: Identifiers of the users whose grants to revoke
+- `client_ids`: Identifiers of the clients whose grants to revoke, including one the configuration no longer declares
+- `audience_ids`: Identifiers of the audiences whose grants to revoke, including one the configuration no longer
+  declares
+
+Each property sent narrows the grants revoked, and they narrow together: the body above revokes one person's grants
+on one client. At least one must be sent, and an empty list reaches no grant.
+
+| To revoke                                 | Send                       |
+|-------------------------------------------|----------------------------|
+| One grant — a person's stolen phone       | `grant_ids`                |
+| Everything a person holds — signing them out | `user_ids`              |
+| A person's grants on one client           | `user_ids` and `client_ids` |
+| Everything a client holds                 | `client_ids`               |
+
+**Response Format**:
+
+```json
+{
+  "grants_revoked": 2
+}
+```
+
+- `grants_revoked`: Number of grants this call revoked, the exchanged ones included. A grant that is no longer `live`
+  is left as it was, keeping the revocation that came first, and is not counted, so calling again answers `0`
+
+Each grant revoked is then [listed](#list-grants) as `revoked`, with `revoked_by` set to `admin` and
+`revoked_by_user_id` naming the administrator.
+
+**Errors**:
+
+| Error code | Description |
+|------------|-------------|
+| `grant.revoke.no_criterion` | Choose which grants to revoke: by grant, by user, by client or by audience. |
+
+**Use Cases**:
+
+- Respond to a compromised account by signing the person out everywhere
+- Sign a person out of one device, leaving their others signed in
+- Cut off every token a compromised client holds
 
 ---
 

@@ -142,7 +142,7 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 > Grant Management — which would return a `grant_id` for a client to query and revoke, and advertise
 > `grant_management_actions_supported` — is not served. A client withdraws what it holds through the
 > [revocation endpoint](/technical/security#token-revocation), which revokes the grant whichever token it is given, and an
-> administrator through the [Admin API](/technical/api/admin#force-logout).
+> administrator through the [Admin API](/technical/api/admin#revoke-grants).
 
 ### Scopes
 

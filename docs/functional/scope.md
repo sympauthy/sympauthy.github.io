@@ -75,14 +75,8 @@ Admin scopes are bound to the [audience](/functional/audience) configured in
 or receive admin scopes. This prevents privilege escalation where a client in an unrelated audience could
 obtain administrative access.
 
-| Scope                  | Description                                        |
-|------------------------|----------------------------------------------------|
-| `admin:config:read`    | View configuration resources (clients, claims)     |
-| `admin:users:read`     | View users                                         |
-| `admin:users:write`    | Create, update, disable, enable users              |
-| `admin:users:delete`   | Delete users (separated for GDPR sensitivity)      |
-| `admin:consent:read`   | View consents                                      |
-| `admin:consent:write`  | Revoke consents, force logout                      |
+The admin scopes, and the operations each one gates, are listed under
+[Admin Scopes](/technical/api/admin#admin-scopes).
 
 ## Client scope
 
