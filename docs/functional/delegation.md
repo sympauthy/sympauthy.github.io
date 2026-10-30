@@ -45,14 +45,16 @@ The exchange opens a [grant](/functional/grant) of its own, which records the gr
 acting client presented — its own [client-credentials](/functional/client_authorization) grant. The delegation never
 outlives that grant:
 
-- the acting client **revoking the token it exchanged** takes every delegated token obtained from it out of service at
-  once, and the exchange cannot be repeated;
+- the acting client **revoking the token it exchanged** — or an administrator
+  [revoking its grant](/technical/api/admin#revoke-grants) — revokes the [act-as grant](/functional/grant#act-as-grants)
+  of every delegated token obtained from it, at once, and the exchange cannot be repeated;
 - letting that grant **expire** — its tokens run out, or it reaches the end of the lifetime
   [`auth.grant.expiration`](/technical/configuration/authorization#auth-grant) gives it — refuses the delegated
   tokens too.
 
-A delegated token refused for either reason is answered **401** with
-[`grant.actor_revoked` or `grant.actor_expired`](/technical/api/client#why-an-access-token-is-refused).
+A delegated token is then answered **401**: with `grant.revoked` once its act-as grant is revoked with the actor's,
+and with `grant.actor_expired` once the actor's grant has expired while the delegated token has not — see
+[Why an access token is refused](/technical/api/client#why-an-access-token-is-refused).
 
 ## Single level of delegation
 

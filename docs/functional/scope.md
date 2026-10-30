@@ -1,11 +1,15 @@
 # Scope
 
-A **scope** is a named permission. When a client application requests access on behalf of a user, it declares which
+A **scope** is a named permission. When a [client application](/functional/client) requests access on behalf of a
+user, it declares which
 scopes it needs — for example, the right to read the user's email address, or access to a premium feature. The granted
 scopes are recorded inside the tokens SympAuthy issues. The client reads them to decide what the user is allowed to see
 or do.
 
-SympAuthy has three scope types, each with a distinct purpose, granting path, and grant type:
+SympAuthy has three scope types, each with a distinct purpose, granting path, and grant type. The **grant type** is
+how a client asks for its tokens — [`authorization_code`](/functional/user_authorization) when a person signs in,
+[`client_credentials`](/functional/client_authorization) when the client asks for itself — not the
+[grant](/functional/grant) the tokens are then issued under:
 
 | Type                                    | Protects          | Granted by                            | Grant type           |
 |-----------------------------------------|-------------------|---------------------------------------|----------------------|
@@ -36,15 +40,18 @@ Examples of consentable scopes:
 
 - `profile`, `email`, `address`, `phone` — OpenID Connect scopes that protect OpenID Connect claims.
 
-An [application claim](/functional/claim_kinds#an-application-claim) is not protected by a consentable scope by
-default — its [doors](/functional/claim_access#doors) open to a [client scope](/functional/scope#client-scope), whatever the end-user agreed
-to. It can still be made to require consent by writing `SCOPE_IS_CONSENTED("<scope>")` on a door of its
-[ACL](/technical/configuration/claim#claims-id-acl): consent gates disclosure, and says nothing about whose
-the value is. The claim's door replaces the template's rather than adding to it, so a door that should also open
-to the client scope keeps it: `SCOPE_IS_CONSENTED("<scope>") || SCOPE_IS_GRANTED("users:claims:read")`.
-
 See [User Authorization](/functional/user_authorization) for details on how consentable scopes are granted
 during an authorization flow.
+
+### Consent on an application claim
+
+An [application claim](/functional/claim_kinds#an-application-claim) is not protected by a consentable scope by
+default — its [doors](/functional/claim_access#doors) open to a [client scope](#client-scope), whatever the end-user
+agreed to. It can still be made to require consent by writing `SCOPE_IS_CONSENTED("<scope>")` on a door of its
+[ACL](/technical/configuration/claim#claims-id-acl): consent gates disclosure, and says nothing about whose
+the value is. The claim's door replaces the one its [claim template](/technical/configuration/claim#templates-claims-id)
+gives rather than adding to it, so a door that should also open to the client scope keeps it:
+`SCOPE_IS_CONSENTED("<scope>") || SCOPE_IS_GRANTED("users:claims:read")`.
 
 ## Grantable scope
 
@@ -57,8 +64,8 @@ Grantable scopes are granted during `authorization_code` flows through
 
 Examples of grantable scopes:
 
-- `openid` — a protocol signal indicating that the client is using OpenID Connect. It is grantable with a default scope
-  granting rule that automatically grants it.
+- `openid` — a protocol signal indicating that the client is using OpenID Connect. It is built in and granted
+  automatically whenever it is requested, without a scope granting rule.
 - `admin:*` — scopes that protect administrative resources of the authorization server.
 - Any custom scope that protects client resources without being tied to user claims.
 
@@ -75,14 +82,8 @@ Admin scopes are bound to the [audience](/functional/audience) configured in
 or receive admin scopes. This prevents privilege escalation where a client in an unrelated audience could
 obtain administrative access.
 
-| Scope                  | Description                                        |
-|------------------------|----------------------------------------------------|
-| `admin:config:read`    | View configuration resources (clients, claims)     |
-| `admin:users:read`     | View users                                         |
-| `admin:users:write`    | Create, update, disable, enable users              |
-| `admin:users:delete`   | Delete users (separated for GDPR sensitivity)      |
-| `admin:consent:read`   | View consents                                      |
-| `admin:consent:write`  | Revoke consents, force logout                      |
+The admin scopes, and the operations each one gates, are listed under
+[Admin Scopes](/technical/api/admin#admin-scopes).
 
 ## Client scope
 
@@ -112,9 +113,8 @@ See [Client Authorization](/functional/client_authorization) for details on clie
 
 A scope is exposed in one place: `scopes_supported` on the discovery document
 (`/.well-known/openid-configuration`). A deployment says so with
-[`published-in`](/technical/configuration/scope#scopes-id) — the same key a
-[claim](/functional/claims#where-a-claim-is-exposed) answers *where is this exposed* with, where it names
-several places instead of one.
+[`published-in`](/technical/configuration/scope#scopes-id). A [claim](/functional/claims#where-a-claim-is-exposed)
+uses the same key, but a claim can name several places where a scope names one.
 
 **Being advertised is not being served.** The discovery document is a hint to a client that has not been
 told what to ask for, and nothing consults it when an authorization request arrives. A scope is served
@@ -122,7 +122,7 @@ whether or not it appears there — so a deployment may hide one it serves, and 
 it is answered exactly as before. Whether the scope is served at all is the other question, and `enabled`
 is what answers it.
 
-Consentable and grantable scopes are advertised unless the deployment says otherwise: they have no value
+Consentable and grantable scopes, the admin ones aside, are advertised unless the deployment says otherwise: they have no value
 to keep back, and taking one out of `scopes_supported` would stop a client that configures itself from the
 document asking for something this server still serves. The [admin](#admin-scopes) and
 [client](#client-scope) scopes are never advertised, and no deployment decides that — a client scope is
@@ -137,7 +137,7 @@ supported by SympAuthy is the following:
 
 | Scope   | Type        | Origin  | Description                                                       |
 |---------|-------------|---------|-------------------------------------------------------------------|
-| openid  | Grantable   | OpenID Connect | Protocol signal for OpenID Connect. Auto-granted by default rule. |
+| openid  | Grantable   | OpenID Connect | Protocol signal for OpenID Connect. Granted automatically, without a rule. |
 | profile | Consentable | OpenID Connect |                                                                   |
 | email   | Consentable | OpenID Connect |                                                                   |
 | address | Consentable | OpenID Connect |                                                                   |
@@ -160,18 +160,14 @@ cannot request it. When `audience` is not set (the default), the scope is shared
 OpenID Connect and client scopes are always unscoped. Admin scopes are scoped to the audience configured in
 [`admin.audience`](/technical/configuration/admin).
 
-They can be declared either by configuration or by API.
+They are declared in the configuration: define a name, enable it, and set its type.
 
-### By configuration
-
-To create a custom scope using configuration, define a name, enable it, and set its type:
-
-```
-scope:
-- <scope>:
-  enabled: true
-  type: consentable  # or grantable (default)
-  audience: my-app   # optional — null means shared across all audiences
+```yaml
+scopes:
+  <scope>:
+    enabled: true
+    type: consentable  # or grantable (default)
+    audience: my-app   # optional — null means shared across all audiences
 ```
 
 You can refer to the [configuration](/technical/configuration/scope) to learn more.

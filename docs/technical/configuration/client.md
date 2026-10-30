@@ -118,9 +118,9 @@ on `/api/openid/userinfo` alike. The configuration is read at startup, so the re
 restarts.
 
 The grants are **refused, not revoked**: nothing is written to them. Re-declaring the same `<id>` therefore serves
-their unexpired tokens again, refresh tokens included. To end them for good, revoke the grants while the client is
-still declared — see [a grant does not outlive its
-client](/functional/grant#a-grant-does-not-outlive-its-client).
+their unexpired tokens again, refresh tokens included. To end them for good, [revoke the
+grants](/technical/api/admin#revoke-grants) by the client's identifier, which works whether or not the configuration
+still declares it — see [a grant does not outlive its client](/functional/grant#a-grant-does-not-outlive-its-client).
 
 ## ```templates.clients.<id>```
 
