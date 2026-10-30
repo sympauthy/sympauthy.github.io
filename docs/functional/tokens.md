@@ -16,7 +16,7 @@ is in service only while that grant is.
 ## Access token
 
 The **access token** is the credential the client presents whenever it wants to access a protected resource. It is
-proof that the user has been authenticated and that certain permissions ([scopes](scope)) have been granted.
+proof that the user has been authenticated and that certain permissions ([scopes](/functional/scope)) have been granted.
 
 Access tokens are intentionally short-lived. If one is stolen, it becomes useless quickly. When it expires, the client
 uses the [refresh token](#refresh-token) to obtain a new one without asking the user to sign in again.
@@ -31,7 +31,7 @@ the `at+jwt` type header and contains the following claims:
 |-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|
 | `iss`       | Issuer — the URL of this authorization server.                                                                                                                                                                                                                           | MUST     |
 | `exp`       | Expiration time.                                                                                                                                                                                                                                                         | MUST     |
-| `aud`       | Audience the token is intended for. The value comes from the `token-audience` of the [audience](/functional/audience) the client belongs to.                                                                                                                              | MUST     |
+| `aud`       | Audience the token is intended for. The value comes from the [`token-audience`](/functional/audience#token-audience) of the [audience](/functional/audience) the client belongs to.                                                                                                                              | MUST     |
 | `sub`       | Subject — the authenticated user's identifier.                                                                                                                                                                                                                           | MUST     |
 | `client_id` | The client that requested the token.                                                                                                                                                                                                                                     | MUST     |
 | `iat`       | Issued-at time — when *this token* was minted. It moves on every refresh, so it does not say how recently the user signed in; [`auth_time`](#when-the-user-authenticated) does.                                                                                            | MUST     |
@@ -45,7 +45,7 @@ The client can read this information directly from the token without making an a
 
 ### A claim in an access token
 
-Beside what it says about its own authorization, an access token can carry [claims](claims) about the
+Beside what it says about its own authorization, an access token can carry [claims](/functional/claims) about the
 end-user. A deployment names `access-token` in a claim's
 [`published-in`](/technical/configuration/claim#claims-id-published-in), and the value then travels under
 the claim's own identifier, where
@@ -55,8 +55,8 @@ credential it already holds, rather than a round trip to `/userinfo` or to intro
 
 It is also the place a value travels furthest, and the trade is not the ID token's:
 
-- an access token is a **bearer credential presented on every request**, to every resource server of its
-  [audience](/functional/audience), for the whole life of the token — where an ID token is handed over
+- an access token is a **[bearer](#sender-constrained-tokens-dpop) credential presented on every request** (whoever
+  holds it can use it), to every resource server of its [audience](/functional/audience), for the whole life of the token — where an ID token is handed over
   once;
 - nothing encrypts it, so a claim in one is readable by every party the credential passes through;
 - **withdrawing a claim from a token already issued means revoking the [grant](/functional/grant) it was
@@ -96,12 +96,14 @@ The **refresh token** is a long-lived credential whose only purpose is to let th
 when the current one expires. It is never sent to protected resources — only back to SympAuthy.
 
 When the client detects that its access token has expired, it sends the refresh token to SympAuthy. SympAuthy validates
-it and issues a fresh access token in return. From the user's perspective, this happens silently: they stay signed in
+it and issues a fresh access token in return, with a fresh ID token when the grant carries the `openid` scope. A new
+refresh token comes back only when the one presented would expire before the new access token; otherwise the client
+keeps using the one it has. From the user's perspective, this happens silently: they stay signed in
 without being prompted to authenticate again.
 
 ### Expiration
 
-Refresh tokens have a much longer lifespan than access tokens — typically hours to days. The exact duration is
+Refresh tokens have a much longer lifespan than access tokens — thirty days by default, against an hour. The exact duration is
 controlled by the [`auth.token.refresh-expiration`](/technical/configuration/authorization#auth-token) configuration
 key.
 
@@ -115,7 +117,7 @@ user signs in again.
 
 ## ID token
 
-The **ID token** contains information about the authenticated user — their [claims](claims) such as a name, an email
+The **ID token** contains information about the authenticated user — their [claims](/functional/claims) such as a name, an email
 address, or any custom attributes you have configured. It is intended for the client to read, not for accessing
 resources.
 
@@ -135,7 +137,7 @@ names `id-token` reaches it too, but only for an authorization that
 ID tokens have the same lifespan as access tokens by default. A deployment may give them one of their own with
 [`auth.token.id-expiration`](/technical/configuration/authorization#auth-token), which falls back to
 [`auth.token.access-expiration`](/technical/configuration/authorization#auth-token) when it is not set. Once expired,
-the client should use the refresh token to obtain a fresh set of tokens.
+the client uses the refresh token to obtain a fresh access token and ID token.
 
 ## When the user authenticated
 
@@ -191,12 +193,12 @@ validation — for example, to check whether a token has been revoked.
 
 SympAuthy provides a token introspection endpoint (`/api/oauth2/introspect`) that accepts a token and returns whether
 it is active, along with metadata such as the granted scopes, the client that requested the token, and the
-authenticated user. The response also carries the [claims](claims) a deployment
+authenticated user. The response also carries the [claims](/functional/claims) a deployment
 [exposes](/functional/claims#where-a-claim-is-exposed) in the introspection response, each as a top-level
 member.
 
 For technical details on the endpoint, authentication requirements, and response format, see the
-[Security](../technical/security#token-introspection) documentation.
+[Security](/technical/security#token-introspection) documentation.
 
 ## Staying signed in
 
@@ -216,7 +218,8 @@ The user will be prompted to sign in again when:
   extends,
 - the deployment removed the client from its configuration, or moved it to another audience
   ([a grant does not outlive its client](/functional/grant#a-grant-does-not-outlive-its-client)),
-- the client explicitly signs the user out.
+- the client discards its tokens to sign the user out of itself, which revokes nothing unless it also calls the
+  [revocation endpoint](/technical/security#token-revocation).
 
 ## Sender-constrained tokens (DPoP)
 
@@ -250,4 +253,4 @@ Refresh tokens are also bound to the DPoP key. When refreshing a DPoP-bound toke
 proof signed with the same key that was used during the original token issuance.
 
 For technical details on the DPoP mechanism and configuration, see the
-[Security](../technical/security#dpop-demonstrating-proof-of-possession) documentation.
+[Security](/technical/security#dpop-demonstrating-proof-of-possession) documentation.

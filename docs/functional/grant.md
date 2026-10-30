@@ -1,13 +1,14 @@
 # Grant
 
-A **grant** is the record of what a client was allowed. Every token SympAuthy issues — access, refresh and ID alike —
-is issued under a grant, and a token is in service only while its grant is. The grant is what makes signing an
+A **grant** is the record of what a [client](/functional/client) — an application signing people in through
+SympAuthy — was allowed. Every [token](/functional/tokens) SympAuthy issues — access, refresh and ID alike — is issued
+under a grant, and a token is in service only while its grant is. The grant is what makes signing an
 end-user out a single act: however often a client refreshed its tokens, everything it holds for one authorization
 stands under the one grant, so taking that grant out of service takes every one of those tokens with it, at the same
 instant. This page covers:
 
 - what a grant records, and when one is opened;
-- how long a grant lives, and what takes it out of service;
+- how long a grant lives, what takes it out of service, and where a grant stands;
 - how a grant follows its client and, for a delegation, the actor's grant;
 - the places a grant is used from;
 - what a grant is not.
@@ -19,10 +20,13 @@ A grant holds what every token under it has in common:
 - The **end-user** it was opened for — absent for a [`client_credentials`](/functional/client_authorization) grant,
   which no person is behind.
 - The **client** that was allowed, and the **[audience](/functional/audience)** the grant was opened for.
-- The **[scopes](/functional/scope)** — consented, granted and client scopes — and when and how each set was obtained.
+- The **[scopes](/functional/scope)** — the [consentable](/functional/scope#consentable-scope) ones the end-user
+  consented to, the [grantable](/functional/scope#grantable-scope) ones granted to them, and the
+  [client scopes](/functional/scope#client-scope) — and when and how each set was obtained.
 - **When the end-user authenticated**, which every token under the grant states as
   [`auth_time`](/functional/tokens#when-the-user-authenticated) — absent from a `client_credentials` grant, which no
-  person is behind, and from a token exchange, which asserts an identity nobody proved.
+  person is behind, and from a [token exchange](/functional/delegation) — a client obtaining a token to act as a person
+who did not sign in — which asserts an identity nobody proved.
 - The **[claims the authorization asked for](/functional/claims#asking-for-a-claim-in-the-request)** by name, so a
   token minted months later honours the same request the first one did.
 - The **[places](#the-places-a-grant-is-used-from)** it was used from — absent from a `client_credentials` grant and
@@ -38,16 +42,16 @@ Three things open a grant:
 - an **[interactive flow](/functional/interactive_flow)** that completes — the grant is opened as the flow ends, just
   before the authorization code is handed out, and exchanging that code issues tokens under it;
 - a **`client_credentials`** request;
-- a **[token exchange](/functional/delegation)**, which opens an act-as grant recording the grant of the token the
-  acting client presented.
+- a **[token exchange](/functional/delegation)**, which opens an [act-as grant](#act-as-grants).
 
 **A refresh opens none.** It issues its tokens under the grant of the refresh token it was given, which is why
 `auth_time` does not move when a client refreshes: the authentication is the grant's, not the token's.
 
 ## How long a grant lives
 
-By default a grant has no lifetime of its own. It lasts as long as its client keeps refreshing, and the end-user signs
-in again only once the [refresh token](/functional/tokens#refresh-token) expires.
+By default a grant has no lifetime of its own — an [act-as grant](#act-as-grants) aside. It lasts as long as its
+client keeps refreshing, and the end-user signs in again only once the
+[refresh token](/functional/tokens#refresh-token) expires.
 
 Setting [`auth.grant.expiration`](/technical/configuration/authorization#auth-grant) gives every grant an
 **absolute lifetime that no refresh extends**. Once it has passed, the refresh is refused however long the refresh
@@ -60,16 +64,37 @@ honouring it when the grant stops.
 A grant is revoked, never one token of it. Each of these signs the end-user out of everything the grant covers:
 
 - an **administrator** through the [Admin API](/technical/api/admin#revoke-grants), naming one grant, every grant of a
-  person — signing them out — or every grant of a client or an audience;
+  person — signing them out, the act-as grants a client holds for them included — or every grant of a client or an
+  audience;
 - the client's own call to the **[revocation endpoint](/technical/security#token-revocation)** — whichever token it presents,
   an access token as surely as a refresh token;
 - the end-user's **[consent](/functional/consent#revoking-consent)** being revoked, which reaches every grant that
-  end-user holds for the audience, act-as grants aside;
+  end-user holds for the audience, [act-as grants](#act-as-grants) aside;
 - the **authorization code being presented a second time**, which
   [revokes the grant it was issued under](/technical/security#authorization-code-security).
 
 An authorization code not yet exchanged is reached with its grant too: a consent revoked, or an end-user signed out,
 between the sign-in and the exchange leaves the code unspendable.
+
+A token of a revoked grant is refused with **401** `grant.revoked`, and its refresh with `invalid_grant` — see
+[Why an access token is refused](/technical/api/client#why-an-access-token-is-refused). The client recovers by sending
+the end-user through a new authorization.
+
+## Where a grant stands
+
+At any moment, a grant this server still holds stands in one of these states:
+
+- **live** — not revoked, not past its lifetime, and holding a token that has not expired or an authorization code
+  still to be exchanged. It is what a revocation made now would reach.
+- **revoked** — taken out of service by one of the revocations above, whatever else holds of it.
+- **expired** — past its [lifetime](#how-long-a-grant-lives).
+- **lapsed** — neither revoked nor expired, but left with no token that has not expired and no code still to be
+  exchanged: its client stopped refreshing.
+
+A grant that is no longer live is **collected** — deleted with its tokens — by the
+[scheduled sweep](/technical/configuration/advanced#scheduled-cleanups) on its next run, within fifteen minutes, once no
+authorization code names it any longer. An administrator [reads](/technical/api/admin#list-grants) where each grant
+stands until then.
 
 ## A grant does not outlive its client
 
@@ -85,22 +110,28 @@ grants it already holds: their tokens are refused on every surface and cannot be
 again at once. Their tokens were issued for an audience the client has left, and a consent revoked for that audience
 could no longer reach tokens issued for the new one.
 
-## Delegation follows the actor's grant
+## Act-as grants
 
-A grant opened by a [token exchange](/functional/delegation) records the grant of the token the acting client
-presented — its own `client_credentials` grant. The delegation never outlives it: revoking that token takes every
-delegated token obtained from it out of service, and so does letting its grant expire.
+An **act-as grant** is the grant a [token exchange](/functional/delegation) opens, when a client obtains a token to
+act as a person. It records the grant of the token the acting client presented — its own `client_credentials` grant —
+and the delegation never outlives it: revoking that token revokes every act-as grant opened from it, and so every
+delegated token obtained from it.
+
+An act-as grant also expires no later than the token it was exchanged from, whether or not
+[`auth.grant.expiration`](/technical/configuration/authorization#auth-grant) is set: it is the one grant with a
+lifetime of its own by default.
 
 ## The places a grant is used from
 
 A **place** is where a grant was used from: the address a request came from and the user agent it named — the
-`User-Agent` header a browser or an application sends — with the location the deployment's edge gave for that
-address. The same address and user agent seen again under the grant is the same place, even where the location
+`User-Agent` header a browser or an application sends — with the location the deployment's
+[edge](/technical/configuration/security-context#the-edges) gave for that address. The same address and user agent seen again under the grant is the same place, even where the location
 differs.
 
 A grant opens with the place the end-user proved who they were at, and only a
 [public client](/functional/client#confidential-and-public-clients)'s successful code exchanges and refreshes add to
-it: a confidential client's come from its own backend. A `client_credentials` grant and a token exchange have none.
+it. A confidential client sends those requests from its own server, whose address says nothing about where the
+end-user is. A `client_credentials` grant and a token exchange have none.
 An end-user's places are those of the grants they hold, so signing out and back in from the same device opens a new
 grant with a new place. No API serves them, no client is shown them, and no request is refused because of them —
 how they are read and how long they are kept is on the [Security Context](/technical/configuration/security-context#what-is-kept)
@@ -111,11 +142,9 @@ page.
 - **It is not shown to the client.** [Grant Management](/technical/oauth2_compatibility#features), which would let a
   client query and revoke a grant by identifier, is not served.
 - **It is not an audit trail.** An administrator [reads](/technical/api/admin#grant-management) who revoked a grant
-  and when only until the [scheduled sweep](/technical/configuration/advanced#scheduled-cleanups) collects it: the
-  sweep deletes the tokens of a revoked grant, and then every grant that no token and no authorization code names any
-  longer, and the record goes with it. A grant whose code is still stored waits for that code, which is
-  collected once [its own lifetime](/technical/configuration/authorization#auth-authorization-code) has passed,
-  exchanged or not.
+  and when only until it is [collected](#where-a-grant-stands), within fifteen minutes, and the record goes with it. A
+  grant whose code is still stored waits for that code, which is collected once
+  [its own lifetime](/technical/configuration/authorization#auth-authorization-code) has passed, exchanged or not.
 
 ## Relation to other concepts
 
@@ -124,5 +153,6 @@ page.
   holds for that audience.
 - **[Audiences](/functional/audience)** — a grant is opened for one audience and cannot serve another.
 - **[Clients](/functional/client)** — a grant is opened for one client, and does not outlive its declaration.
-- **[Delegation](/functional/delegation)** — an act-as grant rests on the act-as rules and on the actor's own grant,
+- **[Delegation](/functional/delegation)** — an [act-as grant](#act-as-grants) rests on the act-as rules and on the
+  actor's own grant,
   not on a consent.

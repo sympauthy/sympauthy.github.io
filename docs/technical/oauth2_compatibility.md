@@ -51,7 +51,7 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 
 > SympAuthy supports sender-constrained tokens via DPoP ([RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449)).
 > When a client sends a valid DPoP proof, the issued access token is bound to the client's key pair and returned with
-> `token_type: "DPoP"`. See the [Security](security#dpop-demonstrating-proof-of-possession) documentation for details.
+> `token_type: "DPoP"`. See the [Security](/technical/security#dpop-demonstrating-proof-of-possession) documentation for details.
 
 ## Client Authentication Methods
 
@@ -84,7 +84,7 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 > interception and recommends `S256` for all deployments.
 
 > OAuth 2.1 requires PKCE for all clients using the authorization code flow. SympAuthy enforces this for both
-> public and confidential clients. See the [Security](security#pkce-proof-key-for-code-exchange) documentation
+> public and confidential clients. See the [Security](/technical/security#pkce-proof-key-for-code-exchange) documentation
 > for details.
 
 > An authorization code is spent by the exchange that is issued tokens. A second exchange of the same code is refused
@@ -92,7 +92,7 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 > [grant](/functional/grant) the code was issued under** — every token the first exchange was issued, and every token
 > refreshed from them — so a client that retries an exchange whose response it lost signs the end-user out. A code
 > whose grant was revoked before it was exchanged is refused for that too. See
-> [authorization code security](security#authorization-code-security).
+> [authorization code security](/technical/security#authorization-code-security).
 
 > `max_age` is satisfied by construction: SympAuthy keeps no session between authorizations, so every authorization
 > signs the end-user in anew. See [Authentication](/functional/authentication#asking-for-a-recent-authentication) for
@@ -153,7 +153,7 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 | `email`       | Supported     | User email claims                 |
 | `address`     | Supported     | User address claims               |
 | `phone`       | Supported     | User phone claims                 |
-| Custom Scopes | Not Supported | Application-specific scopes       |
+| Custom Scopes | Supported     | Application-specific [consentable or grantable scopes](/functional/scope#custom-scopes); custom client scopes are not supported |
 
 ## Endpoints
 
