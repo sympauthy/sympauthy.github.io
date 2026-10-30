@@ -79,10 +79,10 @@ nothing is written to them — so re-declaring the same client id serves their u
 included. Ending them for good means revoking them while the client is still declared: afterwards only a force logout
 of the person reaches them, since the per-client one needs a client the configuration still names.
 
-A grant also belongs to the audience it was opened for. A client moved to another audience can no longer refresh the
-grants it already holds — their tokens were issued for an audience the client has left, and a consent revoked for that
-audience could no longer reach tokens issued for the new one — so the end-user signs in again once the access token in
-hand expires.
+A grant also belongs to the audience it was opened for. A client moved to another audience can no longer use the
+grants it already holds: their tokens are refused on every surface and cannot be refreshed, so the end-user signs in
+again at once. Their tokens were issued for an audience the client has left, and a consent revoked for that audience
+could no longer reach tokens issued for the new one.
 
 ## Delegation follows the actor's grant
 

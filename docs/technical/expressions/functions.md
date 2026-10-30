@@ -75,7 +75,7 @@ expressions:
 | Available in       | Evaluated against                                                         |
 |--------------------|---------------------------------------------------------------------------|
 | ```rules.user```   | the authenticating user's claims of the audience the authorization is for |
-| ```rules.act_as``` | the target user's claims of the audience the token exchange names         |
+| ```rules.act_as``` | the target user's claims of the acting client's audience                  |
 
 A claim restricted to another [audience](/functional/audience) answers as if it was never collected.
 
@@ -96,7 +96,7 @@ expressions:
 | Available in       | Evaluated against                                                         |
 |--------------------|---------------------------------------------------------------------------|
 | ```rules.user```   | the authenticating user's claims of the audience the authorization is for |
-| ```rules.act_as``` | the target user's claims of the audience the token exchange names         |
+| ```rules.act_as``` | the target user's claims of the acting client's audience                  |
 
 A claim restricted to another [audience](/functional/audience) answers as if it was never collected.
 

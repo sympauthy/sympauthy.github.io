@@ -140,6 +140,7 @@ why.
 | `token.invalid_token_id`      | This server issued no such access token.                                                             |
 | `grant.revoked`               | The [grant](/functional/grant) the access token was issued under was revoked.                         |
 | `grant.client_disabled`       | The client the grant of the access token was opened for is [no longer in the configuration](/technical/configuration/client#removing-a-client). |
+| `grant.mismatching_audience`  | The grant of the access token was opened for an audience the client has since [moved out of](/functional/grant#a-grant-does-not-outlive-its-client). |
 | `grant.actor_revoked`         | The access token was obtained by token exchange, and the grant of the token presented in that exchange was revoked. |
 | `grant.actor_expired`         | The access token was obtained by token exchange, and the grant of the token presented in that exchange has expired. |
 

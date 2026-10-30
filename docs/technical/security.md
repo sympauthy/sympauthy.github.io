@@ -161,19 +161,21 @@ Revoking a grant also revokes the grants opened by exchanging its tokens: a clie
 **A grant does not outlive its client.** When a deployment removes a client from its configuration, every unexpired
 token of every grant opened for that client is refused with **401** `grant.client_disabled` on every surface. The
 grants are refused rather than revoked — nothing is written to them — so re-declaring the same client id serves their
-unexpired tokens again until they expire. Moving a client to another audience refuses nothing, but stops its grants
-being refreshed: the refresh answers `invalid_grant` and `grant.mismatching_audience` and the end-user signs in again,
-because tokens issued for the new audience would rest on a consent whose revocation could not reach the grant they
-stand under. The unexpired access tokens of those grants serve out their own lifetime. See
+unexpired tokens again until they expire. Moving a client to another audience ends what it was granted in the old one:
+every token of a grant opened for the old audience is refused with **401** `grant.mismatching_audience` on every
+surface and answered as inactive at introspection, and its refresh answers `invalid_grant` with the same code, so the
+end-user signs in again. Everything such a grant stands for — the `aud` of its tokens, the claims they carry, the
+consent they rest on — belongs to an audience the client has left. See
 [removing a client](/technical/configuration/client#removing-a-client).
 
 ## Token introspection
 
 SympAuthy implements
 the [OAuth 2.0 Token Introspection specification (RFC 7662)](https://datatracker.ietf.org/doc/html/rfc7662) at
-`/api/oauth2/introspect`. Resource servers and other authorized parties can submit a token to this endpoint to determine
-whether it is still active and to retrieve metadata about it. The endpoint requires client authentication (Client Secret
-Basic or Client Secret Post). As at the revocation endpoint, `token_type_hint` is accepted and ignored — the type is
+`/api/oauth2/introspect`. A client submits a token it was issued to this endpoint to determine whether it is still
+active and to retrieve metadata about it. The endpoint requires client authentication (Client Secret Basic or Client
+Secret Post). A token issued to another client, or under a grant opened for another audience than the one the client
+belongs to now, is answered as inactive, as is one that does not validate, has expired or was revoked. As at the revocation endpoint, `token_type_hint` is accepted and ignored — the type is
 read off the token.
 
 The response reports `auth_time`, [when the end-user authenticated](/functional/tokens#when-the-user-authenticated),

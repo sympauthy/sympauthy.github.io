@@ -199,11 +199,11 @@ audience is never answered to another one: it is left out of every token, of `/u
 introspection response and of the [Client API](/technical/api/client), and a client naming it in a write is
 refused. A claim with no `audience` set is shared across all audiences.
 
-The audience a decision is made for is not always the caller's own:
+The audience a decision is made for is the one of the client behind it:
 
 - A client is answered for the audience its own credential belongs to.
 - An interactive flow works in the audience of the client that started it.
-- An [act-as token](/functional/delegation) is issued for the audience the token exchange names.
+- An [act-as token](/functional/delegation) is issued for the audience of the acting client.
 
 An administrator is the only reader that audience restrictions do not apply to.
 
