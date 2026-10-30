@@ -31,6 +31,10 @@ behind it, so no [consentable](/functional/scope#consentable-scope) or
 [grantable](/functional/scope#grantable-scope) scope can be attached. The resource server authorizes
 the request from the asserted identity plus the trusted actor.
 
+The delegated token is issued for the acting client's own [audience](/functional/audience), and the
+[act-as rules](#act-as-rules) read the user's claims of that audience. A client never obtains a token whose `aud`
+names applications it is not part of, nor the claims restricted to them.
+
 Because it rests on the act-as rules and not on a consent, revoking the user's
 [consent](/functional/consent#revoking-consent) leaves a delegated token in service, and the acting
 client may exchange for another. Withdraw the act-as rule to stop it.
@@ -131,8 +135,10 @@ The request parameters are:
 | ```subject_token```             | **YES**  | The client's **own** [client-credentials](/functional/client_authorization) access token. It proves the client is the actor — SympAuthy derives the `act` claim from it.                       |
 | ```subject_token_type```        | **YES**  | ```urn:ietf:params:oauth:token-type:access_token```.                                                                                                                                           |
 | ```requested_subject```         | **YES**  | The id of the user to act on behalf of.                                                                                                                                                        |
-| ```resource``` / ```audience``` | NO       | The target [audience](/functional/audience) for the issued token. Must match a configured audience; defaults to the acting client's own audience.                                              |
+| ```audience```                  | NO       | The acting client's own [audience](/functional/audience), by its `token-audience` or its id. A client acts on behalf of a user only in its own audience: any other value is refused with ```invalid_target```. Defaults to that audience. |
 | ```requested_token_type```      | NO       | If present, must be ```urn:ietf:params:oauth:token-type:access_token``` — only access tokens can be issued.                                                                                     |
+
+Sending ```resource``` is refused with ```invalid_target```: name the audience with ```audience``` instead.
 
 The response is a standard token response with an additional ```issued_token_type```. **No refresh
 token and no ID token are issued.** [DPoP](/functional/tokens#sender-constrained-tokens-dpop) applies
