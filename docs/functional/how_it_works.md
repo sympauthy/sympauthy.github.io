@@ -112,15 +112,15 @@ applications have access to their data.
 
 ## Summary
 
-| Concept              | What it means in plain terms                                                                          |
-|----------------------|-------------------------------------------------------------------------------------------------------|
-| Authorization server | SympAuthy itself — the service that authenticates users and issues tokens                             |
-| Client               | An application that uses SympAuthy for its login                                                      |
-| Audience             | A grouping of clients representing a logical application. Clients in the same audience share consents |
-| End-user             | A person signing into a client application                                                            |
-| Provider             | A trusted third-party service (e.g. Google) that can authenticate a user on SympAuthy's behalf        |
-| Claim                | A piece of information about the user (name, email, role…)                                            |
-| Scope                | A named permission — consentable (protecting user claims), grantable (protecting resources), or client (protecting client operations) |
-| Consent              | The record that a user has authorized an audience to access specific scopes                           |
-| Token                | A credential the client receives after authentication, containing the user's identity and permissions |
-| Grant                | The record of what a client was allowed. Every token is issued under one, and revoking it signs the user out of that client |
+| Concept                                                      | What it means in plain terms                                                                                                          |
+|--------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
+| [Audience](/functional/audience)                             | A grouping of clients representing a logical application. Clients in the same audience share consents                                 |
+| [Authorization server](#the-three-actors)                    | SympAuthy itself — the service that authenticates users and issues tokens                                                             |
+| [Claim](/functional/claims)                                  | A piece of information about the user (name, email, role…)                                                                            |
+| [Client](/functional/client)                                 | An application that uses SympAuthy for its login                                                                                      |
+| [Consent](/functional/consent)                               | The record that a user has authorized an audience to access specific scopes                                                           |
+| [End-user](#the-three-actors)                                | A person signing into a client application                                                                                            |
+| [Grant](/functional/grant)                                   | The record of what a client was allowed. Every token is issued under one, and revoking it signs the user out of that client           |
+| [Provider](/functional/authentication#third-party-providers) | A trusted third-party service (e.g. Google) that can authenticate a user on SympAuthy's behalf                                        |
+| [Scope](/functional/scope)                                   | A named permission — consentable (protecting user claims), grantable (protecting resources), or client (protecting client operations) |
+| [Token](/functional/tokens)                                  | A credential the client receives after authentication, containing the user's identity and permissions                                 |
