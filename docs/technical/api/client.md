@@ -1,15 +1,16 @@
 # Client API
 
 The Client API provides endpoints allowing client applications to query the authorization server for information about
-end-users. This API enables client applications to retrieve user data and manage the claims they are authorized to
-write.
+end-users. This API enables client applications to retrieve user data and manage the [claims](/functional/claims) —
+the pieces of information held about an end-user — they are authorized to write.
 
 All Client API endpoints are under `/api/v1/client/` and require client authentication.
 
 ## Client Scopes
 
 Client scopes follow the `{resource}:{action}` naming convention. They control what operations a client application
-can perform through the Client API. See [Scope](/functional/scope#client-scope) for details on how client scopes
+can perform through the Client API, or open the claim [doors](/functional/claim_access#doors) whose expression asks
+for them. See [Scope](/functional/scope#client-scope) for details on how client scopes
 are granted.
 
 | Scope                | Description                                              |
@@ -17,8 +18,8 @@ are granted.
 | `invitations:read`   | List and view [invitations](/functional/invitation) created by this client |
 | `invitations:write`  | Create and revoke [invitations](/functional/invitation)  |
 | `users:read`         | List users with consented scopes                         |
-| `users:claims:read`  | Read the claims whose `readable-by-client` door asks for it, as the shipped `application` template's does |
-| `users:claims:write` | Write the claims whose `writable-by-client` door asks for it, as the shipped `application` template's does |
+| `users:claims:read`  | Read, through the [claim endpoints](#claims), the claims whose `readable-by-client` door asks for it — as the shipped `application` [template](/technical/configuration/claim#templates-claims-id)'s door does |
+| `users:claims:write` | Write, through the [claim endpoints](#claims), the claims whose `writable-by-client` door asks for it — as the shipped `application` template's door does |
 | `users:mfa:read`     | *(Reserved)* Read a user's MFA enrollment status — no endpoint consumes it yet |
 | `users:mfa:write`    | Start [MFA enrollment](#multi-factor-authentication-mfa) for a signed-in user |
 | `users:providers:write` | Start [provider linking](#provider-linking) for a signed-in user      |
@@ -89,7 +90,10 @@ reads and writes there.
 - If no access token is sent: **401 Unauthorized** (`unauthorized`)
 - If a token is sent but cannot be accepted: **401 Unauthorized** with the code saying why — see
   [Why an access token is refused](#why-an-access-token-is-refused)
-- If the token is valid but lacks the scope the endpoint requires: **403 Forbidden** (`forbidden`)
+- If the token was not obtained through `client_credentials` — an end-user's access token, for instance: **403
+  Forbidden** (`forbidden`), on every endpoint, the claim endpoints included
+- If the token is valid but lacks the scope the endpoint requires: **403 Forbidden** (`forbidden`). The claim
+  endpoints never answer this case.
 
 The required scope for each endpoint is documented in the [Endpoints](#endpoints) section below.
 
@@ -110,7 +114,7 @@ The following errors may be returned by any endpoint:
 | Error code              | Status | Description                                                                    |
 |-------------------------|--------|--------------------------------------------------------------------------------|
 | `unauthorized`          | 401    | The access to this resource is protected. Please authenticate before retrying. |
-| `forbidden`             | 403    | The access token does not include the required scope to access this resource.  |
+| `forbidden`             | 403    | The access token does not include the required scope to access this resource. Also answered to a token not obtained through `client_credentials`, as described in [Authorization](#authorization). |
 | `parameter.malformed`   | 400    | A parameter cannot be read as the type the operation expects.                  |
 | `parameter.missing`     | 400    | A required parameter was not carried by the request.                           |
 | `not_found`             | 404    | The resource you are looking for is not available on this authorization server. |
@@ -377,9 +381,14 @@ It orders on nothing and searches nothing, so a `sort` or a `q` sent to it is re
 
 ### Claims
 
-Endpoints for reading and updating user claims. What a client may read or write is decided by each claim's
-[ACL](/functional/claim_access) alone: no scope is required to call them, and the scopes below matter only where a
-claim's door asks for them, as the shipped `application` template's do.
+Endpoints for reading and updating user claims. Calling them requires no scope: what a client may read or write is
+decided by each claim's [ACL](/functional/claim_access), not by a scope of the endpoint. `users:claims:read` and
+`users:claims:write` matter only where a claim's [door](/functional/claim_access#doors) asks for them, as the shipped
+`application` [template](/technical/configuration/claim#templates-claims-id)'s doors do.
+
+Both endpoints answer `not_found` for a user with no active [consent](/functional/consent) for the client's
+[audience](/functional/audience) — one that never consented, or whose consent was revoked — exactly as for a user that
+does not exist. For a user who consented, the ACL decides which of their claims the client reads and writes.
 
 #### Get User Claims
 
@@ -388,7 +397,8 @@ claim's door asks for them, as the shipped `application` template's do.
 **Method**: GET
 
 **Authentication**: Access token of the client, obtained through `client_credentials`. Which claims it is told is
-decided by each claim's [`readable-by-client`](/technical/configuration/claim#claims-id-acl) door alone.
+decided by each claim's [`readable-by-client`](/technical/configuration/claim#claims-id-acl) door, not by a scope of
+the endpoint.
 
 **Purpose**: Retrieves claims associated with a specific end-user. Returns claims that the client is authorized to
 read based on each claim's [ACL](/technical/configuration/claim#claims-id-acl).
@@ -399,20 +409,21 @@ read based on each claim's [ACL](/technical/configuration/claim#claims-id-acl).
 
 **Response Format**:
 
-`200 OK`:
+`200 OK`, for a client holding `users:claims:read`, about an end-user who consented to `profile`, `email` and `phone`
+for its audience:
 
 ```json
 {
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
   "claims": {
+    "sub": "550e8400-e29b-41d4-a716-446655440000",
+    "updated_at": 1768487400,
     "email": "user@example.com",
-    "email_verified": true,
     "name": "John Doe",
     "given_name": "John",
     "family_name": "Doe",
     "phone_number": "+1234567890",
-    "phone_number_verified": false,
-    "birthdate": "1990-01-15",
+    "birth_date": "1990-01-15",
     "department": "Engineering",
     "employee_id": "EMP-12345"
   }
@@ -421,9 +432,9 @@ read based on each claim's [ACL](/technical/configuration/claim#claims-id-acl).
 
 **Errors**:
 
-| Error code | Description |
-|------------|-------------|
-| `not_found` | The resource you are looking for is not available on this authorization server. |
+| Error code | Status | Description |
+|------------|--------|-------------|
+| `not_found` | 404 | The resource you are looking for is not available on this authorization server. |
 
 **Properties**:
 
@@ -432,19 +443,26 @@ read based on each claim's [ACL](/technical/configuration/claim#claims-id-acl).
   [ACL](/technical/configuration/claim#claims-id-acl):
     - A claim is included when its `readable-by-client` expression is true for the client — for instance
       when the end-user consented to the scope it names, or when the client holds the client scope it names
-    - `SCOPE_IS_CONSENTED` answers from the consent the end-user recorded for the client's audience
-    - Verification status claims (email_verified, phone_number_verified) follow the same ACL rules
+    - When a door's expression calls [`SCOPE_IS_CONSENTED`](/technical/expressions/functions#scope-is-consented),
+      it is answered from the consent the end-user recorded for the client's audience
+    - Only claim values are returned. The verification status of a claim — `email_verified` beside `email`, for
+      instance — is not: only `/api/openid/userinfo` publishes it, beside the value
 
 **Important Notes**:
 
 - Claims scoped to a different [audience](/functional/audience) than the requesting client are filtered out. Only
   claims that are unscoped or scoped to the client's audience are returned.
-- Each shipped OpenID Connect claim requires the end-user's consent to the scope the specification puts it in; a
-  claim on the shipped `application` [template](/technical/configuration/claim#templates-claims-id) is returned to
-  any client holding `users:claims:read`, whatever the end-user consented to. Both are customizable through
+- Each OpenID Connect claim the shipped configuration declares requires the end-user's consent to the scope the
+  specification puts it in; a claim on the shipped `application` template is returned to any client holding
+  `users:claims:read`, whatever the end-user consented to. Both are customizable through
   [ACL configuration](/technical/configuration/claim#claims-id-acl).
+- `sub` and `updated_at` are computed by the server rather than stored. They are returned to a client the end-user
+  consented to `profile` for, or to one holding `users:claims:read`, and no configuration changes that.
 - A claim whose `readable-by-client` door is shut to the client is left out of `claims`, and the response is
-  `200 OK` even when none is left. The client is not told why a claim is missing.
+  `200 OK` even when none is left. The client is not told why a claim is missing: it comes back once the end-user
+  consents to the scope its door asks for, through an [authorization](/functional/user_authorization) that requests
+  it, or once the deployment [grants the client](/functional/client_authorization) the client scope its door asks
+  for.
 
 **Use Cases**:
 
@@ -462,7 +480,8 @@ read based on each claim's [ACL](/technical/configuration/claim#claims-id-acl).
 **Method**: PATCH
 
 **Authentication**: Access token of the client, obtained through `client_credentials`. Which claims it may write is
-decided by each claim's [`writable-by-client`](/technical/configuration/claim#claims-id-acl) door alone.
+decided by each claim's [`writable-by-client`](/technical/configuration/claim#claims-id-acl) door, not by a scope of
+the endpoint.
 
 **Purpose**: Updates claims for a specific end-user. Only claims that the client is authorized to write based on the
 claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified through this endpoint.
@@ -483,20 +502,21 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
 
 **Response Format**:
 
-`200 OK`:
+`200 OK`, for a client holding `users:claims:read` and `users:claims:write`, about the same end-user as in
+[Get User Claims](#get-user-claims):
 
 ```json
 {
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
   "claims": {
+    "sub": "550e8400-e29b-41d4-a716-446655440000",
+    "updated_at": 1768573800,
     "email": "user@example.com",
-    "email_verified": true,
     "name": "John Doe",
     "given_name": "John",
     "family_name": "Doe",
     "phone_number": "+1234567890",
-    "phone_number_verified": false,
-    "birthdate": "1990-01-15",
+    "birth_date": "1990-01-15",
     "department": "Product Management",
     "employee_id": "EMP-67890",
     "role": "Senior Product Manager"
@@ -506,12 +526,12 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
 
 **Errors**:
 
-| Error code | Description |
-|------------|-------------|
-| `client.identifier_claim` | The claim `{claim}` is what an end-user signs in with, and no scope allows a client to change it. |
-| `client.invalid_claim` | The claim `{claim}` cannot be modified by the client: it is not configured, not enabled, restricted to another [audience](/functional/audience), or its `writable-by-client` door is shut to the client. |
-| `flow.claims.invalid` | One or more values are refused by the claim's [`type`](/technical/configuration/claim#claims-id-type) or [`allowed-values`](/technical/configuration/claim#claims-id). `properties` holds an entry per refused claim, under its identifier. |
-| `not_found` | The resource you are looking for is not available on this authorization server. |
+| Error code | Status | Description |
+|------------|--------|-------------|
+| `client.identifier_claim` | 400 | The claim `{claim}` is what an end-user signs in with, and no scope allows a client to change it. |
+| `client.invalid_claim` | 400 | The claim `{claim}` cannot be modified by the client. Either the claim does not exist or the client does not hold the required scopes. |
+| `flow.claims.invalid` | 400 | One or more of the values you submitted were refused. Please correct them and try again. |
+| `not_found` | 404 | The resource you are looking for is not available on this authorization server. |
 
 **Properties**:
 
@@ -528,12 +548,17 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
   client write at all, and a deployment configuring one is refused at startup.
 - An [identifier claim](/functional/claims#identifier-claims) is refused to every client, whatever its scopes, with
   `client.identifier_claim`.
-- A claim the deployment has [disabled](/technical/configuration/claim#claims-id) is refused like one that does not
-  exist.
-- A claim the client is not authorized to write is refused by name with `client.invalid_claim`, and the request is
-  refused as a whole: no claim in the body is written. A token missing `users:claims:write` is never answered
-  `403 Forbidden`: only the claims whose door asks for that scope are refused, by name.
-- Claims can be set to `null` to remove them.
+- `client.invalid_claim` is answered for a claim that is not configured, not
+  [enabled](/technical/configuration/claim#claims-id), restricted to another [audience](/functional/audience), or whose
+  `writable-by-client` door is shut to the client. Its description speaks of scopes, but no scope is asked of the
+  endpoint: a client missing `users:claims:write` is refused only the claims whose door asks for it.
+- The error names the first refused claim in the body, and the request is refused as a whole: no claim in the body is
+  written. Neither claim endpoint answers `403 Forbidden` for a missing scope.
+- `flow.claims.invalid` is answered for a value refused by the claim's
+  [`type`](/technical/configuration/claim#claims-id-type) or
+  [`allowed-values`](/technical/configuration/claim#claims-id). `properties` holds an entry per refused claim, under
+  its identifier.
+- Claims can be set to `null`, or to a blank string, to remove them.
 - **A write that changes a claim's value clears its verification.** The
   [`verified-id`](/technical/configuration/claim#claims-id) companion — `email_verified` for `email`, for instance —
   goes back to `false`, and the end-user is asked to validate the new value at their next authorization. Writing the

@@ -13,7 +13,7 @@ ACL is held to.
 
 | Key                  | Type    | Description                                                                                                                                                                                                                                                                                                                   | Required<br>Default   |
 |----------------------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|
-| ```acl```            | object  | [Access control list](#claims-id-acl) that determines who can read and write this claim. See the [dedicated section](#claims-id-acl) below. Each door the claim writes overrides its [template](#templates-claims-id)'s, door by door; one it writes nothing for takes the template's, and `"false"` — in any case — shuts a door the template opens. | **NO**                |
+| ```acl```            | object  | [Access control list](#claims-id-acl) that determines who can read and write this claim. See the [dedicated section](#claims-id-acl) below. Each [door](/functional/claim_access#doors) the claim writes overrides its [template](#templates-claims-id)'s, door by door; one it writes nothing for takes the template's, and `"false"` — in any case — shuts a door the template opens. | **NO**                |
 | ```allowed-values``` | array   | List of possible values an user can provide for this claim. If not specified or ```null```, all values will be accepted by the authorization server.                                                                         | **NO**<br>```null```  |
 | ```audience```       | string  | The [audience](/functional/audience) this claim is scoped to. When set, the claim is only visible to clients within that audience. When `null`, the claim is shared across all audiences. Required on a `personal` claim whose ACL opens `writable-by-client`, and refused on an [identifier claim](/functional/claims#identifier-claims). | **NO**<br>```null```  |
 | ```enabled```        | boolean | Whether this claim is in use. A disabled claim is collected, written, read and published nowhere — it is never stored even when a client or a provider offers it, and it is served in no token, no `/userinfo` response and no API answer. Every claim the OpenID Connect specification defines ships with ```false```, so a deployment enables the ones its applications ask for. | **NO**<br>```true```  |
@@ -31,7 +31,7 @@ ACL is held to.
 The identifier must not contain a dot character. `auth_time` is reserved: every token issued for an
 end-user already states [when that user authenticated](/functional/tokens#when-the-user-authenticated),
 and a deployment declaring a claim under that name is refused at startup. `sub` and `updated_at` are
-reserved the same way — this server computes all three, so nothing written under one of those names is
+reserved the same way — this server computes them itself, so nothing written under one of those names is
 read.
 
 ### ```claims.<id>.kind```
@@ -255,7 +255,7 @@ production.
 | a claim naming `discovery` in `published-in` and no place that carries its value                                                               | a value-carrying place beside `discovery`, or `discovery` removed                              |
 | a `published-in-when-requested` naming `access-token`, `introspection` or `discovery`, on a claim or a template                                | `id-token` or `userinfo`, or the place removed — no request can name the others               |
 | a place named in both `published-in` and `published-in-when-requested`                                                                          | the place removed from one of the two                                                          |
-| any key under `claims.sub`, `claims.updated_at` or `claims.auth_time`                                                                          | the key removed — this server computes all three                                               |
+| any key under `claims.sub`, `claims.updated_at` or `claims.auth_time`                                                                          | the key removed — this server computes them itself                                             |
 
 A name that does not resolve is refused the same way: an `audience` no `audiences` entry declares, a
 `SCOPE_IS_CONSENTED` scope that is not an enabled consentable scope, a `SCOPE_IS_GRANTED` scope that is not
@@ -333,9 +333,10 @@ it, so the flow never asks anybody to type it.
 
 ### Asking a client scope beside consent
 
-The [Client API](/technical/api/client#claims) answers any client token, so a door opened on consent alone
-answers every client of the audience the end-user consented to. A deployment that wants only the clients holding
-`users:claims:read` told the claim joins the two terms with `&&`:
+The [Client API's claim endpoints](/technical/api/client#claims) accept a token from any client, whatever client
+scopes it holds. Consent is given to an [audience](/functional/audience), so a door opened on consent alone lets
+through every client of the audience the end-user consented to. A deployment that enabled `given_name` and wants
+only the clients holding `users:claims:read` told it joins the two terms with `&&`:
 
 ```yaml
 claims:
@@ -345,7 +346,9 @@ claims:
 ```
 
 An end-user's token holds no [client scope](/functional/scope#client-scope), so the second term also keeps
-`given_name` out of the ID token and the access token — a door asks the same of every place it answers.
+`given_name` out of the ID token, and out of any access token or introspection response its `published-in` would
+name: one door answers every place a client reads from, and none asks the scope of the Client API alone. The person
+still reads it through `/api/openid/userinfo`, whose door is `readable-by-person`.
 
 ### A personal claim of your own
 
