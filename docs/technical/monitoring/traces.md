@@ -1,16 +1,59 @@
 # Traces
 
-These are the traces SympAuthy exports once [telemetry is turned on](/technical/monitoring/#turning-telemetry-on): what
-a trace of one request holds, and what each of its spans carries. [Monitoring](/technical/monitoring/) says what a
-trace, a span and a [collector](/technical/monitoring/#what-telemetry-is-made-of) are.
+These are the traces SympAuthy exports once [telemetry is turned on](/technical/monitoring/#turning-telemetry-on), and
+[traces with it](#turning-traces-on): what a trace of one request holds, and what each of its spans carries.
+[Monitoring](/technical/monitoring/) says what a trace, a span and a
+[collector](/technical/monitoring/#what-telemetry-is-made-of) are.
 
 This page covers:
 
+- [how to turn traces on](#turning-traces-on), which ship off,
 - [what a trace holds](#what-a-trace-holds),
 - [what a query span carries](#what-a-query-span-carries), and why no value a query compares against reaches the
   collector,
 - [which queries are not traced](#queries-that-are-not-traced),
 - [how to turn database spans off](#turning-database-spans-off).
+
+## Turning traces on
+
+**Traces ship off.** With the two keys that [turn telemetry on](/technical/monitoring/#turning-telemetry-on), the
+server exports metrics and log records, and no span: not a request's, not a call's, not a query's. A span says what one
+request waited on, and in what order, which is the question somebody changing the server asks; an operator runs it
+from the metrics and the log records. A third key turns traces on, written beside them or passed as
+`OTEL_TRACES_SAMPLER`:
+
+```yaml
+otel:
+  traces:
+    sampler: parentbased_always_on
+```
+
+**Under that sampler, every request is traced**, unless its caller says its own trace is not recorded, and everything
+below holds: the server builds and exports a span per request, per call it makes and per query a request sends its
+database. The **sampler** is what decides which requests are traced, and `otel.traces.sampler` takes any of the
+[OpenTelemetry SDK's](https://opentelemetry.io/docs/languages/java/configuration/#properties-traces), for a deployment
+that wants a share of the requests rather than all of them:
+
+| Sampler | Requests traced |
+| --- | --- |
+| `always_off` | none. The server's default |
+| `always_on` | all of them |
+| `traceidratio` | a share of them, set by `OTEL_TRACES_SAMPLER_ARG`, such as `0.1` for one in ten |
+| `parentbased_always_on` | all of them, except one whose caller's trace is not recorded |
+| `parentbased_always_off` | only one whose caller's trace is recorded |
+| `parentbased_traceidratio` | one whose caller's trace is recorded, and a share of those that arrive without a trace, set by `OTEL_TRACES_SAMPLER_ARG` |
+
+**A caller's trace decides only under a `parentbased_` sampler.** A request that arrives with a W3C `traceparent`
+header, the header a caller passes its own trace on in, is traced as part of the caller's trace, and under a
+`parentbased_` sampler the header's flag decides whether it is traced at all. Anybody can send that header, so on a
+server the public calls, such a sampler lets a caller choose what is traced; `always_on` and `traceidratio` decide
+alone. Under the shipped `always_off`, a header saying its caller recorded the trace turns nothing on.
+
+**With traces off, a deployment loses the spans and nothing else.** Every metric is still exported, without its
+**exemplars**: the sample traces a backend links a point of a duration metric to, which are taken only from a
+recorded span. A log record still carries a trace id and a span id, so the lines one request wrote can still be read
+together. A call to a provider or an authorization webhook still carries a `traceparent`, flagged as not recorded. The
+collector's [condition](/technical/monitoring/conditions) is reported as it is with traces on.
 
 ## What a trace holds
 
@@ -50,8 +93,9 @@ Any other query a request's trace does not show was not made.
 
 ## Turning database spans off
 
-**Database spans are exported with every other signal**, to the same collector, once `micronaut.otel.enabled` is
-`true`. While it is `false`, nothing is placed between the server and its database. To leave them out alone, set
-`otel.instrumentation.r2dbc.enabled` to `false` (default `true`): the rest of the telemetry is still exported. A
+**Database spans are exported with every other span**, to the same collector, once traces are
+[on](#turning-traces-on). While `micronaut.otel.enabled` is `false`, nothing is placed between
+the server and its database. To leave them out alone, set `otel.instrumentation.r2dbc.enabled` to `false` (default
+`true`): the rest of the telemetry, the other spans included, is still exported. A
 database that stops answering is reported as its [condition](/technical/monitoring/conditions) says, on `/health` and
 in the log, whether its queries are traced or not.

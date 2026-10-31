@@ -39,7 +39,9 @@ traceparent: 00-<trace id>-<span id>-01
 ```
 
 The `traceparent` header is sent only when [telemetry](/technical/monitoring/) is on: it carries the trace of the
-request that made the call, so a webhook that is traced too can continue it.
+request that made the call, so a webhook that is traced too can continue it. Its last field is `01` once
+[traces are on](/technical/monitoring/traces#turning-traces-on) and the request is traced, and `00`, not recorded, while they
+are off, which is the default.
 
 ### Properties
 

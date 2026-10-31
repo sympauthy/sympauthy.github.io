@@ -44,7 +44,7 @@ bounds how many clients there are, so it cannot multiply the series without limi
 know the value of is left out rather than recorded empty.
 
 **No attribute identifies a person, a session or a credential**, so a metric answers how many and how fast, never for
-whom. A question about one request is answered by its trace.
+whom. A question about one request is answered by its trace, once [traces are on](/technical/monitoring/traces#turning-traces-on).
 
 These attributes mean the same on every metric that carries them:
 
