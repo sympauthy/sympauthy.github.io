@@ -59,7 +59,7 @@ sampler follows the caller's flags, and the others ignore them. Anybody can send
 `parentbased_traceidratio` it can have them traced. A deployment that does not want its callers to decide writes
 `always_on` or `traceidratio`. Under the shipped `always_off`, nothing a caller sends turns tracing on.
 
-## Choosing a sampling ratio
+### Choosing a sampling ratio
 
 **`otel.traces.sampler.arg` sets the share of requests `traceidratio` and `parentbased_traceidratio` trace**, such as
 `0.1` for one request in ten. Without it, the ratio is `1`: every request. In the configuration file, write it as a
