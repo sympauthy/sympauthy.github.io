@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import { sympauthyCodeTheme } from './code-theme.ts'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -11,6 +12,9 @@ export default defineConfig({
     ['link', { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' }],
     ['meta', { name: 'theme-color', content: '#7B1E3A' }]
   ],
+  markdown: {
+    theme: { light: sympauthyCodeTheme, dark: sympauthyCodeTheme }
+  },
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     logo: { src: '/logo.svg', alt: '' },

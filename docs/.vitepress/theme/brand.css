@@ -63,6 +63,33 @@
   --vp-home-hero-name-color: var(--vp-c-text-1);
 }
 
+/* Code blocks: the nav ground in both themes, coloured by the SympAuthy code theme (code-theme.ts) */
+:root {
+  --vp-code-block-bg: var(--nav-ground);
+  --vp-code-block-color: var(--nav-text);
+  --vp-code-block-divider-color: var(--nav-divider);
+  --vp-code-lang-color: var(--nav-muted);
+  --vp-code-line-highlight-color: var(--nav-hover);
+  --vp-code-line-number-color: var(--nav-muted);
+
+  --vp-code-copy-code-border-color: var(--nav-divider);
+  --vp-code-copy-code-bg: var(--nav-ground);
+  --vp-code-copy-code-hover-border-color: var(--nav-divider);
+  --vp-code-copy-code-hover-bg: var(--nav-hover);
+  --vp-code-copy-code-active-text: var(--nav-text);
+
+  --vp-code-tab-text-color: var(--nav-muted);
+  --vp-code-tab-hover-text-color: var(--nav-text);
+  --vp-code-tab-active-text-color: var(--nav-text);
+  --vp-code-tab-active-bar-color: var(--nav-text);
+}
+
+/* In dark mode the nav ground sits below the page ground: code takes the surface, one step above it */
+.dark {
+  --vp-code-block-bg: var(--surface);
+  --vp-code-copy-code-bg: var(--surface);
+}
+
 ::selection {
   background-color: var(--primary-subtle);
   color: var(--on-primary-subtle);
@@ -92,8 +119,16 @@
   background-color: var(--nav-hover);
 }
 
+/* Current entry: the nav-active fill and a 3px gold rule on its left edge, as in the admin */
 .VPSidebarItem.is-active > .item > .link {
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   background-color: var(--nav-active);
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+
+/* The gold rule replaces the indicator VitePress draws beside a nested current entry */
+.VPSidebarItem.is-active > .item > .indicator {
+  background-color: transparent !important;
 }
 
 /* From 60rem the sidebar also paints the navbar's title column */
