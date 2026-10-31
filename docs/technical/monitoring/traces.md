@@ -8,7 +8,8 @@ These are the traces SympAuthy exports once [telemetry is turned on](/technical/
 This page covers:
 
 - [how to turn traces on](#turning-traces-on), since they ship off, [which sampler to choose](#choosing-a-sampler),
-  and [what a deployment keeps without them](#without-traces),
+  [which share of requests to trace](#choosing-a-sampling-ratio), and
+  [what a deployment keeps without them](#without-traces),
 - [what a trace holds](#what-a-trace-holds),
 - [what a query span carries](#what-a-query-span-carries), and why no value a query compares against reaches the
   collector,
@@ -37,26 +38,16 @@ per call to a provider or an authorization webhook, and per query a request send
 ## Choosing a sampler
 
 **The sampler decides which requests are traced**, and `otel.traces.sampler` takes the ones the
-[OpenTelemetry SDK](https://opentelemetry.io/docs/languages/java/configuration/#properties-traces) names below. A ratio
-is set by `otel.traces.sampler.arg`, such as `0.1` for one request in ten; without it, the ratio is `1`, every request.
-In the configuration file, write it as a dotted key beside `sampler`, which already holds the sampler's name, or pass it
-as `OTEL_TRACES_SAMPLER_ARG`:
-
-```yaml
-otel:
-  traces:
-    sampler: traceidratio
-    sampler.arg: 0.1
-```
+[OpenTelemetry SDK](https://opentelemetry.io/docs/languages/java/configuration/#properties-traces) names below:
 
 | Sampler | Requests traced |
 | --- | --- |
 | `always_off` | none. The server's default |
 | `always_on` | all of them, whatever their caller sends |
-| `traceidratio` | a share of them, whatever their caller sends |
+| `traceidratio` | a [share](#choosing-a-sampling-ratio) of them, whatever their caller sends |
 | `parentbased_always_on` | all of them, except those whose caller's trace is not recorded |
 | `parentbased_always_off` | only those whose caller's trace is recorded |
-| `parentbased_traceidratio` | those whose caller's trace is recorded, none whose caller's trace is not, and a share of those that arrive without one |
+| `parentbased_traceidratio` | those whose caller's trace is recorded, none whose caller's trace is not, and a [share](#choosing-a-sampling-ratio) of those that arrive without one |
 
 ### A caller's trace
 
@@ -67,6 +58,19 @@ sampler follows the caller's flags, and the others ignore them. Anybody can send
 `parentbased_always_on` a caller can keep its requests out of the traces, and under `parentbased_always_off` or
 `parentbased_traceidratio` it can have them traced. A deployment that does not want its callers to decide writes
 `always_on` or `traceidratio`. Under the shipped `always_off`, nothing a caller sends turns tracing on.
+
+## Choosing a sampling ratio
+
+**`otel.traces.sampler.arg` sets the share of requests `traceidratio` and `parentbased_traceidratio` trace**, such as
+`0.1` for one request in ten. Without it, the ratio is `1`: every request. In the configuration file, write it as a
+dotted key beside `sampler`, which already holds the sampler's name, or pass it as `OTEL_TRACES_SAMPLER_ARG`:
+
+```yaml
+otel:
+  traces:
+    sampler: traceidratio
+    sampler.arg: 0.1
+```
 
 ## Without traces
 
