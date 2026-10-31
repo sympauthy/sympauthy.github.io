@@ -5,10 +5,18 @@ export default defineConfig({
   title: "SympAuthy",
   description: "Documentation site",
   base: '/',
+  head: [
+    ['link', { rel: 'icon', href: '/favicon.ico', sizes: '32x32' }],
+    ['link', { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' }],
+    ['link', { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' }],
+    ['meta', { name: 'theme-color', content: '#7B1E3A' }]
+  ],
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
+    logo: { src: '/logo.svg', alt: '' },
+    siteTitle: 'Symp<span class="wordmark-strong">Authy</span>',
+
     nav: [
-      { text: 'Home', link: '/' },
       { text: 'Getting Started', link: '/getting-started/' },
       {
         text: 'Documentation',
