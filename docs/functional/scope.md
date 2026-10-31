@@ -4,9 +4,14 @@ A **scope** is a named permission. When a [client application](/functional/clien
 user, it declares which
 scopes it needs — for example, the right to read the user's email address, or access to a premium feature. The granted
 scopes are recorded inside the tokens SympAuthy issues. The client reads them to decide what the user is allowed to see
-or do.
+or do. This page covers:
 
-SympAuthy has three scope types, each with a distinct purpose, granting path, and grant type. The **grant type** is
+- the types of scope, and who grants each;
+- consentable, grantable and client scopes in turn;
+- where a scope is exposed;
+- the OpenID Connect scopes, and the custom scopes a deployment defines.
+
+SympAuthy sorts scopes into types, each with a distinct purpose, granting path, and grant type. The **grant type** is
 how a client asks for its tokens — [`authorization_code`](/functional/user_authorization) when a person signs in,
 [`client_credentials`](/functional/client_authorization) when the client asks for itself — not the
 [grant](/functional/grant) the tokens are then issued under:
@@ -17,7 +22,7 @@ how a client asks for its tokens — [`authorization_code`](/functional/user_aut
 | [Grantable](#grantable-scope)           | Resources         | Scope granting rules / third-party webhook | `authorization_code` |
 | [Client](#client-scope)                 | Client operations | Scope granting rules / third-party webhook | `client_credentials` |
 
-These three types are **mutually exclusive** — a scope is always exactly one type. This separation exists by design:
+These types are **mutually exclusive** — a scope is always exactly one type. This separation exists by design:
 
 - The server should never decide on behalf of the end-user which personal information to share (**consentable**).
 - The end-user should not be asked to consent to system-level permissions they have no control over (**grantable**).
@@ -51,7 +56,9 @@ agreed to. It can still be made to require consent by writing `SCOPE_IS_CONSENTE
 [ACL](/technical/configuration/claim#claims-id-acl): consent gates disclosure, and says nothing about whose
 the value is. The claim's door replaces the one its [claim template](/technical/configuration/claim#templates-claims-id)
 gives rather than adding to it, so a door that should also open to the client scope keeps it:
-`SCOPE_IS_CONSENTED("<scope>") || SCOPE_IS_GRANTED("users:claims:read")`.
+`SCOPE_IS_CONSENTED("<scope>") || SCOPE_IS_GRANTED("users:claims:read")`. On a door asking consent alone, a client
+obtains the claim only once the end-user consented to `<scope>` in an authorization that requested it; until then the
+claim is absent from its tokens and from the [Client API](/technical/api/client#claims) answer.
 
 ## Grantable scope
 
@@ -96,13 +103,17 @@ Client scopes are granted through
 Their granting rules evaluate client attributes rather than user claims.
 
 Client scopes are defined by SympAuthy and protect operations of the
-[Client API](/technical/api/client). They follow the naming convention `{resource}:{action}`.
+[Client API](/technical/api/client), or let a client through a claim's [door](/functional/claim_access#doors) whose
+expression asks for the scope.
+They follow the naming convention `{resource}:{action}`.
 
 | Scope                | Description                                          |
 |----------------------|------------------------------------------------------|
+| `invitations:read`   | List and view [invitations](/functional/invitation) created by this client |
+| `invitations:write`  | Create and revoke [invitations](/functional/invitation) |
 | `users:read`         | List users with consented scopes                     |
-| `users:claims:read`  | Read claims the client is authorized to access       |
-| `users:claims:write` | Write claims the client is authorized to modify      |
+| `users:claims:read`  | Read, through the Client API, the claims whose [`readable-by-client` door](/technical/configuration/claim#claims-id-acl) asks for it — by default, every [application claim](/functional/claim_kinds#an-application-claim) on the shipped `application` template |
+| `users:claims:write` | Write, through the Client API, the claims whose [`writable-by-client` door](/technical/configuration/claim#claims-id-acl) asks for it — by default, every application claim on the shipped `application` template |
 | `users:mfa:read`     | Read a user's MFA enrollment status (reserved for future use) |
 | `users:mfa:write`    | Start MFA enrollment for a signed-in user            |
 | `users:providers:write` | Link an identity provider to a signed-in user     |

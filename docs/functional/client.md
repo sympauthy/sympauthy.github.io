@@ -1,6 +1,12 @@
 # Client
 
-A **client** is a software that delegates the authentication and authorization of its users to SympAuthy.
+A **client** is a software that delegates the authentication and authorization of its users to SympAuthy. This page
+covers:
+
+- the kinds of client, and confidential and public clients;
+- how a client is registered;
+- what a client can do through the Client API: look up its users, read and write their claims, manage invitations,
+  and start MFA enrollment or provider linking on demand.
 
 Every client belongs to an **[audience](/functional/audience)**. The audience determines the consent grouping
 boundary — clients in the same audience share end-user [consents](/functional/consent) — and the
@@ -38,15 +44,20 @@ Refer to the [configuration](/technical/configuration/client) section for the fu
 
 Beyond delegating sign-in, a client can act on the users of its [audience](/functional/audience) through the
 [Client API](/technical/api/client) — a set of endpoints the client calls as itself, authenticated with the
-[client credentials grant](/functional/authentication#service-account-authentication) and gated by
-[client scopes](/functional/scope#client-scope). What a given client is allowed to do depends on the scopes it has been
-[granted](/functional/client_authorization):
+[client credentials grant](/functional/authentication#service-account-authentication). Most of what a given client
+is allowed to do depends on the [client scopes](/functional/scope#client-scope) it has been
+[granted](/functional/client_authorization); what it reads and writes of a claim depends on that claim's
+[access control list](/functional/claim_access) instead:
 
 - **Look up its users** — list the end-users who have [consented](/functional/consent) to its audience and read their
   identity information. Requires `users:read`.
 - **Read and write claims** — read the [claims](/functional/claims) it is authorized to see and update the ones it is
-  authorized to modify, according to each claim's access control list. Requires `users:claims:read` /
-  `users:claims:write`.
+  authorized to modify. Calling these endpoints requires no scope: each claim's access control list decides. A
+  personal claim such as `email` is read once the end-user consented to its scope for the client's audience; an
+  [application claim](/functional/claim_kinds#an-application-claim) on the shipped `application`
+  [claim template](/technical/configuration/claim#templates-claims-id), whose
+  [doors](/functional/claim_access#doors) ask for them, is read with `users:claims:read` and written with
+  `users:claims:write`. A claim the client may not read is simply absent from the answer.
 - **Manage invitations** — create, list, and revoke [invitations](/functional/invitation) for audiences where open
   sign-up is disabled. Requires `invitations:read` / `invitations:write`.
 - **Start MFA enrollment on demand** — let a signed-in user add a second factor from within the application
