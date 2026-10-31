@@ -37,7 +37,9 @@ Each level below ERROR carries less urgent news:
 the client did not register, a malformed request: the response says it, and a line for each would let anybody fill the
 log on demand. Most of them write no line at any level, and the few a caller can provoke at will, such as the places a
 session is presented from, are DEBUG. A request that failed is not an ERROR either, and the requests the server serves
-are not logged at all: a [trace](/technical/monitoring/#what-telemetry-is-made-of) is the only record of a request.
+are not logged at all: a [trace](/technical/monitoring/#what-telemetry-is-made-of) is their only record, and traces
+are off until you [turn them on](/technical/monitoring/traces#turning-traces-on). Until then, the metrics count the requests the server served, and no request
+leaves a record of its own.
 
 The log is therefore no source for counting failed sign-ins: a dashboard or an alert on them is built on
 [`sympauthy.authentication.attempts`](/technical/monitoring/metrics#authentication) instead.
@@ -95,7 +97,9 @@ held up by a backlog of lines below ERROR.
 
 **Once [telemetry is on](/technical/monitoring/#turning-telemetry-on), every line its logger's level lets through is
 also sent to the collector as a log record**, ERROR included, whether or not the console wrote it. A line written while
-serving a request carries the id of that request's trace. A record does not go through the console's queue: the
+serving a request carries the id of that request's trace, whether or not [traces are on](/technical/monitoring/traces#turning-traces-on), so the lines one
+request wrote can be read together; it is the caller's trace id when the request carried a `traceparent` header. A
+record does not go through the console's queue: the
 server's exporter, the part of it that sends to the collector, has a queue of its own, which drops records rather than
 wait when the collector falls behind. Those drops are not reported on the console or on `/health`.
 
@@ -105,7 +109,7 @@ the one saying the collector is failing is sent to the collector that is failing
 **The records follow the [level](#changing-the-level)**: lowering it to DEBUG sends DEBUG records too, and the collector
 receives the same lines as the console.
 
-**To stop sending log records and keep traces and metrics**, set the logs exporter to `none`:
+**To stop sending log records and keep the metrics, and the traces if they are on**, set the logs exporter to `none`:
 
 ```yaml
 otel:

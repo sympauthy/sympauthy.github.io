@@ -1,16 +1,85 @@
 # Traces
 
-These are the traces SympAuthy exports once [telemetry is turned on](/technical/monitoring/#turning-telemetry-on): what
-a trace of one request holds, and what each of its spans carries. [Monitoring](/technical/monitoring/) says what a
-trace, a span and a [collector](/technical/monitoring/#what-telemetry-is-made-of) are.
+These are the traces SympAuthy exports once [telemetry is turned on](/technical/monitoring/#turning-telemetry-on) and
+[traces are turned on too](#turning-traces-on): what a trace of one request holds, and what each of its spans carries.
+[Monitoring](/technical/monitoring/) says what a trace, a span and a
+[collector](/technical/monitoring/#what-telemetry-is-made-of) are.
 
 This page covers:
 
+- [how to turn traces on](#turning-traces-on), since they ship off, [which sampler to choose](#choosing-a-sampler),
+  [which share of requests to trace](#choosing-a-sampling-ratio), and
+  [what a deployment keeps without them](#without-traces),
 - [what a trace holds](#what-a-trace-holds),
 - [what a query span carries](#what-a-query-span-carries), and why no value a query compares against reaches the
   collector,
 - [which queries are not traced](#queries-that-are-not-traced),
 - [how to turn database spans off](#turning-database-spans-off).
+
+## Turning traces on
+
+**Traces ship off.** With the two keys that [turn telemetry on](/technical/monitoring/#turning-telemetry-on), the
+server exports metrics and log records, and no span: not a request's, not a call's, not a query's. The metrics give
+totals and percentiles; a span says what one request waited on, and in what order. Turn traces on to look at single
+requests, or keep a share of them traced. A third key turns them on, written in the configuration file beside the
+other two, or passed like any other key as an environment variable (`OTEL_TRACES_SAMPLER`) or a command-line argument:
+
+```yaml
+otel:
+  traces:
+    sampler: parentbased_always_on
+```
+
+**It is the only key to write**: the server already sends traces to the collector once there are any. Under
+`parentbased_always_on`, the OpenTelemetry SDK's own default, every request is traced unless its caller
+[says otherwise](#a-caller-s-trace), and everything below holds: the server builds and exports a span per request,
+per call to a provider or an authorization webhook, and per query a request sends its database.
+
+## Choosing a sampler
+
+**The sampler decides which requests are traced**, and `otel.traces.sampler` takes the ones the
+[OpenTelemetry SDK](https://opentelemetry.io/docs/languages/java/configuration/#properties-traces) names below:
+
+| Sampler | Requests traced |
+| --- | --- |
+| `always_off` | none. The server's default |
+| `always_on` | all of them, whatever their caller sends |
+| `traceidratio` | a [share](#choosing-a-sampling-ratio) of them, whatever their caller sends |
+| `parentbased_always_on` | all of them, except those whose caller's trace is not recorded |
+| `parentbased_always_off` | only those whose caller's trace is recorded |
+| `parentbased_traceidratio` | those whose caller's trace is recorded, none whose caller's trace is not, and a [share](#choosing-a-sampling-ratio) of those that arrive without one |
+
+### A caller's trace
+
+**A caller passes its own trace in a W3C [`traceparent`](https://www.w3.org/TR/trace-context/) header**, whose last
+field, the trace flags, says whether the caller records it: `01` recorded, `00` not. Under every sampler, a request
+that carries one joins the caller's trace; the sampler decides only whether the server records it. A `parentbased_`
+sampler follows the caller's flags, and the others ignore them. Anybody can send that header: under
+`parentbased_always_on` a caller can keep its requests out of the traces, and under `parentbased_always_off` or
+`parentbased_traceidratio` it can have them traced. A deployment that does not want its callers to decide writes
+`always_on` or `traceidratio`. Under the shipped `always_off`, nothing a caller sends turns tracing on.
+
+### Choosing a sampling ratio
+
+**`otel.traces.sampler.arg` sets the share of requests `traceidratio` and `parentbased_traceidratio` trace**, such as
+`0.1` for one request in ten. Without it, the ratio is `1`: every request. In the configuration file, write it as a
+dotted key beside `sampler`, which already holds the sampler's name, or pass it as `OTEL_TRACES_SAMPLER_ARG`:
+
+```yaml
+otel:
+  traces:
+    sampler: traceidratio
+    sampler.arg: 0.1
+```
+
+## Without traces
+
+**With traces off, a deployment loses the spans and, with them, the exemplars of its metrics; nothing else.** Every
+metric is still exported. An **exemplar** is a sample trace a backend links a point of a duration metric to, and is
+taken only from a recorded span. A log record still carries a trace id and a span id, the caller's trace id when the
+request carried a `traceparent`, so the lines one request wrote can still be read together. A call to a provider or an
+authorization webhook still carries a `traceparent`, its flags `00`. The collector's
+[condition](/technical/monitoring/conditions) still degrades when an export fails.
 
 ## What a trace holds
 
@@ -50,8 +119,8 @@ Any other query a request's trace does not show was not made.
 
 ## Turning database spans off
 
-**Database spans are exported with every other signal**, to the same collector, once `micronaut.otel.enabled` is
-`true`. While it is `false`, nothing is placed between the server and its database. To leave them out alone, set
-`otel.instrumentation.r2dbc.enabled` to `false` (default `true`): the rest of the telemetry is still exported. A
-database that stops answering is reported as its [condition](/technical/monitoring/conditions) says, on `/health` and
+**Database spans are exported with every other span**, to the same collector, once traces are
+[on](#turning-traces-on). While `micronaut.otel.enabled` is `false`, nothing is placed between the server and its
+database. To leave them out alone, set `otel.instrumentation.r2dbc.enabled` to `false` (default `true`): the rest of
+the telemetry, the other spans included, is still exported. A database that stops answering is reported as its [condition](/technical/monitoring/conditions) says, on `/health` and
 in the log, whether its queries are traced or not.

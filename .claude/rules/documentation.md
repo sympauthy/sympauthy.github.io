@@ -21,3 +21,7 @@ paths:
 - A new section is no longer than the sections around it on the same page. Material with no natural home — log
   lines an operator must act on, with no operations page — is compressed into a small table rather than quoted as
   prose blocks.
+- A page states what a reader can observe or configure — a key, a value, a refusal, what the API answers, what
+  the exported signals and the log hold — not how the server is built inside. The proxies, listeners and beans
+  that produce a behaviour, and work the server does that nothing outside it can see (a span opened but never
+  recorded), stay in the server's design documents, even when the code confirms them.

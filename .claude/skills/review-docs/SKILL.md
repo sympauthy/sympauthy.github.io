@@ -80,7 +80,9 @@ key, default, value and refusal the pages assert against `server/src/main/kotlin
 they disagree the code is the authority. Report a statement the server contradicts as `incorrect`, citing
 the file and line that shows it. Also flag a statement that is vague where the behaviour is exact, a rule
 stated without its exceptions, a key, value or error described in words the server does not use, and
-anything another page states differently.
+anything another page states differently. Do not ask a page to describe how the server is built inside — the
+proxies, listeners or beans behind a behaviour, or work nothing outside the server can see: the writing rules
+keep those out of the documentation.
 
 **An operator who knows authentication but not SympAuthy.** You run identity infrastructure and know
 OAuth 2.1, OpenID Connect, scopes, consent and tokens well, but you have never deployed SympAuthy. Flag every
@@ -116,6 +118,8 @@ Once every reviewer has reported, check each finding before it reaches the user:
 2. For an `incorrect` finding, open the server file and line it cites and confirm the server does what the
    finding says. Drop it, or lower it to `confusing`, if it does not.
 3. For a writing rules finding, confirm the rule it quotes says what the finding claims.
+4. Drop a finding whose fix would describe the server's internals rather than something a reader can observe or
+   configure, as the writing rules require, whichever reviewer raised it.
 
 Keep a list of every finding dropped or lowered, and why.
 

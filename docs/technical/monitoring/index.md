@@ -16,21 +16,23 @@ This page covers:
 
 [Conditions](/technical/monitoring/conditions) says how the server reports a dependency that stops answering, on its
 console and on its `/health` endpoint, whether telemetry is on or not. Every metric the server exports is listed on the
-[Metrics](/technical/monitoring/metrics) page, and what a trace holds, down to each query a request sent its database,
-on the [Traces](/technical/monitoring/traces) page.
+[Metrics](/technical/monitoring/metrics) page, and what a trace holds once traces are on, down to each query a request
+sent its database, on the [Traces](/technical/monitoring/traces) page.
 
 ## What telemetry is made of
 
 The server sends these kinds of telemetry, called **signals**:
 
 - a **trace** is the record of one request: the route it came in on, how long it took, and each call the server made
-  outside itself to answer it, such as a call to a provider or a query to its database. Each part of it is a **span**.
+  to answer it, to a provider, to an authorization webhook or to its database. Each part of it is a **span**.
+  Traces ship off: the server sends none until you [turn them on](/technical/monitoring/traces#turning-traces-on).
 - a **metric** is a number measured over time, such as the duration of token requests or the count of failed
   sign-ins. One metric is split into **series** by its attributes, as the [Metrics](/technical/monitoring/metrics#attributes)
   page explains.
-- a **log record** is a line of the server's log, sent with the id of the trace it was written under when it was
-  written while serving a request. [Logs](/technical/monitoring/logs#log-records-sent-through-telemetry) says which
-  lines are sent, and how to change their level or stop sending them.
+- a **log record** is a line of the server's log, sent with the id of the request's trace when it was written while
+  serving a request, whether or not traces are on.
+  [Logs](/technical/monitoring/logs#log-records-sent-through-telemetry) says which lines are sent, and how to change
+  their level or stop sending them.
 
 **The server does not store or display any of it.** It sends every signal to a **collector**, a separate program you
 run, such as the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/). The collector passes them on to
@@ -41,7 +43,8 @@ hosted service that does all of them. SympAuthy ships no integration with any ba
 
 Two [configuration keys](/technical/configuration/) turn telemetry on: the flag, and the collector's endpoint. Write
 them in the configuration file, or pass them like any other key, as an environment variable
-(`MICRONAUT_OTEL_ENABLED`, `OTEL_EXPORTER_OTLP_ENDPOINT`) or as a command-line argument.
+(`MICRONAUT_OTEL_ENABLED`, `OTEL_EXPORTER_OTLP_ENDPOINT`) or as a command-line argument. They send metrics and log
+records: traces ship off, and [Traces](/technical/monitoring/traces#turning-traces-on) says how to turn them on.
 
 ```yaml
 micronaut:
@@ -53,7 +56,7 @@ otel:
       endpoint: http://collector:4318
 ```
 
-**Nothing is exported while `micronaut.otel.enabled` is `false`**, which is the default: no request is traced and no
+**Nothing is exported while `micronaut.otel.enabled` is `false`**, which is the default: no signal is built and no
 connection is opened. The flag sits under `micronaut` because it switches on the server framework's telemetry module.
 Set the endpoint with it: without one, the **exporter**, the part of the server that sends a signal to the collector,
 sends to its own default, `http://localhost:4318`, which inside a container is the container itself.
@@ -64,11 +67,8 @@ sends to its own default, `http://localhost:4318`, which inside a container is t
 every export fail.
 
 **Every signal goes to that one endpoint.** A deployment that wants to leave one out sets its exporter to `none`, as in
-`otel.traces.exporter: none`. Metrics are sent every ten seconds (`otel.metric.export.interval`, set by the server; the
-OpenTelemetry default is a minute). Every request is traced, and a request that arrives with a W3C `traceparent`
-header, the header a caller passes its own trace on in, is traced as part of the caller's trace, or not at all if that
-header says the caller's trace is not recorded. The calls the server makes to a provider or an authorization webhook
-carry a `traceparent` of their own.
+`otel.logs.exporter: none`; traces are left out by their [sampler](/technical/monitoring/traces#turning-traces-on), which ships off. Metrics are sent every ten seconds (`otel.metric.export.interval`, set by the server; the
+OpenTelemetry default is a minute).
 
 **The server names itself in every signal.** Its `service.name` is `sympauthy`, and each instance adds a
 `service.instance.id` drawn at random when it starts, so the series of several instances do not merge. A restart draws
@@ -76,9 +76,8 @@ a new id, and the restarted instance shows as a new one. To keep an id across re
 environment or a region, set `otel.resource.attributes`, for example
 `service.instance.id=sympauthy-1,deployment.environment=production`.
 
-**`/health` is not traced, and has no series in `http.server.request.duration`.** The server ships
-`otel.exclusions: ['/health.*']`, so a liveness probe every few seconds is not the most traced route. A deployment that
-writes its own `otel.exclusions` replaces that list rather than adding to it, and has to repeat `/health.*` to keep it.
+**`/health` is excluded**: no request to it is traced or timed. A deployment that writes its own `otel.exclusions`
+replaces the shipped `['/health.*']`, and has to repeat `/health.*` to keep it excluded.
 `otel.exclusions` and the `otel.http.server.*` and `otel.http.client.*` keys, which copy named request or response
 headers onto every span (none by default), are read by the server framework's telemetry module. Every other key under
 `otel` is read by the [OpenTelemetry SDK](https://opentelemetry.io/docs/languages/java/configuration/).
@@ -99,8 +98,8 @@ receives OTLP and shows what it receives.
    Other ways to install it are listed in [its README](https://github.com/ymtdzzz/otel-tui#getting-started).
 
 2. Follow the getting started guide up to
-   [running SympAuthy](/getting-started/#running-sympauthy), and append the two keys to the `docker run` command as
-   arguments:
+   [running SympAuthy](/getting-started/#running-sympauthy), and append the two keys that turn telemetry on and the
+   one that [turns traces on](/technical/monitoring/traces#turning-traces-on) to the `docker run` command as arguments:
 
    ```bash
    docker run -ti --rm -p 8080:8080 \
@@ -116,8 +115,11 @@ receives OTLP and shows what it receives.
      '-claims.email.enabled=true' \
      '-urls.root=http://localhost:8080' \
      '-micronaut.otel.enabled=true' \
-     '-otel.exporter.otlp.endpoint=http://host.docker.internal:4318'
+     '-otel.exporter.otlp.endpoint=http://host.docker.internal:4318' \
+     '-otel.traces.sampler=parentbased_always_on'
    ```
+
+   Without the last line, otel-tui shows the metrics and the log records, and no trace.
 
    `host.docker.internal` is how a container reaches the host it runs on. On Linux, add
    `--add-host=host.docker.internal:host-gateway` to the command for that name to resolve.
@@ -146,7 +148,7 @@ the readings that move are queue lengths and wait times, not the thread count. T
 | a person's account | `sympauthy.lock.wait.duration` | several changes waiting on one account |
 | password hashing | `sympauthy.password.hash.active` | the CPU that sign-ins cost right now. A sudden rise is often password guessing |
 | a [provider](/technical/configuration/provider), an [authorization webhook](/technical/authorization_webhook), the mail server, the database, the collector | `sympauthy.condition.degraded` | a dependency that is failing: `1` exactly while `/health` lists its [condition](/technical/monitoring/conditions) |
-| a provider, an authorization webhook, the mail server | `sympauthy.remote_call.duration` | a call outside the process that is slow, or failing. The database and the collector are not timed here: a query's [span](/technical/monitoring/traces#what-a-query-span-carries) says how long it took |
+| a provider, an authorization webhook, the mail server | `sympauthy.remote_call.duration` | a call outside the process that is slow, or failing. The database and the collector are not timed here: once traces are on, a query's [span](/technical/monitoring/traces#what-a-query-span-carries) says how long it took |
 | scheduled jobs | `sympauthy.job.run.duration` | not a rise, but its `outcome`: `error` is a job that fails, and `skipped` on every instance with `success` on none is a job no instance gets to run |
 
 ## What the runtime metrics say
