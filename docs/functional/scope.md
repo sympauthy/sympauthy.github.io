@@ -96,13 +96,14 @@ Client scopes are granted through
 Their granting rules evaluate client attributes rather than user claims.
 
 Client scopes are defined by SympAuthy and protect operations of the
-[Client API](/technical/api/client). They follow the naming convention `{resource}:{action}`.
+[Client API](/technical/api/client), or open the claim [doors](/functional/claim_access#doors) that name them.
+They follow the naming convention `{resource}:{action}`.
 
 | Scope                | Description                                          |
 |----------------------|------------------------------------------------------|
 | `users:read`         | List users with consented scopes                     |
-| `users:claims:read`  | Read claims the client is authorized to access       |
-| `users:claims:write` | Write claims the client is authorized to modify      |
+| `users:claims:read`  | Read the claims whose `readable-by-client` door asks for it |
+| `users:claims:write` | Write the claims whose `writable-by-client` door asks for it |
 | `users:mfa:read`     | Read a user's MFA enrollment status (reserved for future use) |
 | `users:mfa:write`    | Start MFA enrollment for a signed-in user            |
 | `users:providers:write` | Link an identity provider to a signed-in user     |

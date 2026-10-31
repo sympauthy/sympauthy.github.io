@@ -45,8 +45,8 @@ Beyond delegating sign-in, a client can act on the users of its [audience](/func
 - **Look up its users** — list the end-users who have [consented](/functional/consent) to its audience and read their
   identity information. Requires `users:read`.
 - **Read and write claims** — read the [claims](/functional/claims) it is authorized to see and update the ones it is
-  authorized to modify, according to each claim's access control list. Requires `users:claims:read` /
-  `users:claims:write`.
+  authorized to modify. No scope is required: each claim's [access control list](/functional/claim_access)
+  decides, and the shipped `application` template's doors ask for `users:claims:read` / `users:claims:write`.
 - **Manage invitations** — create, list, and revoke [invitations](/functional/invitation) for audiences where open
   sign-up is disabled. Requires `invitations:read` / `invitations:write`.
 - **Start MFA enrollment on demand** — let a signed-in user add a second factor from within the application

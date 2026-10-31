@@ -331,6 +331,22 @@ both would write `SCOPE_IS_CONSENTED("account") || SCOPE_IS_GRANTED("users:claim
 the template's, because the value is still the application's — and `collected-in-flow` may not be opened on
 it, so the flow never asks anybody to type it.
 
+### Asking a client scope beside consent
+
+The [Client API](/technical/api/client#claims) answers any client token, so a door opened on consent alone
+answers every client of the audience the end-user consented to. A deployment that wants only the clients holding
+`users:claims:read` told the claim joins the two terms with `&&`:
+
+```yaml
+claims:
+  given_name:
+    acl:
+      readable-by-client: SCOPE_IS_CONSENTED("profile") && SCOPE_IS_GRANTED("users:claims:read")
+```
+
+An end-user's token holds no [client scope](/functional/scope#client-scope), so the second term also keeps
+`given_name` out of the ID token and the access token — a door asks the same of every place it answers.
+
 ### A personal claim of your own
 
 A claim the person types that the specification does not define — the account they go by on another

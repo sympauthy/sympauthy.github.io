@@ -82,13 +82,14 @@ DPoP: eyJ0eXAiOiJkcG9wK2p3dCIsImFsZyI6IkVTMjU2IiwiandrIjp7...
 
 ### Authorization
 
-Each Client API endpoint requires a specific client scope. The access token must include the scope required by the
-endpoint being called.
+Most Client API endpoints require a specific client scope, and the access token must include it. The
+[claim endpoints](#claims) require none: each claim's [ACL](/functional/claim_access) decides what the client
+reads and writes there.
 
 - If no access token is sent: **401 Unauthorized** (`unauthorized`)
 - If a token is sent but cannot be accepted: **401 Unauthorized** with the code saying why — see
   [Why an access token is refused](#why-an-access-token-is-refused)
-- If the token is valid but lacks the required scope: **403 Forbidden** (`forbidden`)
+- If the token is valid but lacks the scope the endpoint requires: **403 Forbidden** (`forbidden`)
 
 The required scope for each endpoint is documented in the [Endpoints](#endpoints) section below.
 
@@ -442,6 +443,8 @@ read based on each claim's [ACL](/technical/configuration/claim#claims-id-acl).
   claim on the shipped `application` [template](/technical/configuration/claim#templates-claims-id) is returned to
   any client holding `users:claims:read`, whatever the end-user consented to. Both are customizable through
   [ACL configuration](/technical/configuration/claim#claims-id-acl).
+- A claim whose `readable-by-client` door is shut to the client is left out of `claims`, and the response is
+  `200 OK` even when none is left. The client is not told why a claim is missing.
 
 **Use Cases**:
 
@@ -527,8 +530,9 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
   `client.identifier_claim`.
 - A claim the deployment has [disabled](/technical/configuration/claim#claims-id) is refused like one that does not
   exist.
-- Attempting to modify a claim the client is not authorized to write will result in an error, and the request is
-  refused as a whole: no claim in the body is written.
+- A claim the client is not authorized to write is refused by name with `client.invalid_claim`, and the request is
+  refused as a whole: no claim in the body is written. A token missing `users:claims:write` is never answered
+  `403 Forbidden`: only the claims whose door asks for that scope are refused, by name.
 - Claims can be set to `null` to remove them.
 - **A write that changes a claim's value clears its verification.** The
   [`verified-id`](/technical/configuration/claim#claims-id) companion — `email_verified` for `email`, for instance —
