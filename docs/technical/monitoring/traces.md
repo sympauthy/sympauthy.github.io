@@ -38,8 +38,16 @@ per call to a provider or an authorization webhook, and per query a request send
 
 **The sampler decides which requests are traced**, and `otel.traces.sampler` takes the ones the
 [OpenTelemetry SDK](https://opentelemetry.io/docs/languages/java/configuration/#properties-traces) names below. A ratio
-is set by `otel.traces.sampler.arg`, passed as `OTEL_TRACES_SAMPLER_ARG`, such as `0.1` for one request in ten; without
-it, the ratio is `1`, every request.
+is set by `otel.traces.sampler.arg`, such as `0.1` for one request in ten; without it, the ratio is `1`, every request.
+In the configuration file, write it as a dotted key beside `sampler`, which already holds the sampler's name, or pass it
+as `OTEL_TRACES_SAMPLER_ARG`:
+
+```yaml
+otel:
+  traces:
+    sampler: traceidratio
+    sampler.arg: 0.1
+```
 
 | Sampler | Requests traced |
 | --- | --- |
