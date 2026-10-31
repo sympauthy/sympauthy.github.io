@@ -76,10 +76,8 @@ a new id, and the restarted instance shows as a new one. To keep an id across re
 environment or a region, set `otel.resource.attributes`, for example
 `service.instance.id=sympauthy-1,deployment.environment=production`.
 
-**`/health` is not traced, and has no series in `http.server.request.duration`.** The server ships
-`otel.exclusions: ['/health.*']`, so once traces are on, the call an orchestrator makes to `/health` every few
-seconds to check the server is alive, its liveness probe, is not the most traced route. A deployment that writes its
-own `otel.exclusions` replaces that list rather than adding to it, and has to repeat `/health.*` to keep it.
+**`/health` is excluded**: no request to it is traced or timed. A deployment that writes its own `otel.exclusions`
+replaces the shipped `['/health.*']`, and has to repeat `/health.*` to keep it excluded.
 `otel.exclusions` and the `otel.http.server.*` and `otel.http.client.*` keys, which copy named request or response
 headers onto every span (none by default), are read by the server framework's telemetry module. Every other key under
 `otel` is read by the [OpenTelemetry SDK](https://opentelemetry.io/docs/languages/java/configuration/).
