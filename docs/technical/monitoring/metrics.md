@@ -23,7 +23,7 @@ Types are OpenTelemetry's, and say how a metric is read:
 | counter         | a total that only goes up                            | as a rate: attempts per second, rows deleted per hour                       |
 | up-down counter | an amount that rises and falls, such as memory held  | as its current value, like a gauge                                          |
 | gauge           | a value read at each export                          | as its current value                                                        |
-| histogram       | the distribution of durations                        | as percentiles, such as the 99th; its count is the number of events timed   |
+| histogram       | the distribution of durations                        | as percentiles, such as the 99th; its count is the number of events timed. Once [traces are on](/technical/monitoring/traces#turning-traces-on), a point can carry an **exemplar**, the trace of one request it timed |
 
 **Every value is exported as a running total since the instance started** (cumulative temporality), and each instance
 reports its own series. A restarted instance draws a new `service.instance.id`, so it starts new series from zero

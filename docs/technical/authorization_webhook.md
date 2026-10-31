@@ -24,7 +24,7 @@ SympAuthy sends the following request to the configured URL:
 POST https://my-app.example.com/sympauthy/authorize
 Content-Type: application/json
 X-SympAuthy-Signature: sha256=<hmac-hex>
-traceparent: 00-<trace id>-<span id>-01
+traceparent: 00-<trace id>-<span id>-00
 
 {
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -39,9 +39,10 @@ traceparent: 00-<trace id>-<span id>-01
 ```
 
 The `traceparent` header is sent only when [telemetry](/technical/monitoring/) is on: it carries the trace of the
-request that made the call, so a webhook that is traced too can continue it. Its last field is `01` once
-[traces are on](/technical/monitoring/traces#turning-traces-on) and the request is traced, and `00`, not recorded, while they
-are off, which is the default.
+request that made the call, so a webhook that is traced too can continue it. Its last field, the trace flags, is `01`
+when that request is [traced](/technical/monitoring/traces#turning-traces-on), and `00` when it is not, which is every
+request while traces are off, the default. A webhook whose tracer follows its caller's flags, as an OpenTelemetry SDK
+does by default, records no span for a call flagged `00`.
 
 ### Properties
 

@@ -24,14 +24,15 @@ sent its database, on the [Traces](/technical/monitoring/traces) page.
 The server sends these kinds of telemetry, called **signals**:
 
 - a **trace** is the record of one request: the route it came in on, how long it took, and each call the server made
-  outside itself to answer it, such as a call to a provider or a query to its database. Each part of it is a **span**.
+  to answer it, to a provider, to an authorization webhook or to its database. Each part of it is a **span**.
   Traces ship off: the server sends none until you [turn them on](/technical/monitoring/traces#turning-traces-on).
 - a **metric** is a number measured over time, such as the duration of token requests or the count of failed
   sign-ins. One metric is split into **series** by its attributes, as the [Metrics](/technical/monitoring/metrics#attributes)
   page explains.
-- a **log record** is a line of the server's log, sent with the id of the trace it was written under when it was
-  written while serving a request. [Logs](/technical/monitoring/logs#log-records-sent-through-telemetry) says which
-  lines are sent, and how to change their level or stop sending them.
+- a **log record** is a line of the server's log, sent with the id of the request's trace when it was written while
+  serving a request, whether or not traces are on.
+  [Logs](/technical/monitoring/logs#log-records-sent-through-telemetry) says which lines are sent, and how to change
+  their level or stop sending them.
 
 **The server does not store or display any of it.** It sends every signal to a **collector**, a separate program you
 run, such as the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/). The collector passes them on to
@@ -55,7 +56,7 @@ otel:
       endpoint: http://collector:4318
 ```
 
-**Nothing is exported while `micronaut.otel.enabled` is `false`**, which is the default: no request is traced and no
+**Nothing is exported while `micronaut.otel.enabled` is `false`**, which is the default: no signal is built and no
 connection is opened. The flag sits under `micronaut` because it switches on the server framework's telemetry module.
 Set the endpoint with it: without one, the **exporter**, the part of the server that sends a signal to the collector,
 sends to its own default, `http://localhost:4318`, which inside a container is the container itself.
@@ -66,7 +67,7 @@ sends to its own default, `http://localhost:4318`, which inside a container is t
 every export fail.
 
 **Every signal goes to that one endpoint.** A deployment that wants to leave one out sets its exporter to `none`, as in
-`otel.logs.exporter: none`. Metrics are sent every ten seconds (`otel.metric.export.interval`, set by the server; the
+`otel.logs.exporter: none`; traces are left out by their [sampler](/technical/monitoring/traces#turning-traces-on), which ships off. Metrics are sent every ten seconds (`otel.metric.export.interval`, set by the server; the
 OpenTelemetry default is a minute).
 
 **The server names itself in every signal.** Its `service.name` is `sympauthy`, and each instance adds a
@@ -76,9 +77,9 @@ environment or a region, set `otel.resource.attributes`, for example
 `service.instance.id=sympauthy-1,deployment.environment=production`.
 
 **`/health` is not traced, and has no series in `http.server.request.duration`.** The server ships
-`otel.exclusions: ['/health.*']`, so once traces are on, a liveness probe every few seconds is not the most traced
-route. A deployment that writes its own `otel.exclusions` replaces that list rather than adding to it, and has to repeat
-`/health.*` to keep it.
+`otel.exclusions: ['/health.*']`, so once traces are on, the call an orchestrator makes to `/health` every few
+seconds to check the server is alive, its liveness probe, is not the most traced route. A deployment that writes its
+own `otel.exclusions` replaces that list rather than adding to it, and has to repeat `/health.*` to keep it.
 `otel.exclusions` and the `otel.http.server.*` and `otel.http.client.*` keys, which copy named request or response
 headers onto every span (none by default), are read by the server framework's telemetry module. Every other key under
 `otel` is read by the [OpenTelemetry SDK](https://opentelemetry.io/docs/languages/java/configuration/).

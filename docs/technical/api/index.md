@@ -57,3 +57,9 @@ those fields admit — built from this deployment's own configuration, so it nam
 scopes this server actually serves.
 
 See [Collections](collections) for the grammar, the operators, the error codes and the capability document.
+
+## Tracing a call
+
+Every endpoint but `/health` reads a W3C `traceparent` header, so a call your application traces joins its trace.
+Whether the server records its part depends on the deployment, which ships traces off:
+[A caller's trace](/technical/monitoring/traces#a-caller-s-trace) says how a deployment's sampler treats the header.

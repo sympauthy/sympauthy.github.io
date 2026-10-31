@@ -14,8 +14,9 @@ SympAuthy reports whether it is healthy on its console and its `/health` endpoin
 sends metrics and log records to an OpenTelemetry collector you run, and traces once you turn them on too. See the
 [Monitoring](/technical/monitoring/) documentation for how to turn it on and which readings show an instance
 struggling, [Logs](/technical/monitoring/logs) for what each log level means,
-[Conditions](/technical/monitoring/conditions) for a dependency that stops answering, and
-[Metrics](/technical/monitoring/metrics) for every metric the server exports.
+[Conditions](/technical/monitoring/conditions) for a dependency that stops answering,
+[Metrics](/technical/monitoring/metrics) for every metric the server exports, and
+[Traces](/technical/monitoring/traces) for how to turn traces on and what one holds.
 
 ## Configuration
 
