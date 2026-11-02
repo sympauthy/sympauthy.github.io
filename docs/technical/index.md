@@ -26,6 +26,12 @@ security settings. It allows you to customize the authentication experience with
 the [Configuration](/technical/configuration/) documentation for detailed information on all available configuration options
 and [Well-known providers](/technical/well-known_providers) for pre-configured OAuth provider templates.
 
+## Branding
+
+A deployment sets the [brand](/functional/branding) of its sign-in pages and admin, their name, images and colours, in
+the [`ui` configuration](/technical/configuration/ui), and the server serves it under `/branding`. See [Branding Assets](/technical/branding_assets) for what a reverse proxy
+has to forward and what a custom UI can link.
+
 ## APIs
 
 SympAuthy exposes several APIs for different use cases: standard OAuth 2.1 & OpenID Connect endpoints, plus custom APIs

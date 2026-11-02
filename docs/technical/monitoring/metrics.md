@@ -51,7 +51,7 @@ These attributes mean the same on every metric that carries them:
 | Attribute    | Value                                                                                                                                                                                                                           |
 |--------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `client_id`  | the id of the [client](/technical/configuration/client) the event was for.                                                                                                                                                      |
-| `condition`  | the [condition](/technical/monitoring/conditions#the-conditions) the value is about: `database`, `mail`, `collector`, `console`, `provider:<id>` or `webhook:<client id>`.                                                      |
+| `condition`  | the [condition](/technical/monitoring/conditions#the-conditions) the value is about: `database`, `mail`, `collector`, `console`, `provider:<id>`, `webhook:<client id>`, `icon`, `logo` or `logo-dark`.                                                      |
 | `error.type` | why the event did not succeed, absent when it did. What it holds depends on the metric, and is said with each one; on the `sympauthy.*` metrics it is most often the error code the caller was answered with, such as `flow.password.sign_in.invalid`, the same identifier the Admin API shows as a [flow session's `error_details_id`](/technical/api/admin#get-interactive-flow-session), and the class of the failure where it carried no code. |
 | `outcome`    | how the event ended: `success`; `refused`, where the caller caused it, such as a wrong password or a code already exchanged; or `error`, where the server or a dependency failed. Some metrics have endings of their own, listed with them. |
 
@@ -144,7 +144,7 @@ is not counted when it expires.
 | Metric                           | Unit | Type      | Description                                                                                                                                       |
 |----------------------------------|------|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------|
 | `sympauthy.condition.degraded`   | `1`  | gauge     | `1` while a dependency's [condition](/technical/monitoring/conditions) is degraded and listed by `/health`, `0` otherwise. One series per dependency, such as the database, the mail server, a provider or the collector. |
-| `sympauthy.remote_call.duration` | `s`  | histogram | Duration of each call the server makes outside its process, to a provider, an authorization webhook or the mail server, and how it ended.          |
+| `sympauthy.remote_call.duration` | `s`  | histogram | Duration of each call the server makes outside its process, to a provider, an authorization webhook, the mail server or the host of a brand image, and how it ended.          |
 
 `sympauthy.remote_call.duration` times the whole operation and says what it did to the dependency's condition, the
 `jwks` fetch and mail included; `http.client.request.duration` times the HTTP exchange alone. Alert on the first.
@@ -152,7 +152,7 @@ is not counted when it expires.
 | Attribute   | On                               | Value                                                                                                                                                                                       |
 |-------------|----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `condition` | every metric above               | the condition the dependency reports to.                                                                                                                                                    |
-| `operation` | `sympauthy.remote_call.duration` | what the call was for: to a provider `discovery`, `jwks`, `token` or `user_info`; to an authorization webhook `authorize`; to the mail server `send`.                                         |
+| `operation` | `sympauthy.remote_call.duration` | what the call was for: to a provider `discovery`, `jwks`, `token` or `user_info`; to an authorization webhook `authorize`; to the mail server `send`; to the host of a brand image `fetch`.                                         |
 
 `sympauthy.remote_call.duration` also carries `outcome` and `error.type`. `error` is a call that counts as a failure of
 its condition, as [Conditions](/technical/monitoring/conditions#what-counts-as-a-failure) defines it — for an
