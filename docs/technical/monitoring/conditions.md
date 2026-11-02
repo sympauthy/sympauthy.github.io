@@ -22,7 +22,7 @@ This page covers:
 | the mail server          | the server mail is sent through, when [mail](/technical/configuration/mail) is configured               | the request that sends a mail, such as a validation code, still succeeds, but the mail is tried once and dropped: the person does not receive it, and can ask for it again with [Resend Validation Code](/technical/api/flow#resend-validation-code). |
 | a provider               | a provider people sign in with, one condition per provider                                              | signing in with that provider fails, and the person sees the flow's error page; every other way to sign in keeps working.                                                                                                                                 |
 | an authorization webhook | a client's [authorization webhook](/technical/authorization_webhook), one condition per client           | the server keeps calling the webhook, and each call that fails gets the webhook's [`on-failure` policy](/technical/authorization_webhook#failure-behavior): `deny_all` by default.                                                                       |
-| a brand image            | the host of an [image of the brand](/functional/branding#images) configured as a URL, one condition per image | the image answers as if it were not configured, and the pages show SympAuthy's in its place; nothing else changes for callers.                                                                                                                             |
+| a brand image            | the host of an [image of the brand](/functional/branding#images) configured as a URL, one condition per image | the image answers as if it were not configured: SympAuthy's, or for `logo-dark` the deployment's `logo` when it has one; nothing else changes for callers.                                                                                                                             |
 | the collector            | the OpenTelemetry collector, when [telemetry](/technical/monitoring/#turning-telemetry-on) is on         | nothing changes for callers; the spans and log records sent meanwhile are lost.                                                                                                                                                                           |
 | the console              | the queue the server's log lines go through on their way to the console                                 | nothing changes for callers; log lines below ERROR are dropped.                                                                                                                                                                                           |
 
@@ -140,13 +140,13 @@ ERROR line.
 
 Once [telemetry is on](/technical/monitoring/#turning-telemetry-on), `sympauthy.condition.degraded` is `1` exactly
 while `/health` lists a condition and `0` otherwise, one series per condition, with the condition's name in its
-`condition` attribute. A condition gets its series once its dependency has first answered or failed: the console and
-an OpenID Connect provider at startup, the collector at its first export, the database at its first connection, and a
+`condition` attribute. A condition gets its series once its dependency has first answered or failed: the console,
+an OpenID Connect provider and a brand image configured as a URL at startup, the collector at its first export, the database at its first connection, and a
 provider without discovery once somebody signs in with it.
 
 **The collector's own series cannot be relied on to alert.** While the collector is degraded, the series saying so is
 sent to the collector that is failing, and arrives, if at all, once it answers again. Watch the console's ERROR line,
 or `/health`, for the collector.
 
-`sympauthy.remote_call.duration` times each call that reports to a provider's, a webhook's or the mail server's
-condition, and says how it ended. Both are listed with the other [metrics](/technical/monitoring/metrics).
+`sympauthy.remote_call.duration` times each call that reports to a provider's, a webhook's, the mail server's or a
+brand image's condition, and says how it ended. Both are listed with the other [metrics](/technical/monitoring/metrics).

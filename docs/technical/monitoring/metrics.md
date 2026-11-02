@@ -144,7 +144,7 @@ is not counted when it expires.
 | Metric                           | Unit | Type      | Description                                                                                                                                       |
 |----------------------------------|------|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------|
 | `sympauthy.condition.degraded`   | `1`  | gauge     | `1` while a dependency's [condition](/technical/monitoring/conditions) is degraded and listed by `/health`, `0` otherwise. One series per dependency, such as the database, the mail server, a provider or the collector. |
-| `sympauthy.remote_call.duration` | `s`  | histogram | Duration of each call the server makes outside its process, to a provider, an authorization webhook or the mail server, and how it ended.          |
+| `sympauthy.remote_call.duration` | `s`  | histogram | Duration of each call the server makes outside its process, to a provider, an authorization webhook, the mail server or the host of a brand image, and how it ended.          |
 
 `sympauthy.remote_call.duration` times the whole operation and says what it did to the dependency's condition, the
 `jwks` fetch and mail included; `http.client.request.duration` times the HTTP exchange alone. Alert on the first.
@@ -152,7 +152,7 @@ is not counted when it expires.
 | Attribute   | On                               | Value                                                                                                                                                                                       |
 |-------------|----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `condition` | every metric above               | the condition the dependency reports to.                                                                                                                                                    |
-| `operation` | `sympauthy.remote_call.duration` | what the call was for: to a provider `discovery`, `jwks`, `token` or `user_info`; to an authorization webhook `authorize`; to the mail server `send`.                                         |
+| `operation` | `sympauthy.remote_call.duration` | what the call was for: to a provider `discovery`, `jwks`, `token` or `user_info`; to an authorization webhook `authorize`; to the mail server `send`; to the host of a brand image `fetch`.                                         |
 
 `sympauthy.remote_call.duration` also carries `outcome` and `error.type`. `error` is a call that counts as a failure of
 its condition, as [Conditions](/technical/monitoring/conditions#what-counts-as-a-failure) defines it — for an

@@ -28,8 +28,8 @@ and [Well-known providers](/technical/well-known_providers) for pre-configured O
 
 ## Branding
 
-A deployment sets the name, images and colours of its sign-in pages and admin in the [`ui` configuration](/technical/configuration/ui),
-and the server answers them under `/branding`. See [Branding Assets](/technical/branding_assets) for what a reverse proxy
+A deployment sets the [brand](/functional/branding) of its sign-in pages and admin, their name, images and colours, in
+the [`ui` configuration](/technical/configuration/ui), and the server serves it under `/branding`. See [Branding Assets](/technical/branding_assets) for what a reverse proxy
 has to forward and what a custom UI can link.
 
 ## APIs

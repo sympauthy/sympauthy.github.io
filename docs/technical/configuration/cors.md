@@ -6,13 +6,14 @@ browser may send are shared across all three and are the only part you configure
 
 ## Cross-origin tiers
 
-| Endpoints                                                   | Allowed origins                                                                                            |
-|-------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
-| `/api/v1/flow/**`                                           | Origins derived from the URIs of every configured [flow](/technical/configuration/authorization#flows-id). |
-| `/api/v1/admin/**`                                          | `urls.root` when [`admin.integrated-ui`](/technical/configuration/admin) is enabled, otherwise `*`.        |
-| `/.well-known/**`, `/api/oauth2/**`, `/branding/brand.json` | Any origin (`*`).                                                                                          |
+| Endpoints                                                                                        | Allowed origins                                                                                            |
+|--------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
+| `/api/v1/flow/**`                                                                                | Origins derived from the URIs of every configured [flow](/technical/configuration/authorization#flows-id). |
+| `/api/v1/admin/**`                                                                               | `urls.root` when [`admin.integrated-ui`](/technical/configuration/admin) is enabled, otherwise `*`.        |
+| `/.well-known/**`, `/api/oauth2/**`, `/api/openid/**`, `/api/v1/user/**`, `/branding/brand.json` | Any origin (`*`).                                                                                          |
 
-Allowed origins, allowed methods and the preflight `max-age` are not configurable. See the
+A path in none of these tiers, such as the rest of [`/branding`](/technical/branding_assets#in-a-custom-ui), answers no
+CORS headers. Allowed origins, allowed methods and the preflight `max-age` are not configurable. See the
 [Security](/technical/security#cors-restriction-on-the-flow-api) page for the reasoning behind the Flow API
 origin restriction.
 

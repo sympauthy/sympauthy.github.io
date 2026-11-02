@@ -27,7 +27,8 @@ page out of the box, so no additional setup is required to get a working authent
 Its name, images and colours can be changed from the configuration: see [Branding](/functional/branding). If the
 built-in interface still does not fit the needs of your application — for example, because you want a different layout
 — you can replace it with your own custom UI. This is done by configuring the `flows.<id>` key in the
-[configuration](/technical/configuration/authorization#flows-id) to point to your own pages instead of the built-in one.
+[configuration](/technical/configuration/authorization#flows-id) to point to your own pages instead of the built-in one. A custom UI can still
+[link the brand](/technical/branding_assets#in-a-custom-ui).
 
 A custom UI communicates with the [Flow API](/technical/api/flow) to guide the user through
 the flow step by step. The Flow API drives the experience: after each action the user takes, the server tells the
