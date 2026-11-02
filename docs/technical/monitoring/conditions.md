@@ -22,6 +22,7 @@ This page covers:
 | the mail server          | the server mail is sent through, when [mail](/technical/configuration/mail) is configured               | the request that sends a mail, such as a validation code, still succeeds, but the mail is tried once and dropped: the person does not receive it, and can ask for it again with [Resend Validation Code](/technical/api/flow#resend-validation-code). |
 | a provider               | a provider people sign in with, one condition per provider                                              | signing in with that provider fails, and the person sees the flow's error page; every other way to sign in keeps working.                                                                                                                                 |
 | an authorization webhook | a client's [authorization webhook](/technical/authorization_webhook), one condition per client           | the server keeps calling the webhook, and each call that fails gets the webhook's [`on-failure` policy](/technical/authorization_webhook#failure-behavior): `deny_all` by default.                                                                       |
+| a brand image            | the host of an [image of the brand](/functional/branding#images) configured as a URL, one condition per image | the image answers as if it were not configured, and the pages show SympAuthy's in its place; nothing else changes for callers.                                                                                                                             |
 | the collector            | the OpenTelemetry collector, when [telemetry](/technical/monitoring/#turning-telemetry-on) is on         | nothing changes for callers; the spans and log records sent meanwhile are lost.                                                                                                                                                                           |
 | the console              | the queue the server's log lines go through on their way to the console                                 | nothing changes for callers; log lines below ERROR are dropped.                                                                                                                                                                                           |
 
@@ -33,6 +34,7 @@ Each condition has a name, used both on `/health` and on the metric:
 | the mail server          | `mail`                                                          | `mail`                |
 | a provider               | `<provider id>`, nested under `providers`                       | `provider:<id>`       |
 | an authorization webhook | `<client id>`, nested under `authorization-webhooks`            | `webhook:<client id>` |
+| a brand image            | `icon`, `logo` or `logo-dark`                                   | the same name         |
 | the collector            | `collector`                                                     | `collector`           |
 | the console              | `console`                                                       | `console`             |
 
@@ -78,6 +80,11 @@ refused with `provider.disabled`. The server tries again every 30 seconds until 
 is then enabled without a restart. If what it gets cannot be used, the provider's condition recovers, since the
 provider answered, but the provider stays disabled until the server restarts, and an ERROR line says so. A provider
 configured without discovery makes no call at startup.
+
+**A brand image whose host cannot be reached at startup starts degraded.** The server tries again every 30 seconds until
+it gets the image, which is then answered without a restart. A `408` and a `429` count as failures here, unlike for a
+provider, since each says the host will not answer yet. If what it gets is not a usable image, the condition recovers,
+since the host answered, but the deployment's image stays unused until the server restarts, and an ERROR line says so.
 
 **The console degrades on the first line it drops.** Lines go through a queue of 1,024 lines on their way to the
 console, so that a slow log reader never slows a request. An INFO line or below is dropped once the queue is four

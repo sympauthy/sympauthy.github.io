@@ -96,6 +96,7 @@ urls:
 - [Database](/technical/configuration/database) — Database connection (PostgreSQL, H2).
 - [Mail](/technical/configuration/mail) — Email / SMTP configuration.
 - [Admin](/technical/configuration/admin) — Admin API, integrated UI, and admin audience binding.
+- [UI](/technical/configuration/ui) — The name, images and colours of the sign-in pages and the admin.
 - [Client](/technical/configuration/client) — OAuth client definitions.
 - [Audience](/technical/configuration/audience) — Audience grouping and token audience configuration.
 - [Authorization](/technical/configuration/authorization) — Authentication, authorization flows, MFA, and rules.

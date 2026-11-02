@@ -490,3 +490,21 @@ client towards that provider. The user authenticates directly on the provider's 
 shared with SympAuthy or with the client application.
 
 See [Authentication](/functional/authentication#third-party-providers) for a description of the provider flow.
+
+## Brand images
+
+The images of a deployment's [brand](/functional/branding#images) are obtained by the server and answered from
+`/branding`. The browser only ever asks the server, so whoever hosts a logo never learns that a sign-in is starting.
+
+An `<img>` does not run an SVG's scripts, but opening `/branding/logo` directly would, on the origin the sign-in pages
+live on. The server does not try to clean an SVG. Every image is answered with these headers instead, which keep
+whatever it holds from running:
+
+```
+Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox
+X-Content-Type-Options: nosniff
+```
+
+An image's URL may be plain `http`, since internal asset hosts often are and the browser never sees the fetch. The cost
+is that someone on that network path can swap the image until the next restart, and these headers limit that to a wrong
+logo.

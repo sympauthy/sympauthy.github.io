@@ -100,6 +100,7 @@ export default defineConfig({
                 { text: 'Tokens', link: '/functional/tokens' },
               ]
             },
+            { text: 'Branding', link: '/functional/branding' },
           ]
         }
       ],
@@ -117,6 +118,7 @@ export default defineConfig({
                 { text: 'Database', link: '/technical/configuration/database' },
                 { text: 'Mail', link: '/technical/configuration/mail' },
                 { text: 'Admin', link: '/technical/configuration/admin' },
+                { text: 'UI', link: '/technical/configuration/ui' },
                 { text: 'Client', link: '/technical/configuration/client' },
                 { text: 'Audience', link: '/technical/configuration/audience' },
                 { text: 'Authorization', link: '/technical/configuration/authorization' },
@@ -142,6 +144,7 @@ export default defineConfig({
               ]
             },
             { text: 'Authorization Webhook', link: '/technical/authorization_webhook' },
+            { text: 'Branding Assets', link: '/technical/branding_assets' },
             {
               text: 'Expressions',
               link: '/technical/expressions/',
