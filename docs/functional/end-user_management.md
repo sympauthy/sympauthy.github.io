@@ -73,6 +73,37 @@ into a single account. The user ends up with one account regardless of which met
 This behavior is controlled by the `auth.user-merging-enabled` configuration key, off unless a deployment turns it on.
 For more details, see the [Authentication](authentication#account-merging) page.
 
+## Last activity
+
+SympAuthy keeps two dates on every account, so an administrator can tell an account still in use from one nobody has
+touched in months: when the user last signed in, and when an application last renewed their tokens. Both are read,
+filtered and sorted on through the [Admin API](/technical/api/admin#list-users), which is how dormant accounts are
+found.
+
+They are kept apart because they answer different questions. Signing in says the user was there. Renewing tokens says
+an application acted on its own: an application left on a forgotten phone keeps renewing its tokens for months with
+nobody using it, and a single date would make that account look active.
+
+Neither date ever moves backwards, and both outlive what moved them: revoking a [grant](/functional/grant), or its
+tokens expiring, leaves them as they were. A date is absent on an account that has never done that.
+
+### Last authentication
+
+The last authentication is when the user last proved a credential of their account — a password checked, a
+third-party provider's sign-in accepted — in an [interactive flow](interactive_flow) that then completed. Where that
+flow signed the user in at an application's request, it is the
+[`auth_time`](/functional/tokens#when-the-user-authenticated) of the tokens it led to.
+
+A [re-authentication](interactive_flow#proving-you-still-own-the-account), such as the one guarding a provider link,
+moves it too, so it can be newer than the user's newest grant. A failed sign-in moves nothing, and neither does a
+password checked before a second factor that was not.
+
+### Last refresh
+
+The last refresh is when a grant held for the user was last [refreshed](/functional/tokens#refresh-token): an
+application exchanged its refresh token for new tokens. A refused refresh moves nothing, and neither does a
+`client_credentials` grant, which has no user behind it.
+
 ## Account deletion
 
 An account can be deleted through the SympAuthy administration API. Once deleted, the user's information and
