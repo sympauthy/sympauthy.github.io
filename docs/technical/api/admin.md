@@ -1833,7 +1833,7 @@ Endpoints for viewing and revoking the [grants](/functional/grant) every token i
 `admin:grants:read` scope for read operations and `admin:grants:write` to revoke.
 
 Grants are one collection rather than one nested under each user, so a `client_credentials` grant, which no user
-holds, is listed too. A person's grants are read with `GET /api/v1/admin/grants?user_id={user_id}`, and a client's
+holds, is listed too. A person's grants are read with `GET /api/v1/admin/grants?user={user_id}`, and a client's
 with `GET /api/v1/admin/grants?client_id={client_id}`.
 
 #### List Grants
@@ -1868,14 +1868,15 @@ within fifteen minutes — once no authorization code names it.
 | `revoked_by` | `enum` — `client`, `admin`, `consent_revoked`, `authorization_code_replayed` | — | — |
 | `scope` | `enum` — the scopes this deployment enables | — | — |
 | `status` | `enum` — `live`, `revoked`, `expired`, `lapsed` | — | — |
-| `user_id` | `uuid` | — | — |
+| `user` | `uuid` — the account the grant was opened for | — | — |
 
-`id` is the field the response names `grant_id`. `q` also matches every
+`id` is the field the response names `grant_id`, and `user` takes the identifier of the account the response
+publishes as a `user` object. `q` also matches every
 [identifier claim](/functional/claims#identifier-claims) of the user the grant was opened for, so a person's grants
 are found by typing what they sign in with — their email address, where it is an identifier claim. A grant holds
 several scopes across its granted, consented and client scopes, so `scope=openid` keeps a grant holding `openid` in
 any of the three, and `scope.ne=openid` keeps only the grants holding it in none. `actor_grant_id`, `expires_at`,
-`revoked_at`, `revoked_by` and `user_id` may be absent, so each also admits `is_null`. A client or an audience the
+`revoked_at`, `revoked_by` and `user` may be absent, so each also admits `is_null`. A client or an audience the
 configuration no longer declares is still offered under `client_id` and `audience_id` while a stored grant names
 it.
 
@@ -1888,12 +1889,22 @@ it.
   "grants": [
     {
       "grant_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
-      "user_id": "550e8400-e29b-41d4-a716-446655440000",
+      "user": {
+        "user_id": "550e8400-e29b-41d4-a716-446655440000",
+        "status": "enabled",
+        "created_at": "2026-01-15T14:30:00",
+        "claims": {
+          "email": "jane@example.com"
+        }
+      },
       "client_id": "my-client-app",
       "audience_id": "default",
       "grant_type": "authorization_code",
       "status": "live",
-      "created_at": "2026-03-28T10:00:00"
+      "created_at": "2026-03-28T10:00:00",
+      "granted_scopes": ["openid"],
+      "consented_scopes": ["profile", "email"],
+      "client_scopes": []
     }
   ],
   "page": 0,
@@ -1906,8 +1917,11 @@ it.
 
 - `grants`: Array of grants
     - `grant_id`: Unique identifier of the grant
-    - `user_id`: The user the grant was opened for — on an act-as grant, the user the client acts as. Absent on a
-      `client_credentials` grant
+    - `user`: The user the grant was opened for — on an act-as grant, the user the client acts as — with their
+      `user_id`, `status`, `created_at`, and under `claims` the
+      [identifier claims](/functional/claims#identifier-claims) they hold a value for. It never carries the user's
+      [last activity](/functional/end-user_management#last-activity), which `admin:users:read` covers and this scope
+      does not. Absent on a `client_credentials` grant
     - `client_id`, `audience_id`: The client and the [audience](/functional/audience) the grant was opened for
     - `grant_type`: How the client asked for the grant's tokens: `authorization_code` when a person signed in,
       `client_credentials` when the client asked for itself, or the token exchange URN when it acts as a person
@@ -1922,9 +1936,16 @@ it.
       `authorization_code_replayed`. Absent unless `status` is `revoked`
     - `actor_grant_id`: On a grant obtained through a [token exchange](/functional/delegation), the grant of the token
       the acting client presented
+    - `granted_scopes`: The [grantable scopes](/functional/scope#grantable-scope) granted to the end-user
+    - `consented_scopes`: The scopes the end-user [consented](/functional/consent) to
+    - `client_scopes`: The scopes a `client_credentials` grant gave the client on its own behalf
 - `page`: Current page number
 - `size`: Number of results per page
 - `total`: Total number of grants matching the filters
+
+The three scope lists are always present, empty when the grant holds none of that kind: `granted_scopes` and
+`consented_scopes` on a `client_credentials` grant or a token exchange, `client_scopes` on any grant but a
+`client_credentials` one.
 
 **Use Cases**:
 
@@ -1954,7 +1975,14 @@ authorization behind it decided.
 ```json
 {
   "grant_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
-  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "user": {
+    "user_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "enabled",
+    "created_at": "2026-01-15T14:30:00",
+    "claims": {
+      "email": "jane@example.com"
+    }
+  },
   "client_id": "my-client-app",
   "audience_id": "default",
   "grant_type": "authorization_code",
@@ -1989,25 +2017,21 @@ A grant already collected is answered `not_found` too.
 **Properties** — besides those of [List Grants](#list-grants):
 
 - `revoked_by_user_id`: The administrator who revoked the grant. Absent unless `revoked_by` is `admin`
-- `granted_scopes`, `granted_at`, `granted_by`: The [grantable scopes](/functional/scope#grantable-scope) granted to
-  the end-user, when, and how:
+- `granted_at`, `granted_by`: When the scopes in `granted_scopes` were granted, and how:
     - `auto`: every one of them is a scope SympAuthy grants by itself whenever it is requested, as `openid` is
     - `rule`: a [scope granting rule](/functional/user_authorization#scope-granting-rules), or
       [`grant-unhandled-scopes`](/technical/configuration/authorization#features), granted at least one
     - `webhook`: the [authorization webhook](/technical/authorization_webhook) granted at least one
-- `consented_scopes`, `consented_at`, `consented_by`: The scopes the end-user [consented](/functional/consent) to,
-  when, and how. This server records `auto` on every grant today, whether the end-user saw the consent step or not;
-  `user`, for a consent given on that step, is reserved and not written yet
-- `client_scopes`: The scopes a `client_credentials` grant gave the client on its own behalf
+- `consented_at`, `consented_by`: When the end-user [consented](/functional/consent) to the scopes in
+  `consented_scopes`, and how. This server records `auto` on every grant today, whether the end-user saw the consent
+  step or not; `user`, for a consent given on that step, is reserved and not written yet
 - `authenticated_at`: When the end-user authenticated in the flow that opened the grant — the `auth_time` every token
   under it states
 - `requested_claims`: The claims the `claims` parameter of the authorization request asked for, under `id_token` and
   `userinfo`. Absent when it asked for none
 
 `granted_at`, `granted_by`, `consented_at`, `consented_by` and `authenticated_at` are absent on a `client_credentials`
-grant and on a token exchange, which no authorization request is behind. The three scope lists are always present,
-empty when the grant holds none of that kind: `granted_scopes` and `consented_scopes` on a `client_credentials` grant
-or a token exchange, `client_scopes` on any grant but a `client_credentials` one. `requested_claims` is absent when
+grant and on a token exchange, which no authorization request is behind. `requested_claims` is absent when
 the request asked for no claim at all; otherwise a member it asked for none under is an empty list.
 
 ---
