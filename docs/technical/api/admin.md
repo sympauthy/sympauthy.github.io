@@ -834,7 +834,14 @@ response.
 |---|---|---|---|
 | `created_at` | `date_time` | Yes | — |
 | `id` | `uuid` | — | — |
+| `last_authenticated_at` | `date_time` | Yes | — |
+| `last_refreshed_at` | `date_time` | Yes | — |
 | `status` | `enum` — `enabled`, `disabled` | Yes | — |
+
+`last_authenticated_at` and `last_refreshed_at` are absent for a user who has never done either, so each also admits
+`is_null`. They are how a dormant account is found: `last_authenticated_at.lt=2026-01-01T00:00:00` keeps the users
+who have not signed in since, and leaves out those who never have, which `last_authenticated_at.is_null=true` asks
+for.
 
 In addition, **every enabled claim this deployment collects is a field of its own**, filterable, sortable and
 searchable. A claim field takes the type of the claim's data type — so a `date` claim admits the ordered
@@ -846,7 +853,8 @@ GET /api/v1/admin/users?status=enabled&email.contains=ana&created_at.gte=2026-01
 ```
 
 Generated claims are not offered as fields, and neither is a claim whose identifier would collide with one of
-`id`, `status`, `created_at`, `page`, `size`, `sort`, `q` or `claims`. Call
+`id`, `status`, `created_at`, `last_authenticated_at`, `last_refreshed_at`, `page`, `size`, `sort`, `q` or `claims`.
+Call
 `/api/v1/admin/users/capabilities` to discover the fields this deployment actually offers.
 
 **Default order**: `created_at`, ascending.
@@ -863,7 +871,9 @@ Generated claims are not offered as fields, and neither is a claim whose identif
         "name": "Jane Doe"
       },
       "status": "enabled",
-      "created_at": "2026-01-15T14:30:00"
+      "created_at": "2026-01-15T14:30:00",
+      "last_authenticated_at": "2026-09-02T08:14:51",
+      "last_refreshed_at": "2026-09-19T17:40:03"
     }
   ],
   "page": 0,
@@ -880,6 +890,10 @@ Generated claims are not offered as fields, and neither is a claim whose identif
       parameter to select specific claims.
     - `status`: Account status (`enabled` or `disabled`)
     - `created_at`: When the account was created
+    - `last_authenticated_at`: When the user
+      [last authenticated](/functional/end-user_management#last-authentication). Absent when they never have.
+    - `last_refreshed_at`: When a grant held for the user was
+      [last refreshed](/functional/end-user_management#last-refresh). Absent when none ever was.
 - `page`: Current page number
 - `size`: Number of results per page
 - `total`: Total number of users matching the query
@@ -926,6 +940,8 @@ Returns **400 Bad Request** with error code `user.search.invalid_claim` when:
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
   "status": "enabled",
   "created_at": "2026-01-15T14:30:00",
+  "last_authenticated_at": "2026-09-02T08:14:51",
+  "last_refreshed_at": "2026-09-19T17:40:03",
   "identifier_claims": {
     "email": "jane@example.com"
   }
@@ -937,6 +953,10 @@ Returns **400 Bad Request** with error code `user.search.invalid_claim` when:
 - `user_id`: Unique identifier of the user
 - `status`: Account status (`enabled` or `disabled`)
 - `created_at`: When the account was created
+- `last_authenticated_at`: When the user
+  [last authenticated](/functional/end-user_management#last-authentication). Absent when they never have.
+- `last_refreshed_at`: When a grant held for the user was
+  [last refreshed](/functional/end-user_management#last-refresh). Absent when none ever was.
 - `identifier_claims`: Object containing the user's identifier claim values as key/value pairs. Only claims configured as identifiers are included.
 
 **Use Cases**:
@@ -2507,7 +2527,7 @@ GET /api/v1/admin/interactive-flow-sessions?status=ongoing&purpose=oauth2_author
 | `session_date`       | string  | When the session started.                                                                                          |
 | `signed_up`          | boolean | Whether the account was created during this session. This is what tells a sign-up in progress apart from a person who has not identified themselves at all. |
 | `status`             | string  | `ongoing`, `completed`, `cancelled`, `failed` or `expired`.                                                        |
-| `user`               | object  | The account the session identified. Absent where it identified nobody, and where the account is one this session is still signing up. |
+| `user`               | object  | The account the session identified. Absent where it identified nobody, and where the account is one this session is still signing up. It never carries the user's [last activity](/functional/end-user_management#last-activity), which `admin:users:read` covers and this scope does not. |
 | `user_agent`         | string  | The user agent observed alongside that address.                                                                    |
 
 `ip` and `user_agent` are the place the session was **last** driven from, not the only place it holds, while `q`
