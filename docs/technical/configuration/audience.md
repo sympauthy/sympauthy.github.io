@@ -34,9 +34,9 @@ This flag works in combination with `sign-up-enabled` to control registration be
 ### ```audiences.<id>.sign-up-enabled```
 
 When `true`, any user can create an account during the [interactive flow](/functional/interactive_flow). When
-`false`, self-registration is disabled — accounts can only be created through the
-[Admin API](/technical/api/admin#create-user) or, if `invitation-enabled` is `true`, through an
-[invitation](/functional/invitation).
+`false`, self-registration is disabled — accounts can then be created only through an
+[invitation](/functional/invitation), if `invitation-enabled` is `true`. Creating one through the
+[Admin API](/technical/api/admin#create-user) is planned and not yet implemented.
 
 ### ```audiences.<id>.token-audience```
 

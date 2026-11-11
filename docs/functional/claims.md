@@ -1,19 +1,20 @@
 # Claims
 
 A **claim** is a piece of information this authorization server holds about a person — their name, their
-email address, a subscription tier, a score a backend computed. When a client needs to know something
+email address, a subscription tier, a score a backend computed. When a [client](/functional/client) — an
+application that signs its users in through this server — needs to know something
 about the person who just signed in, it reads it from the claims SympAuthy provides.
 
 SympAuthy acts as a central repository for these claims: a value is held once, and every client sharing
 the same authorization server reads it without asking the person again.
 
-A deployment answers three questions about every claim it declares:
+A deployment answers these questions about every claim it declares:
 
 - **Whose is the value?** The person's, or an application's. That is
   [the kind of the claim](/functional/claim_kinds), and it decides who may write it.
 - **Who may read and write it?** The claim's access control list, party by party and direction by
   direction — [claim access control](/functional/claim_access).
-- **What can the value be?** A date, an email address, a whole number, a document — that is
+- **What can the value be?** A date, an email address, a whole number, a JSON document — that is
   [what a claim can hold](#what-a-claim-can-hold) below, and it decides which values are accepted.
 - **Where does the value travel?** The tokens and endpoints that carry it, which is
   [where a claim is exposed](#where-a-claim-is-exposed) below.
@@ -33,41 +34,6 @@ same way.
 This is a claim's **origin**, which the [Admin API](/technical/api/admin) publishes as `openid` or
 `custom`. It says nothing about [whose the value is](/functional/claim_kinds#the-kind-is-not-the-origin):
 a claim of your own can be the person's, and a standard-named one can be an application's.
-
-## What a claim can hold
-
-Every claim has a **type**, which decides what its value can be. A value that does not fit the type is refused
-when it is written, whoever writes it — the person in the sign-in pages, or an application through an API — so
-every value a client reads back is one of that type. The claims the OpenID Connect specification defines come
-with their type; a claim of your own declares one in its
-[`type`](/technical/configuration/claim#claims-id-type).
-
-| Type           | A value is                                                                         | Published as | Can identify a person |
-|----------------|------------------------------------------------------------------------------------|--------------|-----------------------|
-| `boolean`      | `true` or `false`                                                                  | a boolean    | No                    |
-| `date`         | a calendar date written `YYYY-MM-DD`, such as `1990-01-15`                         | a string     | No                    |
-| `email`        | an email address, checked only for one `@` between two non-empty parts             | a string     | Yes                   |
-| `json`         | a JSON object, such as `{"theme": "dark"}` — see [below](#a-document-as-a-claim)   | an object    | No                    |
-| `number`       | a whole number, with no fraction, that fits in a signed 64-bit integer             | a number     | Yes                   |
-| `phone-number` | a phone number in E.164 form: `+` and up to 15 digits, such as `+15551234567`      | a string     | Yes                   |
-| `string`       | any text                                                                           | a string     | Yes                   |
-| `timezone`     | a time zone identifier, such as `Europe/Paris`                                     | a string     | No                    |
-
-Spaces around a value are removed before it is checked, and a blank value clears the claim. The
-last column is which types can be an [identifier claim](#identifier-claims): a person is known by an address, a
-number or a username, but a date or a time zone is shared by everyone who has it, and naming such a claim in
-`auth.identifier-claims` is refused at startup.
-
-### A document as a claim
-
-A `json` claim is how a deployment keeps something about a person that none of the other types models — an
-application's preferences for them, say. Its value is a whole JSON object, which this server stores and publishes
-as it was written but never looks inside: no rule reads a field of it, and no search of the users reaches into it.
-
-It is never asked for during sign-in, since there is no box a document could be typed into, so an application
-writes it through an API. Each write replaces the whole document, and its size is capped by the claim's
-[`max-size`](/technical/configuration/claim#claims-id), 8 KiB by default — a document published in a token makes
-every one of those tokens that much larger.
 
 ## Identifier claims
 
@@ -99,6 +65,39 @@ a different thing, and it is allowed: both rows name that account, so the login 
 Only completed sign-ups hold a value, though: an
 [abandoned one leaves its identifier claims free](/functional/end-user_management#a-sign-up-counts-only-once-the-flow-completes).
 
+## What a claim can hold
+
+Every claim has a **type**, which decides what its value can be. A value that does not fit is
+[refused when it is written](/technical/api/client#update-user-claims), whoever writes it. The OpenID Connect claims
+come with their type; a claim of your own declares one in its [`type`](/technical/configuration/claim#claims-id-type).
+
+| Type           | A value is                                                                            | A client reads it as | Can be an identifier claim |
+|----------------|---------------------------------------------------------------------------------------|----------------------|----------------------------|
+| `boolean`      | `true` or `false`, in any letter case                                                 | a boolean            | No                         |
+| `date`         | a calendar date written `YYYY-MM-DD`, such as `1990-01-15`                            | a string             | No                         |
+| `email`        | an email address, checked only for one `@` between two non-empty parts                | a string             | Yes                        |
+| `json`         | a JSON object, such as `{"theme": "dark"}` — see [below](#a-document-as-a-claim)      | an object            | No                         |
+| `number`       | a whole number from −9,223,372,036,854,775,808 to 9,223,372,036,854,775,807; `42.0` is read as `42` | a number | Yes                     |
+| `phone-number` | a phone number in E.164 form: `+` and up to 15 digits, such as `+15551234567`         | a string             | Yes                        |
+| `string`       | any text                                                                              | a string             | Yes                        |
+| `timezone`     | an [IANA time zone](https://www.iana.org/time-zones) name such as `Europe/Paris`, or an offset such as `+01:00` | a string | No              |
+
+Spaces around a text value are removed before it is checked, and a blank one clears the claim. A date or a time
+zone is shared by everyone who has it, so only the types a person is known by can be an
+[identifier claim](#identifier-claims): naming any other in
+[`auth.identifier-claims`](/technical/configuration/authorization#auth) stops the server from starting.
+
+### A document as a claim
+
+A `json` claim keeps what no other type models — an application's preferences for the person, say — as a whole
+JSON object, stored and published as written and never looked inside: no [expression](/technical/expressions/)
+reads a field of it, and no [search of the users](/technical/api/admin#list-users) reaches into it. Nothing can
+type one in during sign-in, so a client writes it through the [Client API](/technical/api/client#update-user-claims),
+the person's own application with their token, or an [invitation](/functional/invitation) presets it — usually as
+an [application claim](/functional/claim_kinds#an-application-claim). Each write replaces the whole document,
+capped by [`max-size`](/technical/configuration/claim#claims-id), 8 KiB by default, and a document
+[in a token](/functional/tokens#id-token) travels with every request that token authorizes.
+
 ## Where a claim is exposed
 
 [Access control](/functional/claim_access) decides **who** may know a claim's value. Where that value
@@ -106,7 +105,7 @@ travels is a separate decision, and
 [`published-in`](/technical/configuration/claim#claims-id-published-in) is the key that answers it for every
 authorization alike —
 [`published-in-when-requested`](/technical/configuration/claim#claims-id-published-in-when-requested) answers it
-for the ones that [ask by name](#asking-for-a-claim-in-the-request). There are five places:
+for the ones that [ask by name](#asking-for-a-claim-in-the-request). The places are:
 
 | Place                                                                | Carries        |
 |----------------------------------------------------------------------|----------------|
