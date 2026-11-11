@@ -13,6 +13,8 @@ A deployment answers three questions about every claim it declares:
   [the kind of the claim](/functional/claim_kinds), and it decides who may write it.
 - **Who may read and write it?** The claim's access control list, party by party and direction by
   direction — [claim access control](/functional/claim_access).
+- **What can the value be?** A date, an email address, a whole number, a document — that is
+  [what a claim can hold](#what-a-claim-can-hold) below, and it decides which values are accepted.
 - **Where does the value travel?** The tokens and endpoints that carry it, which is
   [where a claim is exposed](#where-a-claim-is-exposed) below.
 
@@ -31,6 +33,41 @@ same way.
 This is a claim's **origin**, which the [Admin API](/technical/api/admin) publishes as `openid` or
 `custom`. It says nothing about [whose the value is](/functional/claim_kinds#the-kind-is-not-the-origin):
 a claim of your own can be the person's, and a standard-named one can be an application's.
+
+## What a claim can hold
+
+Every claim has a **type**, which decides what its value can be. A value that does not fit the type is refused
+when it is written, whoever writes it — the person in the sign-in pages, or an application through an API — so
+every value a client reads back is one of that type. The claims the OpenID Connect specification defines come
+with their type; a claim of your own declares one in its
+[`type`](/technical/configuration/claim#claims-id-type).
+
+| Type           | A value is                                                                         | Published as | Can identify a person |
+|----------------|------------------------------------------------------------------------------------|--------------|-----------------------|
+| `boolean`      | `true` or `false`                                                                  | a boolean    | No                    |
+| `date`         | a calendar date written `YYYY-MM-DD`, such as `1990-01-15`                         | a string     | No                    |
+| `email`        | an email address, checked only for one `@` between two non-empty parts             | a string     | Yes                   |
+| `json`         | a JSON object, such as `{"theme": "dark"}` — see [below](#a-document-as-a-claim)   | an object    | No                    |
+| `number`       | a whole number, with no fraction, that fits in a signed 64-bit integer             | a number     | Yes                   |
+| `phone-number` | a phone number in E.164 form: `+` and up to 15 digits, such as `+15551234567`      | a string     | Yes                   |
+| `string`       | any text                                                                           | a string     | Yes                   |
+| `timezone`     | a time zone identifier, such as `Europe/Paris`                                     | a string     | No                    |
+
+Spaces around a value are removed before it is checked, and a blank value clears the claim. The
+last column is which types can be an [identifier claim](#identifier-claims): a person is known by an address, a
+number or a username, but a date or a time zone is shared by everyone who has it, and naming such a claim in
+`auth.identifier-claims` is refused at startup.
+
+### A document as a claim
+
+A `json` claim is how a deployment keeps something about a person that none of the other types models — an
+application's preferences for them, say. Its value is a whole JSON object, which this server stores and publishes
+as it was written but never looks inside: no rule reads a field of it, and no search of the users reaches into it.
+
+It is never asked for during sign-in, since there is no box a document could be typed into, so an application
+writes it through an API. Each write replaces the whole document, and its size is capped by the claim's
+[`max-size`](/technical/configuration/claim#claims-id), 8 KiB by default — a document published in a token makes
+every one of those tokens that much larger.
 
 ## Identifier claims
 

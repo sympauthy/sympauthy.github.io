@@ -64,6 +64,8 @@ CLAIM("<claim-id>")
 Returns the value of a [claim](/functional/claims) as a **string**.
 
 - Returns `NULL` if the claim was not collected for the user, or if it was collected without a value.
+- Returns `NULL` for a [`json`](/technical/configuration/claim#claims-id-type) claim, whatever the claim holds: nothing
+  reads inside a document.
   `CLAIM()` with no argument is refused when the configuration is read. There is no case in which it answers an empty string, so testing
   `CLAIM("x") = ""` never matches.
 

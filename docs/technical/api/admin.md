@@ -852,7 +852,8 @@ restricts them, and admits `is_null` for users who have no value for it.
 GET /api/v1/admin/users?status=enabled&email.contains=ana&created_at.gte=2026-01-01T00:00:00
 ```
 
-Generated claims are not offered as fields, and neither is a claim whose identifier would collide with one of
+Generated claims are not offered as fields, nor is a [`json`](/technical/configuration/claim#claims-id-type) claim —
+no criterion reaches into a document, and `q` does not match one — and neither is a claim whose identifier would collide with one of
 `id`, `status`, `created_at`, `last_authenticated_at`, `last_refreshed_at`, `page`, `size`, `sort`, `q` or `claims`.
 Call
 `/api/v1/admin/users/capabilities` to discover the fields this deployment actually offers.

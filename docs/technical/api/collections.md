@@ -50,7 +50,8 @@ GET /api/v1/admin/users
       &created_at.gte=2026-01-01T00:00:00
 ```
 
-`email` above is a claim this deployment collects: `/admin/users` offers every enabled claim as a field of its own.
+`email` above is a claim this deployment collects: `/admin/users` offers every enabled claim as a field of its own,
+except a [`json`](/technical/configuration/claim#claims-id-type) one, which no criterion and no free text reaches into.
 
 | Operator      | Written                                  | Means                                                |
 |---------------|------------------------------------------|------------------------------------------------------|

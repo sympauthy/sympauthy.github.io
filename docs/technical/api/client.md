@@ -555,9 +555,10 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
 - The error names the first refused claim in the body, and the request is refused as a whole: no claim in the body is
   written. Neither claim endpoint answers `403 Forbidden` for a missing scope.
 - `flow.claims.invalid` is answered for a value refused by the claim's
-  [`type`](/technical/configuration/claim#claims-id-type) or
-  [`allowed-values`](/technical/configuration/claim#claims-id). `properties` holds an entry per refused claim, under
-  its identifier.
+  [`type`](/technical/configuration/claim#claims-id-type),
+  [`allowed-values`](/technical/configuration/claim#claims-id) or `max-size`. `properties` holds an entry per refused
+  claim, under its identifier. A [`json`](/technical/configuration/claim#claims-id-type) claim takes a JSON object, sent
+  as one rather than as its text, and refuses an array, a string or a document over its `max-size`.
 - Claims can be set to `null`, or to a blank string, to remove them.
 - **A write that changes a claim's value clears its verification.** The
   [`verified-id`](/technical/configuration/claim#claims-id) companion — `email_verified` for `email`, for instance —
