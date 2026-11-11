@@ -104,6 +104,10 @@ containing the HTTP `status`, a stable machine-readable `error_code`, a user-fac
 `print-details-in-error` feature is enabled on the server — a technical `details` message. Each failure case in this
 page is listed by its `error_code` and `description`.
 
+An error refusing several values of a body at once — `flow.claims.invalid` is the one on this page — also carries
+`properties`, a list with one entry per refused value: its `path` in the body, and its own `error_code`,
+`description` and `details`, read the same way as the error's.
+
 > A failed request to `/api/oauth2/token` — where an access token is obtained — answers a different body: the one
 > [RFC 6749 section 5.2](https://datatracker.ietf.org/doc/html/rfc6749#section-5.2) defines, naming the code `error`
 > and the text `error_description`, with no `status` and no `error_code`. See
@@ -425,7 +429,10 @@ for its audience:
     "phone_number": "+1234567890",
     "birth_date": "1990-01-15",
     "department": "Engineering",
-    "employee_id": "EMP-12345"
+    "employee_id": "EMP-12345",
+    "preferences": {
+      "theme": "dark"
+    }
   }
 }
 ```
@@ -445,6 +452,8 @@ for its audience:
       when the end-user consented to the scope it names, or when the client holds the client scope it names
     - When a door's expression calls [`SCOPE_IS_CONSENTED`](/technical/expressions/functions#scope-is-consented),
       it is answered from the consent the end-user recorded for the client's audience
+    - A [`json`](/technical/configuration/claim#claims-id-type) claim's value is an object, as it was written —
+      `preferences` above — and every other claim's value is a string, a number or a boolean
     - Only claim values are returned. The verification status of a claim — `email_verified` beside `email`, for
       instance — is not: only `/api/openid/userinfo` publishes it, beside the value
 
@@ -496,7 +505,11 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
 {
   "department": "Product Management",
   "employee_id": "EMP-67890",
-  "role": "Senior Product Manager"
+  "role": "Senior Product Manager",
+  "preferences": {
+    "theme": "dark",
+    "density": "compact"
+  }
 }
 ```
 
@@ -519,7 +532,11 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
     "birth_date": "1990-01-15",
     "department": "Product Management",
     "employee_id": "EMP-67890",
-    "role": "Senior Product Manager"
+    "role": "Senior Product Manager",
+    "preferences": {
+      "theme": "dark",
+      "density": "compact"
+    }
   }
 }
 ```
@@ -528,8 +545,8 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
 
 | Error code | Status | Description |
 |------------|--------|-------------|
-| `client.identifier_claim` | 400 | The claim `{claim}` is what an end-user signs in with, and no scope allows a client to change it. |
-| `client.invalid_claim` | 400 | The claim `{claim}` cannot be modified by the client. Either the claim does not exist or the client does not hold the required scopes. |
+| `client.identifier_claim` | 400 | The claim `{claim}` is what an end-user signs in with, and it cannot be changed by a client. |
+| `client.invalid_claim` | 400 | The claim `{claim}` cannot be modified by the client. Either the claim does not exist, is not enabled, belongs to another audience, or its access control list does not let this client write it. |
 | `flow.claims.invalid` | 400 | One or more of the values you submitted were refused. Please correct them and try again. |
 | `not_found` | 404 | The resource you are looking for is not available on this authorization server. |
 
@@ -550,15 +567,39 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
   `client.identifier_claim`.
 - `client.invalid_claim` is answered for a claim that is not configured, not
   [enabled](/technical/configuration/claim#claims-id), restricted to another [audience](/functional/audience), or whose
-  `writable-by-client` door is shut to the client. Its description speaks of scopes, but no scope is asked of the
-  endpoint: a client missing `users:claims:write` is refused only the claims whose door asks for it.
+  `writable-by-client` door is shut to the client. No scope is asked of the endpoint: a client missing
+  `users:claims:write` is refused only the claims whose door asks for it.
 - The error names the first refused claim in the body, and the request is refused as a whole: no claim in the body is
   written. Neither claim endpoint answers `403 Forbidden` for a missing scope.
 - `flow.claims.invalid` is answered for a value refused by the claim's
-  [`type`](/technical/configuration/claim#claims-id-type) or
-  [`allowed-values`](/technical/configuration/claim#claims-id). `properties` holds an entry per refused claim, under
-  its identifier.
-- Claims can be set to `null`, or to a blank string, to remove them.
+  [`type`](/technical/configuration/claim#claims-id-type),
+  [`allowed-values`](/technical/configuration/claim#claims-id) or
+  [`max-size`](/technical/configuration/claim#claims-id). Every value is checked before the request is refused, and
+  [`properties`](#error-format) holds one entry per refused claim, its `path` the claim's identifier and its
+  `error_code` a `user.claim_value_validator` code — `invalid_email`, `invalid_value` and so on.
+- A [`json`](/technical/configuration/claim#claims-id-type) claim takes a JSON object, sent as one rather than as its
+  text. Any other JSON value is refused with `user.claim_value_validator.invalid_json`, and a document over the
+  claim's `max-size` with `user.claim_value_validator.too_large`, whose `description` states how many bytes the
+  claim accepts — the size counted on the compact JSON this server stores, not on the request's own text. A body
+  larger than the server accepts at all is answered `413 body.too_large` before any claim is looked at.
+
+  ```json
+  {
+    "status": 400,
+    "error_code": "flow.claims.invalid",
+    "description": "One or more of the values you submitted were refused. Please correct them and try again.",
+    "properties": [
+      {
+        "path": "preferences",
+        "error_code": "user.claim_value_validator.too_large",
+        "description": "The value provided is larger than the 2048 bytes this claim accepts. Please make it smaller and try again."
+      }
+    ]
+  }
+  ```
+
+- Claims can be set to `null`, or to a blank string, to remove them — a `json` claim too: `{}` is a document, not a
+  removal.
 - **A write that changes a claim's value clears its verification.** The
   [`verified-id`](/technical/configuration/claim#claims-id) companion — `email_verified` for `email`, for instance —
   goes back to `false`, and the end-user is asked to validate the new value at their next authorization. Writing the

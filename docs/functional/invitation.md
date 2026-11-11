@@ -12,9 +12,9 @@ SympAuthy supports open registration (`sign-up-enabled: true`), where anyone can
 example, an internal backoffice that should only be accessible to handpicked employees, or an admin panel where the
 first administrator must bootstrap themselves.
 
-Without invitations, the only alternative to open registration is creating accounts entirely through the
-[Admin API](/technical/api/admin#create-user), which requires the administrator to set a password on behalf of the
-user. Invitations fill the gap: registration stays closed to the public, but invited users can still go through the
+Without invitations, the only alternative to open registration will be creating accounts entirely through the
+[Admin API](/technical/api/admin#create-user) — planned, and not yet implemented — which requires the administrator
+to set a password on behalf of the user. Invitations fill the gap: registration stays closed to the public, but invited users can still go through the
 normal self-service sign-up flow.
 
 ## Registration modes

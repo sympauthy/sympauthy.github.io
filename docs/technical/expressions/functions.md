@@ -1,6 +1,6 @@
 # Functions
 
-On top of EvalEx's built-in operators and functions, SympAuthy provides custom functions that an
+On top of [EvalEx's built-in operators and functions](/technical/expressions/#built-in-operators-and-functions), SympAuthy provides custom functions that an
 [expression](/technical/expressions/) may call. They expose the context the expression is evaluated in —
 the end-user's [claims](/functional/claims), the [client](/functional/client) involved, and the scopes and
 the token a claim is read or written through.
@@ -15,7 +15,7 @@ the token a claim is read or written through.
 | [```SCOPE_IS_GRANTED```](#scope-is-granted)                            | boolean | Whether the server granted a scope to the token.                            |
 | [```TOKEN_IS_BOUND```](#token-is-bound)                                | boolean | Whether the token is bound to a key with DPoP.                              |
 
-Each rule type and each [door](/functional/claim_access#doors) of a claim's ACL is evaluated in its own
+Each [rule type](/technical/expressions/#where-expressions-are-used) and each [door](/functional/claim_access#doors) of a claim's ACL is evaluated in its own
 context, so a function is only available where it is meaningful, and each function below lists where that is.
 **Using a function anywhere else makes the configuration invalid** — SympAuthy rejects it when validating the
 configuration.
@@ -64,8 +64,10 @@ CLAIM("<claim-id>")
 Returns the value of a [claim](/functional/claims) as a **string**.
 
 - Returns `NULL` if the claim was not collected for the user, or if it was collected without a value.
-  `CLAIM()` with no argument is refused when the configuration is read. There is no case in which it answers an empty string, so testing
-  `CLAIM("x") = ""` never matches.
+- Returns `NULL` for a [`json`](/technical/configuration/claim#claims-id-type) claim, whatever the claim holds: nothing
+  reads inside a document.
+- `CLAIM()` with no argument is refused when the configuration is read. There is no case in which it answers an empty
+  string, so testing `CLAIM("x") = ""` never matches.
 
 ```yaml
 expressions:
@@ -86,7 +88,9 @@ CLAIM_IS_VERIFIED("<claim-id>")
 ```
 
 Returns a **boolean**: `true` only if the claim was collected **and** marked as verified; `false`
-otherwise (including when the claim was not collected).
+otherwise (including when the claim was not collected). A [`json`](/technical/configuration/claim#claims-id-type)
+claim names no [`verified-id`](/technical/configuration/claim#claims-id), so it is never verified and this answers
+`false` for one.
 
 ```yaml
 expressions:

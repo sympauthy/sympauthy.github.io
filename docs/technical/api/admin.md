@@ -244,8 +244,8 @@ configuration. The fields each listing offers are named with it below.
 
 > **Work in progress** — [Create User](#create-user), [Update User](#update-user), [Disable User](#disable-user),
 > [Enable User](#enable-user), [Delete User](#delete-user) and [Reset Password](#reset-password) are planned but not
-> yet implemented: their paths and response formats are preliminary and may change. Every other endpoint below is
-> implemented. See [GitHub issue #109](https://github.com/sympauthy/sympauthy/issues/109) for progress.
+> yet implemented: the server answers none of them, and their paths and response formats are preliminary and may
+> change. Every other endpoint below is implemented.
 
 ### Client Management
 
@@ -412,7 +412,7 @@ Requires the `admin:config:read` scope.
 | Field | Type | Sortable | Searchable |
 |---|---|---|---|
 | `audience_id` | `enum` — the audiences this deployment configures | Yes | — |
-| `data_type` | `enum` — `boolean`, `date`, `email`, `number`, `phone_number`, `string`, `timezone` | Yes | — |
+| `data_type` | `enum` — `boolean`, `date`, `email`, `json`, `number`, `phone_number`, `string`, `timezone` | Yes | — |
 | `enabled` | `boolean` | Yes | — |
 | `generated` | `boolean` | Yes | — |
 | `group` | `enum` — `identity`, `address` | Yes | — |
@@ -494,13 +494,14 @@ Requires the `admin:config:read` scope.
 
 - `claims`: Array of claim records
     - `id`: Unique claim identifier, as defined in configuration
-    - `type`: Data type expected for this claim (`string`, `number`, or `date`)
+    - `type`: The claim's [data type](/functional/claims#what-a-claim-can-hold). Possible values: `"boolean"` | `"date"` | `"email"` | `"json"` | `"number"` | `"phone_number"` | `"string"` | `"timezone"`
     - `origin`: Where the claim is defined. Possible values: `"openid"` (OpenID Connect specification) | `"custom"` (defined by the operator in configuration)
     - `kind`: Whose the claim's value is, as configured with [`kind`](/technical/configuration/claim#claims-id-kind). Possible values: `"personal"` (the person's, collected from them and written by a client only within its own audience) | `"application"` (an application's, which a backend answers for and the person is never asked to type). Null for a claim this server generates, which is nobody's to write
     - `enabled`: Whether this claim is in use. A disabled claim is collected, written, read and published nowhere — it is still listed here, and the values already collected for it are kept and served again if it is re-enabled
     - `required`: Whether the end-user must provide this claim to complete an authorization flow
     - `identifier`: Whether this claim is configured as an [identifier claim](/technical/configuration/authorization#auth), used for password login and cross-provider account merging
     - `allowed_values`: Array of accepted values. Absent when the claim accepts any value
+    - A claim's [`max-size`](/technical/configuration/claim#claims-id) is not published
     - `group`: Grouping identifier. Possible values: `"identity"` | `"address"`. Absent when the claim belongs to no group
     - `published_in`: Places this claim is [exposed in](/functional/claims#where-a-claim-is-exposed) for
       every authorization alike, as configured with
@@ -753,9 +754,15 @@ Endpoints for viewing configured [audiences](/functional/audience). Since audien
 ### User Management
 
 Endpoints for managing end-user accounts. Different operations require different scopes: `admin:users:read` for
-read operations, `admin:users:write` for modifications, and `admin:users:delete` for deletion.
+read operations, and `admin:users:write` for modifications — today, an account's [MFA methods](#mfa-management)
+and [provider links](#provider-links). `admin:users:delete` is meant for deleting an account, which no implemented endpoint does yet.
 
 #### Create User
+
+::: warning Not implemented
+The server does not answer this endpoint yet. Its path and format are preliminary — see the note under
+[Endpoints](#endpoints).
+:::
 
 **Path**: `/api/v1/admin/users`
 
@@ -826,7 +833,9 @@ response.
 
 - `page`, `size`, `sort`, `q` and every filter criterion — see [Collections](#collections)
 - `claims` (optional): Comma-separated claim IDs to include in the response (default: all enabled claims). This
-  selects what is published rather than what is kept, so it is not a filter criterion.
+  selects what is published rather than what is kept, so it is not a filter criterion — it may name any enabled
+  claim, a [`json`](/technical/configuration/claim#claims-id-type) one included, whose document comes back as an
+  object under `claims`.
 
 **Fields**:
 
@@ -852,10 +861,14 @@ restricts them, and admits `is_null` for users who have no value for it.
 GET /api/v1/admin/users?status=enabled&email.contains=ana&created_at.gte=2026-01-01T00:00:00
 ```
 
-Generated claims are not offered as fields, and neither is a claim whose identifier would collide with one of
-`id`, `status`, `created_at`, `last_authenticated_at`, `last_refreshed_at`, `page`, `size`, `sort`, `q` or `claims`.
-Call
-`/api/v1/admin/users/capabilities` to discover the fields this deployment actually offers.
+Three kinds of claim are not offered as fields:
+
+- a [generated claim](/functional/claim_kinds#a-generated-claim);
+- a [`json`](/technical/configuration/claim#claims-id-type) claim, which no criterion and no `q` reaches into;
+- a claim whose identifier would collide with one of `id`, `status`, `created_at`, `last_authenticated_at`,
+  `last_refreshed_at`, `page`, `size`, `sort`, `q` or `claims`.
+
+Call `/api/v1/admin/users/capabilities` to discover the fields this deployment actually offers.
 
 **Default order**: `created_at`, ascending.
 
@@ -900,15 +913,14 @@ Call
 
 **Errors**:
 
-Returns **400 Bad Request** with error code `user.search.invalid_claim` when:
+| Error code | Status | Description |
+|------------|--------|-------------|
+| `user.claims.unknown` | 400 | The claim `{claim}` is not recognized or is currently disabled. Please check the available claims and try again. |
 
-- `claims` contains a disabled or unknown claim ID
-- `sort` references a disabled or unknown claim ID
-- A claim filter query parameter references a disabled or unknown claim ID
-
-| Error code | Description |
-|------------|-------------|
-| `user.search.invalid_claim` | The claim `{claim}` is not recognized or is currently disabled. Please check the available claims and try again. |
+`user.claims.unknown` is answered when `claims` names a claim that is not configured or not enabled. A `sort` or a
+criterion naming a field this collection does not offer is refused with the
+[collection errors](/technical/api/collections#errors) — `collection.sort.unknown_field` and
+`collection.filter.unknown_field`.
 
 **Use Cases**:
 
@@ -993,7 +1005,7 @@ are excluded — their status is represented by the `verified_at` field on the p
 |---|---|---|---|
 | `claim_id` | `enum` — the claims this deployment configures | — | Yes |
 | `collected` | `boolean` — whether a value has been collected | Yes | — |
-| `data_type` | `enum` — `boolean`, `date`, `email`, `number`, `phone_number`, `string`, `timezone` | Yes | — |
+| `data_type` | `enum` — `boolean`, `date`, `email`, `json`, `number`, `phone_number`, `string`, `timezone` | Yes | — |
 | `generated` | `boolean` | Yes | — |
 | `identifier` | `boolean` | Yes | — |
 | `origin` | `enum` — `openid`, `custom` | Yes | — |
@@ -1001,7 +1013,9 @@ are excluded — their status is represented by the `verified_at` field on the p
 | `value` | `string` — the collected value | — | Yes |
 | `verified` | `boolean` — whether the claim has been verified | Yes | — |
 
-`value` is absent for a claim that has not been collected, so it also admits `is_null`.
+`value` is absent for a claim that has not been collected, so it also admits `is_null`. Every criterion and `q` read a
+[`json`](/technical/configuration/claim#claims-id-type) claim as having no `value`, whatever it holds — so
+`value.is_null=true` keeps one that holds a document — and `collected=true` is how one holding a value is found.
 
 **Default order**: by claim identifier, ascending.
 
@@ -1048,8 +1062,8 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 - `claims`: Array of claim records
     - `claim_id`: Unique claim identifier, as defined in configuration
-    - `value`: The user's value for this claim. Absent when it has not been collected
-    - `type`: Data type (`string`, `number`, or `date`)
+    - `value`: The user's value for this claim, in its type — an object for a [`json`](/technical/configuration/claim#claims-id-type) claim. Absent when it has not been collected
+    - `type`: The claim's [data type](/functional/claims#what-a-claim-can-hold), with the values [List Claims](#list-claims) names
     - `origin`: Where the claim is defined. Possible values: `"openid"` (OpenID Connect specification) | `"custom"` (defined by the operator in configuration)
     - `required`: Whether the end-user must provide this claim
     - `identifier`: Whether this claim is configured as an identifier claim
@@ -1071,6 +1085,11 @@ are excluded — their status is represented by the `verified_at` field on the p
 ---
 
 #### Update User
+
+::: warning Not implemented
+The server does not answer this endpoint yet. Its path and format are preliminary — see the note under
+[Endpoints](#endpoints).
+:::
 
 **Path**: `/api/v1/admin/users/{user_id}`
 
@@ -1139,6 +1158,11 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 #### Disable User
 
+::: warning Not implemented
+The server does not answer this endpoint yet. Its path and format are preliminary — see the note under
+[Endpoints](#endpoints).
+:::
+
 **Path**: `/api/v1/admin/users/{user_id}/disable`
 
 **Method**: POST
@@ -1169,6 +1193,11 @@ are excluded — their status is represented by the `verified_at` field on the p
 ---
 
 #### Enable User
+
+::: warning Not implemented
+The server does not answer this endpoint yet. Its path and format are preliminary — see the note under
+[Endpoints](#endpoints).
+:::
 
 **Path**: `/api/v1/admin/users/{user_id}/enable`
 
@@ -1201,6 +1230,11 @@ are excluded — their status is represented by the `verified_at` field on the p
 
 #### Delete User
 
+::: warning Not implemented
+The server does not answer this endpoint yet. Its path and format are preliminary — see the note under
+[Endpoints](#endpoints).
+:::
+
 **Path**: `/api/v1/admin/users/{user_id}`
 
 **Method**: DELETE
@@ -1232,6 +1266,11 @@ are excluded — their status is represented by the `verified_at` field on the p
 ---
 
 #### Reset Password
+
+::: warning Not implemented
+The server does not answer this endpoint yet. Its path and format are preliminary — see the note under
+[Endpoints](#endpoints).
+:::
 
 **Path**: `/api/v1/admin/users/{user_id}/reset-password`
 

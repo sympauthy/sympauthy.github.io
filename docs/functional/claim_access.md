@@ -118,12 +118,13 @@ authentication younger than an hour is in the ID token issued when the end-user 
 one a [refresh](/functional/tokens#refresh-token) issues a day later — a refresh
 [reissues `auth_time` unchanged](/functional/tokens#a-refresh-reissues-it-unchanged).
 
-::: warning Nothing writes a claim through the end-user's own token yet
-`writable-by-person` is parsed and validated today, and nothing reads it: the endpoint that would let an
-end-user write their own claim is [sympauthy#482](https://github.com/sympauthy/sympauthy/issues/482) and does
-not exist. A deployment may open the door now, and it lets nothing through until that endpoint ships, together
-with the challenge a write it refuses will carry.
-:::
+**A write is challenged.** The end-user's application writes their claims through `PATCH /api/v1/user/claims`
+with the person's own access token, and reads them back through `GET /api/v1/user/claims`. A claim whose
+`writable-by-person` door is shut to that token, but which another authorization could open, refuses the whole
+write with a challenge naming what is missing: `403 forbidden` with the scopes to consent to,
+`401 authentication.insufficient_user_authentication` with the `max_age` to authorize again with, or
+`401 authentication.unbound_token` when the door asks for a token bound to a DPoP key. A claim no token could
+open is refused by name with `user.invalid_claim`, and an identifier claim with `user.identifier_claim`.
 
 ## Client access
 

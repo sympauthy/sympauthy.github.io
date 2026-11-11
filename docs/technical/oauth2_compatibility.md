@@ -102,8 +102,9 @@ practices into a single specification. Items marked **Planned** are not yet enfo
 > authentication information the RFC asks a server to convey **is** served: `auth_time` on the access token and in the
 > introspection response, so a resource server can decide for itself how recent an authentication is. The **challenge**
 > itself — `WWW-Authenticate: Bearer error="insufficient_user_authentication"`, carrying the `max_age` an operation
-> demands — is implemented in the server, but no endpoint emits one yet: its first consumer is the end-user's own
-> claim write ([sympauthy#482](https://github.com/sympauthy/sympauthy/issues/482)), which is not built. `acr` and
+> demands — is emitted by the end-user's own claim write, `PATCH /api/v1/user/claims`, when a claim's
+> [`writable-by-person`](/functional/claim_access#the-end-user-s-own-token) door asks for a more recent
+> authentication. `acr` and
 > `acr_values` are not supported at all — SympAuthy publishes no vocabulary of authentication strengths, so it
 > advertises no `acr_values_supported` and the challenge never names `acr_values`.
 
