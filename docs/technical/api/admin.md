@@ -2549,14 +2549,8 @@ GET /api/v1/admin/interactive-flow-sessions?status=ongoing&purpose=oauth2_author
     {
       "id": "3f2504e0-4f89-11d3-9a0c-0305e82c3301",
       "status": "ongoing",
-      "initiating_purpose": {
-        "value": "oauth2_authorize",
-        "display_name": "Signing in at a client's request"
-      },
-      "current_purpose": {
-        "value": "mfa_challenge",
-        "display_name": "Checking a second factor"
-      },
+      "initiating_purpose": "oauth2_authorize",
+      "current_purpose": "mfa_challenge",
       "client_id": "my-app",
       "signed_up": false,
       "user": {
@@ -2582,10 +2576,10 @@ GET /api/v1/admin/interactive-flow-sessions?status=ongoing&purpose=oauth2_author
 | Field                | Type    | Description                                                                                                        |
 |----------------------|---------|----------------------------------------------------------------------------------------------------------------------|
 | `client_id`          | string  | The client the session was started for. Absent where an administrator started it, or where nothing named a client. It may name a client this deployment no longer declares. |
-| `current_purpose`    | object  | The purpose the session is stopped at. Absent once every purpose has resolved, and for a session that completed, cancelled or failed. |
+| `current_purpose`    | string  | The purpose the session is stopped at: `confirm`, `oauth2_authorize`, `mfa_enrollment`, `mfa_challenge`, `reauthentication` or `link_provider`. Absent once every purpose has resolved, and for a session that completed, cancelled or failed. |
 | `expiration_date`    | string  | When the session expires.                                                                                          |
 | `id`                 | string  | Unique identifier of the session.                                                                                  |
-| `initiating_purpose` | object  | The purpose that started the session and owns its terminal handoff.                                                |
+| `initiating_purpose` | string  | The purpose that started the session and owns its terminal handoff: `oauth2_authorize`, `mfa_enrollment` or `link_provider`. |
 | `ip`                 | string  | The address the session was last driven from. The places before this one are on the session's own listing.         |
 | `session_date`       | string  | When the session started.                                                                                          |
 | `signed_up`          | boolean | Whether the account was created during this session. This is what tells a sign-up in progress apart from a person who has not identified themselves at all. |
@@ -2598,9 +2592,10 @@ matches any of them. A row whose address does not match what the operator search
 match was on an earlier place. Every place a session holds is on
 [List Session Security Contexts](#list-session-security-contexts).
 
-A purpose — `initiating_purpose` and `current_purpose` alike — is an object carrying a `value` and a `display_name`.
-The `value` is the contract: branch on it, and send it back as the `purpose` filter. The `display_name` is a label
-written for a person and may be reworded in any release, so nothing may branch on it.
+A purpose — `initiating_purpose` and `current_purpose` alike — is published as its value alone: branch on it, and send
+it back as the `purpose` filter. The name a person reads for it is the one the `purpose` filter's values carry on
+`/api/v1/admin/interactive-flow-sessions/capabilities`, in the language the request asks for — see
+[Capabilities](/technical/api/collections#capabilities).
 
 ::: info `expired` never relabels a terminal session
 `expired` means the session was still ongoing when its expiration passed — nobody finished it. A session that
@@ -2625,8 +2620,8 @@ See [Collections](#collections) for the errors a bad page, filter, order or sear
 
 **Authentication**: Access token with `admin:interactive-flow-sessions:read` scope
 
-**Purpose**: Retrieves one interactive flow session: every purpose it carries, where each one stands, and what the
-handler that owns each purpose has to say about it.
+**Purpose**: Retrieves one interactive flow session: every purpose it carries, where each one stands, and the values
+the session holds for each.
 
 **Path Parameters**:
 
@@ -2640,10 +2635,7 @@ handler that owns each purpose has to say about it.
 {
   "id": "3f2504e0-4f89-11d3-9a0c-0305e82c3301",
   "status": "ongoing",
-  "initiating_purpose": {
-    "value": "oauth2_authorize",
-    "display_name": "Signing in at a client's request"
-  },
+  "initiating_purpose": "oauth2_authorize",
   "client_id": "my-app",
   "flow_id": "default",
   "user": {
@@ -2659,28 +2651,31 @@ handler that owns each purpose has to say about it.
   "expiration_date": "2026-09-19T09:27:44",
   "purposes": [
     {
-      "purpose": {
-        "value": "oauth2_authorize",
-        "display_name": "Signing in at a client's request"
-      },
+      "purpose": "oauth2_authorize",
       "status": "completed",
       "debug": [
-        { "display_name": "Requested scopes", "value": "openid profile email" },
-        { "display_name": "Invitation" },
-        { "display_name": "State", "value": "present" },
-        { "display_name": "Nonce", "value": "absent" },
-        { "display_name": "Code challenge", "value": "present (S256)" }
+        { "code": "client_id", "type": "text", "value": "my-app" },
+        { "code": "redirect_uri", "type": "text", "value": "https://my-app.com/callback" },
+        { "code": "requested_scopes", "type": "text_list", "value": ["openid", "profile", "email"] },
+        { "code": "consented_scopes", "type": "text_list", "value": ["openid", "profile", "email"] },
+        { "code": "consented_at", "type": "date", "value": "2026-09-19T09:13:02" },
+        { "code": "consented_by", "type": "text", "value": "auto" },
+        { "code": "granted_scopes", "type": "text_list", "value": ["openid", "profile", "email"] },
+        { "code": "granted_at", "type": "date", "value": "2026-09-19T09:13:02" },
+        { "code": "granted_by", "type": "text", "value": "rule" },
+        { "code": "invitation_id", "type": "text" },
+        { "code": "state", "type": "presence", "value": true },
+        { "code": "nonce", "type": "presence", "value": false },
+        { "code": "code_challenge", "type": "presence", "value": true },
+        { "code": "code_challenge_method", "type": "text", "value": "S256" }
       ]
     },
     {
-      "purpose": {
-        "value": "mfa_challenge",
-        "display_name": "Checking a second factor"
-      },
+      "purpose": "mfa_enrollment",
       "status": "current",
       "debug": [
-        { "display_name": "MFA passed date" },
-        { "display_name": "Methods available to challenge", "value": "totp" }
+        { "code": "enrolled_methods", "type": "text_list", "value": [] },
+        { "code": "mfa_passed_at", "type": "date" }
       ]
     }
   ]
@@ -2698,18 +2693,41 @@ handler that owns each purpose has to say about it.
 The remaining fields are the ones the listing publishes, with the same meaning.
 
 Each entry of `purposes` carries the `purpose` it is about, its `status` — `completed`, `current` or `pending` — and a
-`debug` array of what the handler that owns it has to say. A terminal session has no `current` purpose; a session that
-was ongoing when it expired still has one.
+`debug` array of the values the session holds for it. A terminal session has no `current` purpose; a session that was
+ongoing when it expired still has one.
 
-**A credential is never published here.** A value an operator may need to know the existence of but not the content
-of is reported as `present` or `absent` — the `State`, `Nonce` and `Code challenge` entries above.
+Each `debug` entry carries:
+
+- `code`: what the value is. The code is the contract: it is never renamed, and a new one may appear in any release,
+  so a reader keyed on codes renders one it does not know under the code itself
+- `type`: how `value` is written — `text` a string, `text_list` an array of strings, `date` a date and time in
+  [UTC](#date-and-time-format), and `presence` a boolean saying whether the session holds a value this server does not
+  publish
+- `value`: the value, in that type. Absent when the session holds nothing for it, and the entry is listed all the same.
+  An empty array is a value: `enrolled_methods` is `[]` for an account that has enrolled no MFA method, and absent only
+  where the session has identified nobody
+
+| Purpose            | Codes                                                                                                                                                                                                                         |
+|--------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `confirm`          | `action`, `initiated_by` (`client` or `admin`), `client_id` (absent where an administrator started it), `confirmed_at`                                                                                                        |
+| `link_provider`    | `target_provider_id`, `authorizing_provider_id`                                                                                                                                                                               |
+| `mfa_challenge`    | `mfa_passed_at`, `challengeable_methods`                                                                                                                                                                                      |
+| `mfa_enrollment`   | `enrolled_methods`, `mfa_passed_at`                                                                                                                                                                                           |
+| `oauth2_authorize` | `client_id`, `redirect_uri`, `requested_scopes`, `consented_scopes`, `consented_at`, `consented_by`, `granted_scopes`, `granted_at`, `granted_by`, `invitation_id`, `state`, `nonce`, `code_challenge`, `code_challenge_method` |
+| `reauthentication` | `primary_credential_proven_at`                                                                                                                                                                                                |
+
+The scope, consent and grant codes of `oauth2_authorize` carry the values [Get Grant](#get-grant) publishes under the
+same names. A request that failed validation still answers every one of its codes, each with no `value`: what went
+wrong is on `error_details_id` and `error_description_id`.
+
+**A credential is never published here.** `state`, `nonce` and `code_challenge` are `presence` entries — `true` where
+the request carried one — and never their values. The method a code challenge was sent with is an entry of its own,
+`code_challenge_method`, absent where the request carried no code challenge.
 
 ::: info The failure messages are keys, not sentences
 `error_details_id` and `error_description_id` are published as the message identifiers they are rather than as a
-sentence rendered in a locale that may not be the reader's, so an operator can search for them. Each `debug` entry's
-`display_name`, by contrast, is a label written for a person and may be reworded in any release, and which entries a
-purpose emits is its handler's to change — so nothing may branch on either. A `debug` entry whose field holds nothing
-carries no `value`, but the entry itself is never omitted.
+sentence rendered in a locale that may not be the reader's, so an operator can search for them. A `debug` entry is
+keyed the same way: branch on its `code` and its `type`, and choose the words a person reads for it yourself.
 :::
 
 **Errors**:
@@ -2722,7 +2740,7 @@ A session that has already been collected answers `not_found` like one that neve
 
 **Use Cases**:
 
-- See which step a stalled session is stopped at, and what the handler driving it is looking at
+- See which step a stalled session is stopped at, and the values the session holds for it
 - Read the message identifiers a failed session carries, to see why it failed: the failure is recorded on the session,
   not written to the [log](/technical/monitoring/logs#what-is-not-logged)
 - Confirm whether a session signed a new account up or identified an existing one
