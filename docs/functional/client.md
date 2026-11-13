@@ -33,6 +33,9 @@ Both confidential and public clients must use [PKCE](/technical/security#pkce-pr
 Each client must be registered in SympAuthy before it can authenticate users. Registration is done through configuration and consists of:
 
 - **client id**: A unique identifier for the client.
+- **display name** *(optional)*: The name end-users read on the sign-in pages to know which application is asking,
+  and administrators read beside the client id. One name for every language, as a product's name is not translated.
+  A client without one is shown by its client id.
 - **audience**: The [audience](/functional/audience) this client belongs to. Set explicitly or inherited from a client template.
 - **public** *(optional)*: Set to `true` to declare the client as a public client. Defaults to `false`.
 - **client secret**: A secret shared only between SympAuthy and the client, used to verify the authenticity of authentication requests. Required for confidential clients; omitted for public clients.

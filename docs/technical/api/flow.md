@@ -82,6 +82,26 @@ The `GET` steps that render sign-in and sign-up return either the step's config 
 `redirect_url` is present every config field is `null`, so check `redirect_url` first and only read the config fields
 when it is absent.
 
+#### Naming the Client
+
+Every `GET` step carries `client` when a client started the session, so the page can tell the end-user which
+application is asking — on the claims step above all, where it asks for their phone number or address:
+
+```json
+"client": {
+  "id": "my-app",
+  "display_name": "My App"
+}
+```
+
+- `id`: The client's identifier
+- `display_name`: The [`display-name`](/technical/configuration/client) the configuration gives the client, one name
+  for every language. Absent when it gives none, or no longer declares the client: show `id` instead
+
+`client` is absent on a session no client started, such as an MFA enrollment an administrator asked for, and beside a
+`redirect_url`, like every other field. The error page (`GET /api/v1/flow/errors`) carries it too, so it can offer a
+way back to the client, unless its `state` resolves to no session.
+
 #### Invitation Token
 
 When [invitation](/functional/invitation)-based registration is enabled, the OAuth 2 authorize endpoint
@@ -135,6 +155,10 @@ specific to the client that initiated the authorize flow and to the current inte
     }
   ],
   "sign_up_redirect_url": "/sign-up?state=...",
+  "client": {
+    "id": "my-app",
+    "display_name": "My App"
+  },
   "redirect_url": null
 }
 ```
@@ -155,6 +179,7 @@ specific to the client that initiated the authorize flow and to the current inte
 - `sign_up_redirect_url`: Link to the sign-up step, used to render the "Create an account" link. Present only when
   sign-up is allowed for this interactive flow session (in a normal, non-invitation sign-in: when open registration is enabled), and
   `null` otherwise
+- `client`: The client the session was started for — see [Naming the Client](#naming-the-client)
 - `redirect_url`: Set when the user should **not** be on the sign-in step — e.g. an
   [invitation](/functional/invitation) flow (→ sign-up page) or an already-authenticated user with nothing left to
   prove (→ next step). When set, every other field is `null`; follow it instead of rendering the form. A session that
@@ -246,6 +271,10 @@ collect, and the cross-link to sign-in — **or** a `redirect_url` when the user
     ]
   },
   "sign_in_redirect_url": "/sign-in?state=...",
+  "client": {
+    "id": "my-app",
+    "display_name": "My App"
+  },
   "redirect_url": null
 }
 ```
@@ -263,6 +292,7 @@ collect, and the cross-link to sign-in — **or** a `redirect_url` when the user
 - `sign_in_redirect_url`: Link to the sign-in step, used to render the "Already have an account?" link. Present only
   when sign-in is allowed, and therefore **`null` during an [invitation](/functional/invitation) flow** (invitations do
   not allow signing into an existing account)
+- `client`: The client the session was started for — see [Naming the Client](#naming-the-client)
 - `redirect_url`: Set when the user should **not** be on the sign-up step — e.g. sign-up is disabled for the audience
   (→ sign-in page) or an already-authenticated user (→ next step). When set, every other field is `null`
 
@@ -404,7 +434,11 @@ When claims need to be collected:
       "value": "1990-01-15",
       "suggested_value": null
     }
-  ]
+  ],
+  "client": {
+    "id": "my-app",
+    "display_name": "My App"
+  }
 }
 ```
 
@@ -426,6 +460,8 @@ When no claims need collection (auto-skip):
 - `collected`: Whether the user has already been presented with this claim during a previous flow step
 - `value`: Current value provided by the user (`null` if not yet collected or user declined)
 - `suggested_value`: Value from a third-party provider, suggested as a default
+
+Beside `claims`, `client` names the client asking for them — see [Naming the Client](#naming-the-client).
 
 **Behavior**:
 
@@ -507,6 +543,10 @@ When validation is needed:
       "email_claim"
     ],
     "resend_date": "2026-02-14T10:43:30"
+  },
+  "client": {
+    "id": "my-app",
+    "display_name": "My App"
   }
 }
 ```
@@ -526,6 +566,8 @@ When no validation needed (auto-skip):
 - `reasons`: Why validation is required: `email_claim` confirms the end-user receives mail at the value of their
   `email` claim, and `phone_number_claim` that they receive messages at the value of their `phone_number` claim
 - `resend_date`: ISO 8601 timestamp when the code can be resent. UTC, written with no zone offset
+
+Beside `code`, `client` names the client the session was started for — see [Naming the Client](#naming-the-client).
 
 **Behavior**:
 
@@ -674,7 +716,11 @@ When method selection is needed:
       "redirect_url": "/api/v1/flow/mfa/totp/enroll?state=..."
     }
   ],
-  "skip_redirect_url": "/api/v1/flow/mfa/skip?state=..."
+  "skip_redirect_url": "/api/v1/flow/mfa/skip?state=...",
+  "client": {
+    "id": "my-app",
+    "display_name": "My App"
+  }
 }
 ```
 
@@ -685,6 +731,7 @@ When method selection is needed:
   method's `method` — `totp` is the only one today — and the `redirect_url` of its enrollment or challenge step
 - `skip_redirect_url`: URL to skip MFA (only present when `mfa.required` is `false` **and** the user has not enrolled in
   any MFA method)
+- `client`: The client the session was started for, beside `methods` — see [Naming the Client](#naming-the-client)
 
 #### TOTP Enrollment
 
@@ -704,7 +751,11 @@ Returns the enrollment data needed to register the TOTP secret with an authentic
 ```json
 {
   "otpauth_uri": "otpauth://totp/SympAuthy:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=SympAuthy",
-  "secret": "JBSWY3DPEHPK3PXP"
+  "secret": "JBSWY3DPEHPK3PXP",
+  "client": {
+    "id": "my-app",
+    "display_name": "My App"
+  }
 }
 ```
 
@@ -713,6 +764,7 @@ Returns the enrollment data needed to register the TOTP secret with an authentic
 - `otpauth_uri`: A URI following the `otpauth://` scheme that can be rendered as a QR code. Scanning this QR code with
   an authenticator app registers the secret automatically.
 - `secret`: The base32-encoded TOTP secret, displayed for users who prefer to enter it manually.
+- `client`: The client the session was started for — see [Naming the Client](#naming-the-client).
 
 ##### POST Request
 
@@ -882,7 +934,10 @@ Confirmation required:
 {
   "action": "link_provider",
   "requires_reauthentication": true,
-  "initiating_client_id": "my-app"
+  "client": {
+    "id": "my-app",
+    "display_name": "My App"
+  }
 }
 ```
 
@@ -903,9 +958,9 @@ Nothing to confirm — follow the redirect:
   after approving — so the UI can warn them up front. `true` for a provider link (which mints a durable login credential
   and so requires proof of account ownership first), `false` for MFA enrollment. Always `false` and irrelevant when a
   `redirect_url` is returned.
-- `initiating_client_id`: Identifier of the client that initiated the action on the end-user's behalf. `null` when an
-  **administrator** initiated it — the UI should then render a generic initiator such as "an administrator" — or when a
-  `redirect_url` is returned.
+- `client`: The client that initiated the action on the end-user's behalf — see
+  [Naming the Client](#naming-the-client). Absent when an **administrator** initiated it — the UI should then render a
+  generic initiator such as "an administrator" — or when a `redirect_url` is returned.
 - `redirect_url`: URL to redirect the end-user to instead of rendering the confirmation step. When present, all other
   fields are `null` (except `requires_reauthentication`, which is `false`).
 
@@ -1076,7 +1131,7 @@ ends at the initiator's `return_uri`:
 
 ```
 1. GET /api/v1/flow/confirm?state=def456
-   → Returns: {"action": "link_provider", "requires_reauthentication": true, "initiating_client_id": "my-app"}
+   → Returns: {"action": "link_provider", "requires_reauthentication": true, "client": {"id": "my-app", "display_name": "My App"}}
      (render the action, and warn that a sign-in follows)
    ↓
 2. POST /api/v1/flow/confirm   [Authorization: State def456]

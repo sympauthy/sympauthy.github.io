@@ -13,7 +13,7 @@ pre-configures everything needed to use the Admin API:
 
 - An `admin` [audience](/functional/audience) that admin scopes are bound to
 - All admin scopes listed in the [Admin Scopes](#admin-scopes) table below, restricted to the `admin` audience
-- A default `admin` client in the `admin` audience with all admin scopes in its `allowed-scopes`
+- A default `admin` client, named `Admin`, in the `admin` audience with all admin scopes in its `allowed-scopes`
 
 To activate the admin environment, include `admin` in the `MICRONAUT_ENVIRONMENTS` variable:
 
@@ -285,14 +285,9 @@ in responses. Requires the `admin:config:read` scope.
   "clients": [
     {
       "client_id": "my-app",
+      "display_name": "My App",
       "type": "public",
-      "allowed_scopes": [
-        "openid",
-        "profile"
-      ],
-      "default_scopes": [
-        "openid"
-      ],
+      "audience_id": "my-audience",
       "allowed_redirect_uris": [
         "https://my-app.com/callback"
       ]
@@ -308,15 +303,19 @@ in responses. Requires the `admin:config:read` scope.
 
 - `clients`: Array of client records
     - `client_id`: Unique identifier of the client, as defined in configuration
+    - `display_name`: The [`display-name`](/technical/configuration/client) the configuration gives the client. Absent
+      when it gives none
     - `type`: Type of the client as defined by
       the [OAuth 2.1 specification](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-12#section-2.1).
       Possible values: `"public"` | `"confidential"`
-    - `allowed_scopes`: Scopes the client is allowed to request
-    - `default_scopes`: Scopes granted by default when the client does not explicitly request any
-    - `allowed_redirect_uris`: Redirect URIs the client is allowed to use during authorization
+    - `audience_id`: The [audience](/functional/audience) the client belongs to
+    - `allowed_redirect_uris`: Redirect URIs the client is allowed to use during authorization. Empty when the client
+      may not use the `authorization_code` grant
 - `page`: Current page number
 - `size`: Number of results per page
 - `total`: Total number of clients
+
+The scopes, grant types, flow and webhook of a client are on [Get Client Details](#get-client-details).
 
 **Use Cases**:
 
@@ -347,7 +346,14 @@ in responses. Requires the `admin:config:read` scope.
 ```json
 {
   "client_id": "my-app",
+  "display_name": "My App",
   "type": "public",
+  "audience_id": "my-audience",
+  "allowed_grant_types": [
+    "authorization_code",
+    "refresh_token"
+  ],
+  "authorization_flow_id": "default",
   "allowed_scopes": [
     "openid",
     "profile"
@@ -357,7 +363,11 @@ in responses. Requires the `admin:config:read` scope.
   ],
   "allowed_redirect_uris": [
     "https://my-app.com/callback"
-  ]
+  ],
+  "authorization_webhook": {
+    "url": "https://my-app.com/sympauthy/authorize",
+    "on_failure": "deny_all"
+  }
 }
 ```
 
@@ -370,12 +380,24 @@ in responses. Requires the `admin:config:read` scope.
 **Properties**:
 
 - `client_id`: Unique identifier of the client, as defined in configuration
+- `display_name`: The [`display-name`](/technical/configuration/client) the configuration gives the client. Absent when
+  it gives none
 - `type`: Type of the client as defined by
   the [OAuth 2.1 specification](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-12#section-2.1). Possible
   values: `"public"` | `"confidential"`
-- `allowed_scopes`: Scopes the client is allowed to request
-- `default_scopes`: Scopes granted by default when the client does not explicitly request any
-- `allowed_redirect_uris`: Redirect URIs the client is allowed to use during authorization
+- `audience_id`: The [audience](/functional/audience) the client belongs to
+- `allowed_grant_types`: Grant types the client may use: `authorization_code`, `refresh_token`, `client_credentials`
+  and `urn:ietf:params:oauth:grant-type:token-exchange`
+- `authorization_flow_id`: The [authorization flow](/technical/configuration/authorization#flows-id) an end-user goes
+  through to authorize the client. Absent when the configuration names none, and the default flow is used
+- `allowed_scopes`: Scopes the client is allowed to request. Absent when the configuration does not restrict them, and
+  the client may request every scope
+- `default_scopes`: Scopes the client is given when its authorization request names none
+- `allowed_redirect_uris`: Redirect URIs the client is allowed to use during authorization. Empty when the client may
+  not use the `authorization_code` grant
+- `authorization_webhook`: The [authorization webhook](/technical/authorization_webhook) the client delegates scope
+  decisions to, as its `url` and its `on_failure` behaviour — `deny_all` or `fallback_to_rules`. Absent when none is
+  configured
 
 **Use Cases**:
 
@@ -1760,11 +1782,12 @@ and `admin:consent:write` for modifications.
 | `audience_id` | `enum` — the audiences this deployment configures | Yes | — |
 | `consented_at` | `date_time` | Yes | — |
 | `id` | `uuid` | — | — |
-| `prompted_by_client_id` | `enum` — the clients this deployment configures | Yes | — |
+| `prompted_by_client` | `enum` — the clients this deployment configures, and those active consents were prompted by | Yes | — |
 | `scope` | `string` — the scopes the consent covers | — | Yes |
 
 A consent covers several scopes, so `scope=openid` keeps a consent holding `openid` among others, and
-`scope.ne=openid` keeps only the consents that do not hold it at all.
+`scope.ne=openid` keeps only the consents that do not hold it at all. `prompted_by_client` takes the client's
+identifier and sorts by it, and still offers a client the configuration no longer declares while an active consent names it.
 
 **Default order**: `consented_at`, ascending.
 
@@ -1775,7 +1798,10 @@ A consent covers several scopes, so `scope=openid` keeps a consent holding `open
   "consents": [
     {
       "audience_id": "my-app",
-      "prompted_by_client_id": "my-web-app",
+      "prompted_by_client": {
+        "id": "my-web-app",
+        "display_name": "My Web App"
+      },
       "scopes": [
         "profile",
         "email"
@@ -1784,7 +1810,9 @@ A consent covers several scopes, so `scope=openid` keeps a consent holding `open
     },
     {
       "audience_id": "backoffice",
-      "prompted_by_client_id": "backoffice-app",
+      "prompted_by_client": {
+        "id": "backoffice-app"
+      },
       "scopes": [
         "email"
       ],
@@ -1801,8 +1829,10 @@ A consent covers several scopes, so `scope=openid` keeps a consent holding `open
 
 - `consents`: Array of active consent records
     - `audience_id`: Identifier of the [audience](/functional/audience) that received consent
-    - `prompted_by_client_id`: Identifier of the client whose authorization last updated the consent (kept for
-      audit). It records who asked, and decides nothing about which of the audience's clients act under the consent
+    - `prompted_by_client`: The client whose authorization last updated the consent (kept for audit), as its `id` and
+      the `display_name` the [configuration](/technical/configuration/client) gives it — absent when it gives none, or
+      no longer declares the client. It records who asked, and decides nothing about which of the audience's clients
+      act under the consent
     - `scopes`: List of scopes the user has consented to for this audience
     - `consented_at`: When consent was granted
 - `page`: Current page number
@@ -1873,7 +1903,7 @@ Endpoints for viewing and revoking the [grants](/functional/grant) every token i
 
 Grants are one collection rather than one nested under each user, so a `client_credentials` grant, which no user
 holds, is listed too. A person's grants are read with `GET /api/v1/admin/grants?user={user_id}`, and a client's
-with `GET /api/v1/admin/grants?client_id={client_id}`.
+with `GET /api/v1/admin/grants?client={client_id}`.
 
 #### List Grants
 
@@ -1898,7 +1928,7 @@ within fifteen minutes — once no authorization code names it.
 |---|---|---|---|
 | `actor_grant_id` | `uuid` | — | — |
 | `audience_id` | `enum` — the audiences this deployment configures, and those stored grants were opened for | — | Yes |
-| `client_id` | `enum` — the clients this deployment configures, and those stored grants were opened for | — | Yes |
+| `client` | `enum` — the clients this deployment configures, and those stored grants were opened for | — | Yes |
 | `created_at` | `date_time` | Yes | — |
 | `expires_at` | `date_time` | Yes | — |
 | `grant_type` | `enum` — `authorization_code`, `client_credentials`, `urn:ietf:params:oauth:grant-type:token-exchange` | — | — |
@@ -1909,15 +1939,15 @@ within fifteen minutes — once no authorization code names it.
 | `status` | `enum` — `live`, `revoked`, `expired`, `lapsed` | — | — |
 | `user` | `uuid` — the account the grant was opened for | — | — |
 
-`id` is the field the response names `grant_id`, and `user` takes the identifier of the account the response
-publishes as a `user` object. `q` also matches every
+`id` is the field the response names `grant_id`, and `client` and `user` take the identifiers of the client and the
+account the response publishes as objects. `q` also matches every
 [identifier claim](/functional/claims#identifier-claims) of the user the grant was opened for, so a person's grants
 are found by typing what they sign in with — their email address, where it is an identifier claim. A grant holds
 several scopes across its granted, consented and client scopes, so `scope=openid` keeps a grant holding `openid` in
 any of the three, and `scope.ne=openid` keeps only the grants holding it in none. `actor_grant_id`, `expires_at`,
 `revoked_at`, `revoked_by` and `user` may be absent, so each also admits `is_null`. A client or an audience the
-configuration no longer declares is still offered under `client_id` and `audience_id` while a stored grant names
-it.
+configuration no longer declares is still offered under `client` and `audience_id` while a stored grant names
+it. The [capability document](/technical/api/collections#capabilities) shows each client under its display name.
 
 **Default order**: `created_at`, ascending.
 
@@ -1936,7 +1966,10 @@ it.
           "email": "jane@example.com"
         }
       },
-      "client_id": "my-client-app",
+      "client": {
+        "id": "my-client-app",
+        "display_name": "My Client App"
+      },
       "audience_id": "default",
       "grant_type": "authorization_code",
       "status": "live",
@@ -1961,7 +1994,10 @@ it.
       [identifier claims](/functional/claims#identifier-claims) they hold a value for. It never carries the user's
       [last activity](/functional/end-user_management#last-activity), which `admin:users:read` covers and this scope
       does not. Absent on a `client_credentials` grant
-    - `client_id`, `audience_id`: The client and the [audience](/functional/audience) the grant was opened for
+    - `client`: The client the grant was opened for, as its `id` and the `display_name` the
+      [configuration](/technical/configuration/client) gives it — absent when it gives none, or no longer declares
+      the client
+    - `audience_id`: The [audience](/functional/audience) the grant was opened for
     - `grant_type`: How the client asked for the grant's tokens: `authorization_code` when a person signed in,
       `client_credentials` when the client asked for itself, or the token exchange URN when it acts as a person
       through [delegation](/functional/delegation). A refresh opens no grant
@@ -2022,7 +2058,10 @@ authorization behind it decided.
       "email": "jane@example.com"
     }
   },
-  "client_id": "my-client-app",
+  "client": {
+    "id": "my-client-app",
+    "display_name": "My Client App"
+  },
   "audience_id": "default",
   "grant_type": "authorization_code",
   "status": "revoked",
@@ -2511,7 +2550,7 @@ started for, the purpose it is stopped at, the account it identified, and the pl
 
 | Field | Type | Sortable | Searchable |
 |---|---|---|---|
-| `client` | `enum` — the clients this deployment configures | Yes | Yes |
+| `client` | `enum` — the clients this deployment configures, and those stored sessions were started for | Yes | Yes |
 | `expiration_date` | `date_time` | Yes | — |
 | `id` | `uuid` | — | — |
 | `ip` | `string` — every address the session was driven from | — | Yes |
@@ -2530,8 +2569,8 @@ one it is stopped at. `ip` and `user_agent` each read every place the session wa
 keeps a session driven from that address among others, and `ip.ne=203.0.113.42` keeps only the sessions never driven
 from it, while the response publishes only the most recent of them.
 
-Two filter names differ from the fields the response publishes them under: `client` filters on what the response calls
-`client_id`, and `user` takes the identifier of the account the response publishes as a `user` object.
+`client` and `user` take the identifiers of the client and the account the response publishes as objects, and
+`client` sorts by identifier too.
 
 ```
 GET /api/v1/admin/interactive-flow-sessions?status=ongoing&purpose=oauth2_authorize&sort=-session_date
@@ -2551,7 +2590,10 @@ GET /api/v1/admin/interactive-flow-sessions?status=ongoing&purpose=oauth2_author
       "status": "ongoing",
       "initiating_purpose": "oauth2_authorize",
       "current_purpose": "mfa_challenge",
-      "client_id": "my-app",
+      "client": {
+        "id": "my-app",
+        "display_name": "My App"
+      },
       "signed_up": false,
       "user": {
         "user_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -2575,7 +2617,7 @@ GET /api/v1/admin/interactive-flow-sessions?status=ongoing&purpose=oauth2_author
 
 | Field                | Type    | Description                                                                                                        |
 |----------------------|---------|----------------------------------------------------------------------------------------------------------------------|
-| `client_id`          | string  | The client the session was started for. Absent where an administrator started it, or where nothing named a client. It may name a client this deployment no longer declares. |
+| `client`             | object  | The client the session was started for, as its `id` and the `display_name` the [configuration](/technical/configuration/client) gives it — absent when it gives none, or no longer declares the client. Absent where an administrator started the session, or where nothing named a client. |
 | `current_purpose`    | string  | The purpose the session is stopped at: `confirm`, `oauth2_authorize`, `mfa_enrollment`, `mfa_challenge`, `reauthentication` or `link_provider`. Absent once every purpose has resolved, and for a session that completed, cancelled or failed. |
 | `expiration_date`    | string  | When the session expires.                                                                                          |
 | `id`                 | string  | Unique identifier of the session.                                                                                  |
@@ -2636,7 +2678,10 @@ the session holds for each.
   "id": "3f2504e0-4f89-11d3-9a0c-0305e82c3301",
   "status": "ongoing",
   "initiating_purpose": "oauth2_authorize",
-  "client_id": "my-app",
+  "client": {
+    "id": "my-app",
+    "display_name": "My App"
+  },
   "flow_id": "default",
   "user": {
     "user_id": "550e8400-e29b-41d4-a716-446655440000",
