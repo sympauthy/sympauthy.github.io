@@ -8,6 +8,7 @@ authorization server.
 | Key                                    | Type            | Description                                                                                                                                                                                                                                                         | Required<br>Default  |
 |----------------------------------------|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------|
 | ```<id>```                             | string          | Uniq identifier of the client.                                                                                                                                                                                                                                      | **YES**              |
+| ```display-name```                     | string          | The name the client is shown under: the [sign-in pages](/technical/api/flow#naming-the-client) name it as the application asking, and the [Admin API](/technical/api/admin) beside its identifier. One name for every language, and not blank. When absent, the client is shown by its `<id>`. Cannot be set on a [template](#templates-clients-id).                       | NO                   |
 | ```template```                         | string          | Name of a custom [client template](#templates-clients-id) to apply. The referenced template provides default values for fields not explicitly set on this client. The `default` template cannot be referenced here — it is auto-applied when no `template` is set.  | NO                   |
 | ```authorization-flow```               | string          | The identifier of the authorization flow to use for this client. See [authorization flows](/technical/configuration/authorization#flows-id) for more details.                                                                                                                                                                  | **YES**              |
 | ```public```                           | boolean         | When `true`, the client is a [public client](/functional/client#confidential-and-public-clients) that does not require a secret. Public clients must use [PKCE](/technical/security#pkce-proof-key-for-code-exchange) and cannot use the client credentials grant.  | NO<br>```false```    |
@@ -129,6 +130,9 @@ Client templates provide default field values that are inherited by clients. A t
 When a client references a custom template, the `default` template is **not** applied — only the referenced template's values are used as defaults.
 
 Fields set directly on a client always override the corresponding template value.
+
+A template sets no `display-name`, and one that writes it is refused at startup: a template is shared by several
+clients, and a name they all carried would tell none of them apart.
 
 | Key                         | Type            | Description                                                           | Required<br>Default |
 |-----------------------------|-----------------|-----------------------------------------------------------------------|---------------------|

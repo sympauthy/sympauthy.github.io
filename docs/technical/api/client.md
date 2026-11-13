@@ -427,7 +427,7 @@ for its audience:
     "given_name": "John",
     "family_name": "Doe",
     "phone_number": "+1234567890",
-    "birth_date": "1990-01-15",
+    "birthdate": "1990-01-15",
     "department": "Engineering",
     "employee_id": "EMP-12345",
     "preferences": {
@@ -529,7 +529,7 @@ claim's [ACL](/technical/configuration/claim#claims-id-acl) can be modified thro
     "given_name": "John",
     "family_name": "Doe",
     "phone_number": "+1234567890",
-    "birth_date": "1990-01-15",
+    "birthdate": "1990-01-15",
     "department": "Product Management",
     "employee_id": "EMP-67890",
     "role": "Senior Product Manager",
