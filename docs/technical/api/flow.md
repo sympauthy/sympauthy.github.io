@@ -99,8 +99,26 @@ application is asking — on the claims step above all, where it asks for their 
   for every language. Absent when it gives none, or no longer declares the client: show `id` instead
 
 `client` is absent on a session no client started, such as an MFA enrollment an administrator asked for, and beside a
-`redirect_url`, like every other field. The error page (`GET /api/v1/flow/errors`) carries it too, so it can offer a
-way back to the client, unless its `state` resolves to no session.
+`redirect_url`, like every other field. The [error page](#_9-error-endpoint) carries it too, so it can offer a way back
+to the client, unless its `state` resolves to no session.
+
+#### Leaving the Flow
+
+Every `GET` step carries a `cancel_url` the page offers as a plain link — a "Cancel" or "Back to the application"
+link:
+
+```json
+"cancel_url": "https://auth.example.com/api/v1/flow/cancel?state=..."
+```
+
+Following it [leaves the flow](#_7-cancel-endpoint): the browser is sent back to whoever started the session, and the
+session ends as cancelled if it was still running. The [error page](#_9-error-endpoint) carries it too, so a failed
+flow can still send the end-user back.
+
+`cancel_url` is absent where leaving has nowhere to go: the `state` resolves to no session, the request that started
+the session named nowhere the server may send the end-user (an authorization from an unknown client, or naming a
+redirect URI the client does not declare), or the session is an authorization that has already completed. Like every
+other field, it is also absent beside a `redirect_url`.
 
 #### Invitation Token
 
@@ -159,6 +177,7 @@ specific to the client that initiated the authorize flow and to the current inte
     "id": "my-app",
     "display_name": "My App"
   },
+  "cancel_url": "https://auth.example.com/api/v1/flow/cancel?state=...",
   "redirect_url": null
 }
 ```
@@ -180,6 +199,7 @@ specific to the client that initiated the authorize flow and to the current inte
   sign-up is allowed for this interactive flow session (in a normal, non-invitation sign-in: when open registration is enabled), and
   `null` otherwise
 - `client`: The client the session was started for — see [Naming the Client](#naming-the-client)
+- `cancel_url`: The link leaving the flow — see [Leaving the Flow](#leaving-the-flow)
 - `redirect_url`: Set when the user should **not** be on the sign-in step — e.g. an
   [invitation](/functional/invitation) flow (→ sign-up page) or an already-authenticated user with nothing left to
   prove (→ next step). When set, every other field is `null`; follow it instead of rendering the form. A session that
@@ -275,6 +295,7 @@ collect, and the cross-link to sign-in — **or** a `redirect_url` when the user
     "id": "my-app",
     "display_name": "My App"
   },
+  "cancel_url": "https://auth.example.com/api/v1/flow/cancel?state=...",
   "redirect_url": null
 }
 ```
@@ -293,6 +314,7 @@ collect, and the cross-link to sign-in — **or** a `redirect_url` when the user
   when sign-in is allowed, and therefore **`null` during an [invitation](/functional/invitation) flow** (invitations do
   not allow signing into an existing account)
 - `client`: The client the session was started for — see [Naming the Client](#naming-the-client)
+- `cancel_url`: The link leaving the flow — see [Leaving the Flow](#leaving-the-flow)
 - `redirect_url`: Set when the user should **not** be on the sign-up step — e.g. sign-up is disabled for the audience
   (→ sign-in page) or an already-authenticated user (→ next step). When set, every other field is `null`
 
@@ -438,7 +460,8 @@ When claims need to be collected:
   "client": {
     "id": "my-app",
     "display_name": "My App"
-  }
+  },
+  "cancel_url": "https://auth.example.com/api/v1/flow/cancel?state=..."
 }
 ```
 
@@ -461,7 +484,8 @@ When no claims need collection (auto-skip):
 - `value`: Current value provided by the user (`null` if not yet collected or user declined)
 - `suggested_value`: Value from a third-party provider, suggested as a default
 
-Beside `claims`, `client` names the client asking for them — see [Naming the Client](#naming-the-client).
+Beside `claims`, `client` names the client asking for them — see [Naming the Client](#naming-the-client) — and
+`cancel_url` lets the end-user leave — see [Leaving the Flow](#leaving-the-flow).
 
 **Behavior**:
 
@@ -547,7 +571,8 @@ When validation is needed:
   "client": {
     "id": "my-app",
     "display_name": "My App"
-  }
+  },
+  "cancel_url": "https://auth.example.com/api/v1/flow/cancel?state=..."
 }
 ```
 
@@ -567,7 +592,8 @@ When no validation needed (auto-skip):
   `email` claim, and `phone_number_claim` that they receive messages at the value of their `phone_number` claim
 - `resend_date`: ISO 8601 timestamp when the code can be resent. UTC, written with no zone offset
 
-Beside `code`, `client` names the client the session was started for — see [Naming the Client](#naming-the-client).
+Beside `code`, `client` names the client the session was started for — see [Naming the Client](#naming-the-client) —
+and `cancel_url` lets the end-user leave — see [Leaving the Flow](#leaving-the-flow).
 
 **Behavior**:
 
@@ -720,7 +746,8 @@ When method selection is needed:
   "client": {
     "id": "my-app",
     "display_name": "My App"
-  }
+  },
+  "cancel_url": "https://auth.example.com/api/v1/flow/cancel?state=..."
 }
 ```
 
@@ -732,6 +759,7 @@ When method selection is needed:
 - `skip_redirect_url`: URL to skip MFA (only present when `mfa.required` is `false` **and** the user has not enrolled in
   any MFA method)
 - `client`: The client the session was started for, beside `methods` — see [Naming the Client](#naming-the-client)
+- `cancel_url`: The link leaving the flow, beside `methods` — see [Leaving the Flow](#leaving-the-flow)
 
 #### TOTP Enrollment
 
@@ -755,7 +783,8 @@ Returns the enrollment data needed to register the TOTP secret with an authentic
   "client": {
     "id": "my-app",
     "display_name": "My App"
-  }
+  },
+  "cancel_url": "https://auth.example.com/api/v1/flow/cancel?state=..."
 }
 ```
 
@@ -765,6 +794,7 @@ Returns the enrollment data needed to register the TOTP secret with an authentic
   an authenticator app registers the secret automatically.
 - `secret`: The base32-encoded TOTP secret, displayed for users who prefer to enter it manually.
 - `client`: The client the session was started for — see [Naming the Client](#naming-the-client).
+- `cancel_url`: The link leaving the flow — see [Leaving the Flow](#leaving-the-flow).
 
 ##### POST Request
 
@@ -799,10 +829,31 @@ as passed for the current session.
 
 **Path**: `/api/v1/flow/mfa/totp`
 
-**Authentication**: Requires `Authorization: State <jwt>` header
+**Authentication**: GET requires `?state=` query parameter; POST requires `Authorization: State <jwt>` header
 
 **Purpose**: Validates a TOTP code for users who have already enrolled. This is the screen returning users see on
 subsequent sign-ins.
+
+##### GET Request
+
+Returns what the challenge screen shows beside the code input: the client asking, and the link leaving the flow.
+
+**Response Format**:
+
+```json
+{
+  "client": {
+    "id": "my-app",
+    "display_name": "My App"
+  },
+  "cancel_url": "https://auth.example.com/api/v1/flow/cancel?state=..."
+}
+```
+
+**Properties**:
+
+- `client`: The client the session was started for — see [Naming the Client](#naming-the-client).
+- `cancel_url`: The link leaving the flow — see [Leaving the Flow](#leaving-the-flow).
 
 ##### POST Request
 
@@ -855,50 +906,44 @@ has already enrolled in at least one MFA method, returns an error.
 
 **Path**: `/api/v1/flow/cancel`
 
-**Method**: POST
+**Method**: GET
 
-**Authentication**: Requires `Authorization: State <jwt>` header
+**Authentication**: Requires `?state=` query parameter
 
-**Purpose**: Lets the end-user abandon the ongoing interactive flow. Works for any flow: the session is marked as
-cancelled and the response carries the `redirect_url` that hands the user back to whoever initiated the flow. Wire this
-endpoint to a "Cancel" control on your flow UI.
+**Purpose**: Lets the end-user leave the flow from any page. The UI does not build this URL or call it: it offers the
+[`cancel_url`](#leaving-the-flow) a step answered with as a plain link, and the browser follows it. A session still
+running ends as cancelled; one that has already ended keeps how it ended. Either way the endpoint answers with a
+**303** sending the browser back to whoever started the session:
 
-This endpoint takes no request body — the flow to cancel is identified solely by the `state`.
+- **An authorization** (a flow started by an OAuth 2 authorization request): the client's `redirect_uri`, with the
+  OAuth 2 `error`, the client's `state` echoed when its request carried one, and no authorization code. It carries no
+  `sympauthy_*` parameter.
+- **A flow a client or an administrator started** (an
+  [MFA enrollment](/technical/api/client#start-mfa-enrollment), a
+  [provider link](/technical/api/client#provider-linking)):
+  the page of the client it returns to, with `sympauthy_flow`, `sympauthy_flow_error` and `sympauthy_return_state` —
+  see [Returning to the client](/technical/api/client#returning-to-the-client).
 
-**Response Format**:
+A session is answered by what ended it: one that completed or was cancelled before its expiration passed is never
+answered as expired.
 
-```json
-{
-  "redirect_url": "https://client.app/callback?error=access_denied&state=..."
-}
-```
+**The error an authorization answers with**:
 
-**Cancellation target**: Where `redirect_url` points depends on how the flow was initiated:
+| `error`                                                 | When                                                                                                                                               |
+|---------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `access_denied`                                         | The end-user left, or the flow failed or expired once they were going through it.                                                                  |
+| `invalid_scope`                                         | The authorization request was refused for a scope.                                                                                                 |
+| `unauthorized_client`                                   | The authorization request was refused because the client may not use the `authorization_code` grant.                                               |
+| `request_not_supported`, `request_uri_not_supported`    | The authorization request was refused for carrying a `request` or `request_uri` parameter.                                                         |
+| `server_error`                                          | The authorization request was refused because the client's authorization flow is no longer in the configuration.                                   |
+| `invalid_request`                                       | The authorization request was refused for any other parameter.                                                                                     |
 
-- **OAuth 2 authorization** (a flow started from the authorize endpoint): the client's `redirect_uri` carrying the
-  OAuth 2 `error=access_denied` response, with the client `state` echoed and **no** authorization code minted — the
-  standard way to tell the client that the user declined.
-- **Standalone flow** (e.g. a client-initiated
-  [MFA enrollment](/technical/api/client#start-mfa-enrollment)): the cancellation URI supplied when the flow was
-  created — the `cancel_uri` on the MFA enrollment endpoint — returned verbatim.
+A refused request reaches the flow's [error page](#_9-error-endpoint), whose `cancel_url` hands the refusal to the
+client this way.
 
-**Errors**:
-
-| Error code | Description |
-|------------|-------------|
-| `auth.interactive_flow_session.cancel.no_cancel_target` | This flow does not offer cancellation. Complete it or let it expire instead. |
-
-A flow started without a cancellation target — a standalone flow whose initiator supplied no cancel URI — cannot be
-cancelled: the endpoint returns a recoverable **400** with the error above and the flow stays on its current step.
-OAuth 2 authorization flows always have a cancellation target (the client `redirect_uri`), so they can always be
-cancelled.
-
-**Workflow**:
-
-1. The end-user activates the "Cancel" control on the flow UI
-2. The server marks the flow session as cancelled
-3. Returns the `redirect_url` that hands the user back to the initiator
-4. The UI redirects the end-user's browser to `redirect_url`
+**Where leaving has nowhere to go** — the step carried no `cancel_url` — the endpoint changes nothing: a session
+still running is shown the step it stands on, and any other is sent to the error page. A `state` that resolves to no session
+is sent to the error page, which shows why it was refused.
 
 ---
 
@@ -911,8 +956,8 @@ signed-in end-user's behalf — for example a client-initiated [MFA enrollment](
 or a [provider link](/technical/api/client#provider-linking). Before the rest of the flow runs, the end-user must
 explicitly approve the action. This gate is present only in initiated flows; a normal sign-in has no confirmation step.
 
-The end-user **approves** by calling `POST`, or **denies** by abandoning the flow through the
-[Cancel Endpoint](#_7-cancel-endpoint).
+The end-user **approves** by calling `POST`, or **denies** by following the step's `cancel_url` — see
+[Leaving the Flow](#leaving-the-flow).
 
 #### GET Request
 
@@ -937,7 +982,8 @@ Confirmation required:
   "client": {
     "id": "my-app",
     "display_name": "My App"
-  }
+  },
+  "cancel_url": "https://auth.example.com/api/v1/flow/cancel?state=..."
 }
 ```
 
@@ -961,6 +1007,8 @@ Nothing to confirm — follow the redirect:
 - `client`: The client that initiated the action on the end-user's behalf — see
   [Naming the Client](#naming-the-client). Absent when an **administrator** initiated it — the UI should then render a
   generic initiator such as "an administrator" — or when a `redirect_url` is returned.
+- `cancel_url`: The link that denies the action and leaves the flow — see [Leaving the Flow](#leaving-the-flow).
+  `null` when a `redirect_url` is returned.
 - `redirect_url`: URL to redirect the end-user to instead of rendering the confirmation step. When present, all other
   fields are `null` (except `requires_reauthentication`, which is `false`).
 
@@ -975,8 +1023,8 @@ Nothing to confirm — follow the redirect:
 **Purpose**: Records the end-user's approval of the action and advances the flow to its next step. Takes no request
 body — the flow is identified solely by the `state`.
 
-To **deny** the action instead of approving it, do not call this endpoint; abandon the flow through the
-[Cancel Endpoint](#_7-cancel-endpoint).
+To **deny** the action instead of approving it, do not call this endpoint; send the browser to the `cancel_url` the
+`GET` answered with.
 
 **Response Format**:
 
@@ -1002,6 +1050,57 @@ To **deny** the action instead of approving it, do not call this endpoint; aband
 
 ---
 
+### 9. Error Endpoint
+
+**Path**: `/api/v1/flow/errors`
+
+**Method**: GET
+
+**Authentication**: Requires `?state=` query parameter. Without one, or with an empty one, it answers **401**
+`unauthorized`.
+
+**Purpose**: Returns what the error page shows: why the flow failed, and the way back to whoever started it. The server
+sends the browser to the flow's [`error`](/technical/configuration/authorization#flows-id) page, with the `state`,
+when the flow fails or expires and when an authorization request is refused; the
+[Cancel Endpoint](#_7-cancel-endpoint) sends a `state` it cannot use there too.
+
+**Response Format**:
+
+```json
+{
+  "error_code": "auth.interactive_flow_session.validate.expired",
+  "description": "For security reasons, this had to be completed within a limited time, and that time has passed. Please go back to your application and start again.",
+  "client": {
+    "id": "my-app",
+    "display_name": "My App"
+  },
+  "cancel_url": "https://auth.example.com/api/v1/flow/cancel?state=..."
+}
+```
+
+**Properties**:
+
+- `error_code`: Code of the failure — the same code a
+  [page the client declares](/technical/api/client#returning-to-the-client) receives as `sympauthy_flow_error` when
+  the end-user follows `cancel_url`
+- `description`: Message explaining the failure to the end-user, in the language the request asks for
+- `details`: Technical message, for troubleshooting. Absent unless the `print-details-in-error` feature is enabled
+- `client`: The client the session was started for — see [Naming the Client](#naming-the-client)
+- `cancel_url`: The link sending the end-user back to whoever started the session — see
+  [Leaving the Flow](#leaving-the-flow). Render it: for a failed flow, it is the only way back
+- `redirect_url`: Set instead of every other field when the session has not failed; follow it
+
+**What it answers**:
+
+- **A failed or expired session**: its failure.
+- **An authorization that has already completed**: `auth.interactive_flow_session.already_completed`, with no
+  `cancel_url` — see [Error Handling](#error-handling).
+- **A `state` that resolves to no session** — signed by another server, or for a session since collected: the code it
+  was refused with, and neither `client` nor `cancel_url`.
+- **Any other session**: only `redirect_url`, to the step it stands on.
+
+---
+
 ## Implementing a Custom Flow
 
 The steps below cover the **sign-in** path — the flow an OAuth 2 authorization request starts. They are not the only
@@ -1010,7 +1109,8 @@ or an administrator started on a signed-in end-user's behalf (an
 [MFA enrollment](/technical/api/client#start-mfa-enrollment), a [provider link](/technical/api/client#provider-linking))
 opens on the [Confirm Endpoint](#_8-confirm-endpoint), may route through the sign-in endpoint as a
 [re-authentication](#re-authentication) step and through MFA and a provider authorization, and ends by returning the
-end-user to the initiator's `return_uri` instead of minting an authorization code. **A UI that implements only the
+end-user to a [page the client declares](/technical/api/client#returning-to-the-client) instead of minting an
+authorization code. **A UI that implements only the
 sign-in path cannot serve those flows**: implement the confirm step too, and follow every `redirect_url` wherever it
 points rather than assuming the next screen.
 
@@ -1127,7 +1227,7 @@ to the sign-in page):
 **A provider link started by a client** (started by
 [`POST /api/v1/client/providers/google/link`](/technical/api/client#provider-linking), whose `redirect_url` lands the
 end-user on step 1). The end-user is already signed into the application, so the flow opens on the confirmation and
-ends at the initiator's `return_uri`:
+ends at the client's return page:
 
 ```
 1. GET /api/v1/flow/confirm?state=def456
@@ -1155,14 +1255,14 @@ ends at the initiator's `return_uri`:
    → 303 to Google; the end-user authorizes there
    ↓
 8. GET /api/v1/flow/providers/google/callback?code=...&state=def456
-   → 303 to https://app.example.com/account/security   (the client's return_uri)
+   → 303 to https://app.example.com/account/security?sympauthy_flow=link_provider   (the client's return page)
    ↓
 9. Back in the application (flow complete — the provider is linked, no authorization code is issued)
 ```
 
 An [MFA enrollment started by a client or an administrator](/technical/api/client#start-mfa-enrollment) has the same
-shape with fewer steps: confirm (`requires_reauthentication` is `false`), the enrollment screens, then the
-`return_uri`.
+shape with fewer steps: confirm (`requires_reauthentication` is `false`), the enrollment screens, then the client's
+return page with `sympauthy_flow=mfa_enrollment`.
 
 ### Error Handling
 
@@ -1196,5 +1296,5 @@ The Flow API implements two types of error handling:
 5. **Respect resend limits**: Honor the `resend_date` to prevent spam and improve deliverability
 6. **Pre-fill values**: Use `value` and `suggested_value` from responses to improve user experience
 7. **Localization**: Send appropriate `Accept-Language` header for localized claim names and messages
-8. **Offer a cancel path**: Let users abandon the flow through the [Cancel Endpoint](#_7-cancel-endpoint) and follow the
-   returned `redirect_url` to hand them back to the initiator
+8. **Offer a way out**: Render every step's `cancel_url` as a link, the error page's included, so the end-user can
+   [leave the flow](#leaving-the-flow) from any page
