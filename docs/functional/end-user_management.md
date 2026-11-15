@@ -62,6 +62,12 @@ outright if that provider identity already belongs to somebody else.
 
 This is deliberate and explicit, unlike the automatic merging described below.
 
+## Forgotten password
+
+A user who forgot their password resets it themselves from the sign-in page, with a code emailed to the account's
+verified address. The new password replaces the old one and signs the user out of the applications the old one
+reached — see [Resetting a forgotten password](/functional/authentication#resetting-a-forgotten-password).
+
 ## Account merging
 
 A user may sign in using different methods over time — for example, once with an email and password, and later using
@@ -90,7 +96,7 @@ tokens expiring, leaves them as they were. A date is absent on an account that h
 ### Last authentication
 
 The last authentication is when the user last proved a credential of their account — a password checked, a
-third-party provider's sign-in accepted — in an [interactive flow](interactive_flow) that then completed. Where that
+third-party provider's sign-in accepted, the code of a [password reset](#forgotten-password) — in an [interactive flow](interactive_flow) that then completed. Where that
 flow signed the user in at an application's request, it is the
 [`auth_time`](/functional/tokens#when-the-user-authenticated) of the tokens it led to.
 

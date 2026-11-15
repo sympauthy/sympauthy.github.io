@@ -1,7 +1,10 @@
 # Mail
 
 This authorization server can email a user through the use
-of [Micronaut Email](https://micronaut-projects.github.io/micronaut-email/latest/guide/).
+of [Micronaut Email](https://micronaut-projects.github.io/micronaut-email/latest/guide/). It sends the codes that
+[validate an email address](/technical/security#email-validation), and the codes and notices of a
+[password reset](/functional/authentication#resetting-a-forgotten-password), which a flow offers only while mail is
+enabled.
 
 The SMTP client implementation was chosen because it can be easily integrated with the most commonly used mailing
 solutions on the market:

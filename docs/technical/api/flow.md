@@ -173,6 +173,7 @@ specific to the client that initiated the authorize flow and to the current inte
     }
   ],
   "sign_up_redirect_url": "/sign-up?state=...",
+  "reset_password_redirect_url": "/reset-password?state=...",
   "client": {
     "id": "my-app",
     "display_name": "My App"
@@ -198,6 +199,10 @@ specific to the client that initiated the authorize flow and to the current inte
 - `sign_up_redirect_url`: Link to the sign-up step, used to render the "Create an account" link. Present only when
   sign-up is allowed for this interactive flow session (in a normal, non-invitation sign-in: when open registration is enabled), and
   `null` otherwise
+- `reset_password_redirect_url`: Link to the flow's [`reset-password`](/technical/configuration/authorization#flows-id)
+  page, used to render the "Forgot your password?" link — see [Password Reset Endpoints](#_10-password-reset-endpoints).
+  `null` when the flow names no reset pages, when mail is not enabled, when password sign-in is disabled, and in a
+  [re-authentication](#re-authentication)
 - `client`: The client the session was started for — see [Naming the Client](#naming-the-client)
 - `cancel_url`: The link leaving the flow — see [Leaving the Flow](#leaving-the-flow)
 - `redirect_url`: Set when the user should **not** be on the sign-in step — e.g. an
@@ -250,6 +255,8 @@ re-authentication:
   `providers` lists only the providers **already linked** to it — not every provider the server offers.
 - **`sign_up_redirect_url` is always `null`.** Registering is not an option under a re-authentication gate, so render
   no "Create an account" link.
+- **`reset_password_redirect_url` is always `null`.** The account is already known, so render no "Forgot your
+  password?" link.
 - **`POST` refuses a different account.** Credentials that are valid for another user are rejected with a
   **recoverable** error rather than switching the session to that user. Handle it like a wrong password: show the
   message on the same screen and let the end-user retry as the account the flow is about.
@@ -1101,6 +1108,163 @@ when the flow fails or expires and when an authorization request is refused; the
 
 ---
 
+### 10. Password Reset Endpoints
+
+**Base Path**: `/api/v1/flow/password-reset`
+
+**Authentication**: GET requires `?state=` query parameter; POST requires `Authorization: State <jwt>` header
+
+**Purpose**: Lets an end-user who forgot their password
+[reset it](/functional/authentication#resetting-a-forgotten-password) from the sign-in step, then carry on signed in.
+The sign-in step links to the first page through `reset_password_redirect_url`; from there the end-user goes through
+the flow's three [reset pages](/technical/configuration/authorization#flows-id) in order — the identifier, the code,
+the new password — and the last `redirect_url` leads on as after a password sign-in: to the
+[MFA challenge](#_6-mfa-endpoints) when the account has a second factor enrolled, then the remaining steps.
+
+The pages answer every identifier alike, so build none of them to tell the end-user whether an account exists. A
+reset step reached in a flow that offers no reset fails the flow with `flow.password.reset.disabled`.
+
+#### Request a Code
+
+**Path**: `/api/v1/flow/password-reset`
+
+`GET` returns what the `reset-password` page renders:
+
+```json
+{
+  "identifier_claims": [
+    {
+      "id": "email",
+      "required": true,
+      "name": "Email",
+      "type": "string",
+      "group": null
+    }
+  ],
+  "client": {
+    "id": "my-app",
+    "display_name": "My App"
+  },
+  "cancel_url": "https://auth.example.com/api/v1/flow/cancel?state=..."
+}
+```
+
+- `identifier_claims`: The claims whose value the end-user may type, described as on the
+  [sign-in step](#get-request)
+- `client`, `cancel_url`: see [Naming the Client](#naming-the-client) and [Leaving the Flow](#leaving-the-flow)
+- `redirect_url`: Set instead of every other field once the end-user is signed in; follow it
+
+`POST` asks for a code:
+
+```json
+{
+  "login": "user@example.com"
+}
+```
+
+- `login`: The identifier the end-user signs in with. Absent or blank, it is refused with a recoverable **400**
+  `flow.password.reset.missing_login`
+
+It answers with the `redirect_url` of the `reset-password-validate` page whichever identifier was typed, and whether
+or not a code was sent. Asked again before
+[`advanced.validation-code.resend-delay`](/technical/configuration/advanced#advanced-validation-code) has passed, it
+sends nothing.
+
+#### Enter the Code
+
+**Path**: `/api/v1/flow/password-reset/validation`
+
+`GET` returns what the `reset-password-validate` page renders:
+
+```json
+{
+  "login": "user@example.com",
+  "resend_date": "2026-02-14T10:43:30",
+  "client": {
+    "id": "my-app",
+    "display_name": "My App"
+  },
+  "cancel_url": "https://auth.example.com/api/v1/flow/cancel?state=..."
+}
+```
+
+- `login`: The identifier the end-user typed, as they typed it
+- `resend_date`: When a new code can be asked for. UTC, written with no zone offset. Absent when
+  `advanced.validation-code.resend-delay` is not configured: a new code can then be asked for once the last one has
+  expired
+- `client`, `cancel_url`: see [Naming the Client](#naming-the-client) and [Leaving the Flow](#leaving-the-flow)
+- `redirect_url`: Set instead of every other field once a code has been accepted, or when no reset was asked for;
+  follow it
+
+`POST` submits the code:
+
+```json
+{
+  "code": "123456"
+}
+```
+
+- `code`: The code the end-user received. A code that is absent, matches no code sent in this flow, has expired, or
+  was typed for an identifier no code was sent to is refused with a recoverable **400**
+  `flow.password.reset.invalid_code`: show the message and let the end-user try again
+
+An accepted code signs the end-user in, and the `redirect_url` leads to the `reset-password-choose` page.
+
+#### Resend the Code
+
+**Path**: `/api/v1/flow/password-reset/validation/resend`
+
+**Method**: POST, with no body
+
+```json
+{
+  "resent": true,
+  "resend_date": "2026-02-14T10:48:30"
+}
+```
+
+- `resent`: Whether a new code was asked for. `false` before `resend_date`, once a code has been accepted, and when
+  no reset was asked for. It is the same whether or not an account holds the identifier
+- `resend_date`: When another can be asked for, as on `GET`
+
+#### Choose the New Password
+
+**Path**: `/api/v1/flow/password-reset/password`
+
+`GET` returns what the `reset-password-choose` page renders:
+
+```json
+{
+  "login": "user@example.com",
+  "client": {
+    "id": "my-app",
+    "display_name": "My App"
+  },
+  "cancel_url": "https://auth.example.com/api/v1/flow/cancel?state=..."
+}
+```
+
+- `login`: The identifier the end-user typed, for the page to offer a password manager beside the new password
+- `client`, `cancel_url`: see [Naming the Client](#naming-the-client) and [Leaving the Flow](#leaving-the-flow)
+- `redirect_url`: Set instead of every other field before a code has been accepted, and once a password has been
+  chosen; follow it
+
+`POST` chooses the password:
+
+```json
+{
+  "password": "newSecurePassword123"
+}
+```
+
+- `password`: The new password. Absent or blank, it is refused with a recoverable **400**
+  `flow.password.reset.missing_password`
+
+It answers with the `redirect_url` of the next step. The new password replaces the account's others, and the grants
+they opened are revoked, only once the whole flow completes.
+
+---
+
 ## Implementing a Custom Flow
 
 The steps below cover the **sign-in** path — the flow an OAuth 2 authorization request starts. They are not the only
@@ -1144,6 +1308,16 @@ points rather than assuming the next screen.
    Redirect to the provider's authorize_url from the sign-in response
    (the URL already includes the state)
    ```
+
+   **Option D - Password Reset** (when the sign-in response carries `reset_password_redirect_url`):
+   ```http
+   POST /api/v1/flow/password-reset
+   POST /api/v1/flow/password-reset/validation
+   POST /api/v1/flow/password-reset/password
+   Authorization: State {state}
+   ```
+    - The three [Password Reset Endpoints](#_10-password-reset-endpoints), in that order, each from its own page
+    - The flow then continues at step 3, as after a password sign-in
 
 3. **Multi-Factor Authentication** (if MFA is enabled)
 
@@ -1282,6 +1456,9 @@ The Flow API implements two types of error handling:
 - A request on an authorization that already completed — a reload, the back button, a second tab. The authorization
   code went to the request that completed the authorization and is never handed out again, so the later request reaches
   the error page with `auth.interactive_flow_session.already_completed`, and the flow restarts from the client
+- A sign-in whose password a [password reset](/functional/authentication#resetting-a-forgotten-password) in another
+  flow replaced before this one completed: `flow.authorization_flow.complete.password_replaced`, and the end-user signs
+  in again with the new password
 - User automatically redirected to error page
 - Flow must be restarted from the beginning
 

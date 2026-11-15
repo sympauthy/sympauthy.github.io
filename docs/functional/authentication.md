@@ -138,6 +138,66 @@ A deployment that configures more than one identifier claim alongside a provider
 has no working sign-up through that provider; users who already have an account can still link it. Listing a single
 identifier claim — the common case — avoids the question entirely.
 
+### Resetting a forgotten password
+
+A user who forgot their password can reset it from the sign-in page, without leaving the application that sent them
+there. They type the identifier they sign in with, then a code SympAuthy emails to their account, then a new password;
+the sign-in then carries on as if they had signed in with that password, and they are returned to the application
+signed in. The application sees nothing different from an ordinary sign-in.
+
+A reset is the only way a password changes: a signed-in user cannot change a password they still know, and no
+administrator can set one.
+
+#### When it is offered
+
+The sign-in page offers the reset when all of these hold:
+
+- the [flow](/technical/configuration/authorization#flows-id) names the three pages a reset goes through;
+- [mail](/technical/configuration/mail) is enabled, since the code travels by email;
+- [password authentication](#identifier-and-password) is enabled.
+
+It is never offered while a user is [proving they still own their
+account](/functional/interactive_flow#proving-you-still-own-the-account): that step is about an account already known.
+
+#### What the user is sent
+
+Whatever identifier the user types, they are taken to the same page asking for a code, so the page never says whether
+an account exists. What differs is what reaches an inbox:
+
+| The identifier typed belongs to                                                       | What is sent                                                     |
+|---------------------------------------------------------------------------------------|------------------------------------------------------------------|
+| an enabled account with a password and a verified email address                       | a code, to that address                                          |
+| an enabled account with a verified email address but no password                      | a notice there, naming the providers the account signs in with  |
+| no account, and is an email address (when `email` is an identifier claim)              | a notice to that address, saying no account uses it              |
+| anything else — a disabled account, an account whose email address is not verified    | nothing                                                          |
+
+The code always goes to the account's **verified** email address, even when the user typed a username or a phone
+number: an address nobody proved may be a typo, and a code sent there would hand the account to its owner. A reset
+gives no password to an account created through a [provider](#third-party-providers); the notice tells the user to
+sign in with it instead.
+
+A code that does not match, has expired, or was typed for an identifier no code was sent to is refused the same way,
+and the user can try again. A new code can be asked for once
+[`advanced.validation-code.resend-delay`](/technical/configuration/advanced#advanced-validation-code) has passed; the
+same delay holds the user back from asking again for another identifier.
+
+#### What a reset changes
+
+The code proves the account the way a password does: it is the moment the user
+[authenticated](/functional/tokens#when-the-user-authenticated), and a [second factor](#multi-factor-authentication-mfa)
+the account is enrolled in is still asked for after the new password is chosen.
+
+Nothing changes until the whole sign-in completes. Then:
+
+- the new password becomes the account's only password; the old one stops working;
+- every [grant](/functional/grant#what-takes-a-grant-out-of-service) opened by signing in with the old password is
+  revoked, which signs the user out of the applications it reached; grants opened through a provider are not touched;
+- the account's verified email address is told its password was changed.
+
+A user who abandons the sign-in after typing the code — at the second factor, say — leaves the account exactly as it
+was. A sign-in in another browser that proved the old password before the reset completed fails rather than open a
+grant, and its user is asked to sign in again with the new password.
+
 ### Multi-factor authentication (MFA)
 
 After proving their identity with one of the methods above, a user can be asked to complete an additional verification

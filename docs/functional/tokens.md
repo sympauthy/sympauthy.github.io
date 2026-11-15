@@ -159,8 +159,9 @@ discovery document (`/.well-known/openid-configuration`), and because nothing co
 ### It is the moment the credential verified
 
 `auth_time` is the moment the user proved a credential of their account: a password checked, a third-party provider's
-callback resolved to the account, or the account created at sign-up. It is **not** the moment the client exchanged the
-authorization code for tokens.
+callback resolved to the account, the account created at sign-up, or the code proving a
+[password reset](/functional/authentication#resetting-a-forgotten-password). It is **not** the moment the client
+exchanged the authorization code for tokens.
 
 Passing a second factor does not move it. `auth_time` says when the credential was proven; whether an
 [MFA](/functional/authentication#multi-factor-authentication-mfa) step followed is what the `amr` claim would say, and

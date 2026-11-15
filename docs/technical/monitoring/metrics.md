@@ -80,7 +80,7 @@ rather than the path, and a request sent by `server.address`. No query string is
 |--------------|----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `client_id`  | every metric above                     | on a token check, present only when the check succeeded; on a revocation, absent when it spans grants of several clients.                                    |
 | `grant_type` | `sympauthy.token.request.duration`     | the `grant_type` of the request, such as `authorization_code`, `refresh_token` or `client_credentials`.                                                       |
-| `revoked_by` | `sympauthy.grant.revocations`          | what revoked the grants: `client` through the revocation endpoint, `admin` through the Admin API, `consent_revoked` when the person's consent was revoked, `authorization_code_replayed` when its authorization code was presented again. |
+| `revoked_by` | `sympauthy.grant.revocations`          | what revoked the grants: `client` through the revocation endpoint, `admin` through the Admin API, `consent_revoked` when the person's consent was revoked, `authorization_code_replayed` when its authorization code was presented again, `password_reset` when the password it was opened with was replaced by a [reset](/functional/authentication#resetting-a-forgotten-password). |
 | `scheme`     | the token request and the token check  | how the token is bound: `bearer`, or `dpop` for a token bound to a key with [DPoP](/technical/security#dpop-demonstrating-proof-of-possession).               |
 
 `sympauthy.token.request.duration` and `sympauthy.access_token.validation.duration` also carry `outcome` and
@@ -90,14 +90,14 @@ rather than the path, and a request sent by `server.address`. No query string is
 
 | Metric                              | Unit        | Type            | Description                                                                         |
 |-------------------------------------|-------------|-----------------|-------------------------------------------------------------------------------------|
-| `sympauthy.authentication.attempts` | `{attempt}` | counter         | Attempts to sign in, to sign up and to pass a second factor, and how each ended.   |
+| `sympauthy.authentication.attempts` | `{attempt}` | counter         | Attempts to sign in, to sign up, to reset a password and to pass a second factor, and how each ended. |
 | `sympauthy.password.hash.active`    | `{hash}`    | up-down counter | Password hashes being computed right now.                                           |
 | `sympauthy.password.hash.duration`  | `s`         | histogram       | Duration of each password hash, which is the CPU a sign-in costs.                   |
 | `sympauthy.validation_code.checks`  | `{check}`   | counter         | Validation codes checked, and how each check ended.                                 |
 
 | Attribute     | On                                  | Value                                                                                                                                      |
 |---------------|-------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
-| `kind`        | `sympauthy.authentication.attempts` | what the attempt was for: `sign_in`, `sign_up`, `second_factor`, or `enrollment` for setting up a second factor.                          |
+| `kind`        | `sympauthy.authentication.attempts` | what the attempt was for: `sign_in`, `sign_up`, `second_factor`, `enrollment` for setting up a second factor, or `reset` for a code typed to [reset a password](/functional/authentication#resetting-a-forgotten-password), with `method` `password`. |
 | `media`       | `sympauthy.validation_code.checks`  | how the code was sent: `email` or `sms`.                                                                                                    |
 | `method`      | `sympauthy.authentication.attempts` | how the person proved who they are: `password`, `provider`, or `totp` for a code from an authenticator app.                                |
 | `operation`   | `sympauthy.password.hash.duration`  | `create` when a password is set, `verify` when one is checked at sign-in.                                                                  |
@@ -105,7 +105,23 @@ rather than the path, and a request sent by `server.address`. No query string is
 
 `sympauthy.authentication.attempts` and `sympauthy.validation_code.checks` also carry `outcome` and `error.type`. A
 password sign-in refused for an unknown identifier and one refused for a wrong password carry the same `error.type`,
-since the server answers both alike so as not to say which accounts exist.
+since the server answers both alike so as not to say which accounts exist. Likewise, a reset code typed for an
+identifier no account holds is refused as a wrong code is; asking for a reset code is not an attempt. A rising rate of
+refused `reset` attempts is a code being guessed.
+
+## Mail
+
+| Metric                 | Unit     | Type    | Description                                                                 |
+|------------------------|----------|---------|-----------------------------------------------------------------------------|
+| `sympauthy.mail.sends` | `{mail}` | counter | Mails handed to the [mail server](/technical/configuration/mail), which mail each was, and how each send ended. |
+
+| Attribute | On                     | Value                                                                                                                                                                                                                                                                  |
+|-----------|------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `mail`    | `sympauthy.mail.sends` | which mail was sent: `claim_validation` for the code validating a claim; for a [password reset](/functional/authentication#resetting-a-forgotten-password), `password_reset_code` for its code, `password_reset_no_account` for the notice to an address no account uses, `password_reset_no_password` for the notice to an account with no password, and `password_changed` once a reset completes. |
+
+`sympauthy.mail.sends` also carries `outcome` and `error.type`. The call carrying each mail is timed beside it by
+[`sympauthy.remote_call.duration`](#dependencies). A burst of `password_reset_no_account` is somebody trying addresses
+through the reset.
 
 ## Interactive flow
 
@@ -120,6 +136,7 @@ the way, such as checking a second factor. The purposes are, by the value the me
 | `mfa_challenge`    | checking a second factor                       | no               |
 | `reauthentication` | proving the account again before a sensitive step | no            |
 | `confirm`          | approving an action started on their behalf    | no               |
+| `password_reset`   | resetting a forgotten password                 | no               |
 
 | Metric                            | Unit        | Type      | Description                                                                                                                   |
 |-----------------------------------|-------------|-----------|-------------------------------------------------------------------------------------------------------------------------------|
