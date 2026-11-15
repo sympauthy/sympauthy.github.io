@@ -89,6 +89,9 @@ The flow may be completely customized and served by a completely different serve
 | ```mfa```                | uri  | The URL of the MFA router/method-selection page. Required when [`mfa.totp.enabled`](#mfa) is `true`. | NO                  |
 | ```mfa-totp-challenge``` | uri  | The URL of the TOTP challenge page. Required when [`mfa.totp.enabled`](#mfa) is `true`. | NO                  |
 | ```mfa-totp-enroll```    | uri  | The URL of the TOTP enrollment page. Required when [`mfa.totp.enabled`](#mfa) is `true`. | NO                  |
+| ```reset-password```     | uri  | The URL of the page where the end-user types the identifier of the account whose [password they forgot](/functional/authentication#resetting-a-forgotten-password). Named with `reset-password-choose` and `reset-password-validate`, or not at all. | NO                  |
+| ```reset-password-choose``` | uri | The URL of the page where the end-user chooses the new password of a reset. Named with `reset-password` and `reset-password-validate`, or not at all. | NO                  |
+| ```reset-password-validate``` | uri | The URL of the page where the end-user types the code a reset emailed them. Named with `reset-password` and `reset-password-choose`, or not at all. | NO                  |
 | ```sign-in```            | uri  | The URL where the end-user will be enabled to sign-in using any supported methods (password or third party providers).                                                                                            | YES<br>/sign-in     |
 | ```sign-up```            | uri  | The URL of the sign-up page. Required when [`sign-up-enabled`](/technical/configuration/audience) or [`invitation-enabled`](/technical/configuration/audience) is `true` on any [audience](/functional/audience). | NO                  |
 

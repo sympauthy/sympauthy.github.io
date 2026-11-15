@@ -117,9 +117,9 @@ Every key is a header name, read as it stands.
 
 | Key                | Type     | Description                                                                                      | Required<br>Default |
 |--------------------|----------|--------------------------------------------------------------------------------------------------|---------------------|
-| ```expiration```   | duration | Duration, after the validation code has been generated, where the server will accept it. Must be greater than zero. | YES<br>```10m```    |
-| ```length```       | int      | Number of digit expected in validation code generate by this authorization server.               | YES<br>```6```      |
-| ```resend-delay``` | duration | Duration the end-user has to wait before being able to request a new validation code to be sent. | YES<br>```1m```     |
+| ```expiration```   | duration | Duration, after the validation code has been generated, where the server will accept it. Applies to claim validation and password reset codes alike. Must be greater than zero. | YES<br>```10m```    |
+| ```length```       | int      | Number of digit expected in validation code generate by this authorization server, for claim validation and password reset alike. | YES<br>```6```      |
+| ```resend-delay``` | duration | Duration the end-user has to wait before being able to request a new validation code to be sent. For a password reset, it also holds a new request for another identifier. | YES<br>```1m```     |
 
 ### ```advanced.webhooks.authorization```
 

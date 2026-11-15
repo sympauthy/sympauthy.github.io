@@ -13,13 +13,15 @@ they can settle it. Signing in is the most common one, but it is not the only on
 - **approving an action** an application or an administrator started on the user's behalf;
 - **proving the user still owns** the account they are already identified as;
 - **enrolling a second factor**, or challenging one that is already enrolled;
-- **linking a third-party provider** to an account that already exists.
+- **linking a third-party provider** to an account that already exists;
+- **resetting a forgotten password**, which the user asks for themselves from the sign-in page.
 
 When a client application (a website, a mobile app, etc.) needs to authenticate a user, it redirects them to the
 authorization server, which then presents an authentication interface to the user. That is a flow with a single
 purpose. But a flow can carry several at once, and the server can add more while it runs — approving an action, then
-signing in to prove ownership of the account, then a second factor, then the provider, all in one visit. The steps the
-user walks through are derived from the purposes; they are not a fixed list.
+signing in to prove ownership of the account, then a second factor, then the provider, all in one visit. The user can
+add one too, by asking to reset their password from the sign-in page. The steps the user walks through are derived
+from the purposes; they are not a fixed list.
 
 SympAuthy ships with a built-in authentication UI that is used by default. It handles all the steps described on this
 page out of the box, so no additional setup is required to get a working authentication experience.
@@ -81,7 +83,7 @@ configured will not show a password form.
 
 ### Authenticating the user
 
-The user chooses how they want to authenticate. There are up to three options depending on the configuration:
+The user chooses how they want to authenticate, among the options the configuration offers:
 
 **Sign in with a password** — The user provides the identifier they registered with (typically their email address) and
 their password. If the credentials are valid, the flow moves to the next step.
@@ -91,6 +93,10 @@ their email address). Once the account is created, the flow continues.
 
 **Sign in with a third-party provider** — The user is redirected to an external service (such as Google) to authenticate
 there. Once they return, the flow resumes automatically from where it left off.
+
+**Reset a forgotten password** — The user types their identifier, then the code emailed to their account, then a new
+password. They are then signed in, and the flow continues as after a password sign-in. See
+[Resetting a forgotten password](/functional/authentication#resetting-a-forgotten-password).
 
 ### Multi-factor authentication (optional)
 
@@ -242,7 +248,8 @@ completed — changes nothing about how it ended; they are only sent back. Two s
 If the user makes a mistake at any step — entering a wrong password, typing an incorrect verification code — they
 receive an error message on the same screen and can try again. The session remains active and the flow does not restart.
 
-In more serious situations (for example if the session has expired), the user is automatically redirected to an error
-page. The flow must then be restarted from the beginning. A session expires once
+In more serious situations (for example if the session has expired, or the password the user signed in with was
+[reset](/functional/authentication#resetting-a-forgotten-password) elsewhere before the flow completed), the user is
+automatically redirected to an error page. The flow must then be restarted from the beginning. A session expires once
 [`auth.interactive-flow.expiration`](/technical/configuration/authorization#auth-interactive-flow) has passed since it
 started, 30 minutes by default.

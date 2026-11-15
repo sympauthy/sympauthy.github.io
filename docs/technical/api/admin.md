@@ -1939,7 +1939,7 @@ within fifteen minutes — once no authorization code names it.
 | `grant_type` | `enum` — `authorization_code`, `client_credentials`, `urn:ietf:params:oauth:grant-type:token-exchange` | — | — |
 | `id` | `uuid` | — | — |
 | `revoked_at` | `date_time` | Yes | — |
-| `revoked_by` | `enum` — `client`, `admin`, `consent_revoked`, `authorization_code_replayed` | — | — |
+| `revoked_by` | `enum` — `client`, `admin`, `consent_revoked`, `authorization_code_replayed`, `password_reset` | — | — |
 | `scope` | `enum` — the scopes this deployment enables | — | — |
 | `status` | `enum` — `live`, `revoked`, `expired`, `lapsed` | — | — |
 | `user` | `uuid` — the account the grant was opened for | — | — |
@@ -2012,8 +2012,9 @@ it. The [capability document](/technical/api/collections#capabilities) shows eac
     - `expires_at`: When the grant's [lifetime](/functional/grant#how-long-a-grant-lives) ends. Absent when it has
       none
     - `revoked_at`, `revoked_by`: When the grant was revoked, and what revoked it — `client` through the
-      [revocation endpoint](/technical/security#token-revocation), `admin`, `consent_revoked`, or
-      `authorization_code_replayed`. Absent unless `status` is `revoked`
+      [revocation endpoint](/technical/security#token-revocation), `admin`, `consent_revoked`,
+      `authorization_code_replayed`, or `password_reset` when the password it was opened with was replaced by a
+      [reset](/functional/authentication#resetting-a-forgotten-password). Absent unless `status` is `revoked`
     - `actor_grant_id`: On a grant obtained through a [token exchange](/functional/delegation), the grant of the token
       the acting client presented
     - `granted_scopes`: The [grantable scopes](/functional/scope#grantable-scope) granted to the end-user
@@ -2559,7 +2560,7 @@ started for, the purpose it is stopped at, the account it identified, and the pl
 | `expiration_date` | `date_time` | Yes | — |
 | `id` | `uuid` | — | — |
 | `ip` | `string` — every address the session was driven from | — | Yes |
-| `purpose` | `enum` — `confirm`, `oauth2_authorize`, `mfa_enrollment`, `mfa_challenge`, `reauthentication`, `link_provider` | Yes | — |
+| `purpose` | `enum` — `confirm`, `oauth2_authorize`, `mfa_enrollment`, `mfa_challenge`, `reauthentication`, `link_provider`, `password_reset` | Yes | — |
 | `session_date` | `date_time` | Yes | — |
 | `signed_up` | `boolean` — whether the account was created during this session | Yes | — |
 | `status` | `enum` — `ongoing`, `completed`, `cancelled`, `failed`, `expired` | Yes | — |
@@ -2623,7 +2624,7 @@ GET /api/v1/admin/interactive-flow-sessions?status=ongoing&purpose=oauth2_author
 | Field                | Type    | Description                                                                                                        |
 |----------------------|---------|----------------------------------------------------------------------------------------------------------------------|
 | `client`             | object  | The client the session was started for, as its `id` and the `display_name` the [configuration](/technical/configuration/client) gives it — absent when it gives none, or no longer declares the client. Absent where an administrator started the session, or where nothing named a client. |
-| `current_purpose`    | string  | The purpose the session is stopped at: `confirm`, `oauth2_authorize`, `mfa_enrollment`, `mfa_challenge`, `reauthentication` or `link_provider`. Absent once every purpose has resolved, and for a session that completed, cancelled or failed. |
+| `current_purpose`    | string  | The purpose the session is stopped at: `confirm`, `oauth2_authorize`, `mfa_enrollment`, `mfa_challenge`, `reauthentication`, `link_provider` or `password_reset`. Absent once every purpose has resolved, and for a session that completed, cancelled or failed. |
 | `expiration_date`    | string  | When the session expires.                                                                                          |
 | `id`                 | string  | Unique identifier of the session.                                                                                  |
 | `initiating_purpose` | string  | The purpose that started the session and owns its terminal handoff: `oauth2_authorize`, `mfa_enrollment` or `link_provider`. |
@@ -2764,6 +2765,7 @@ Each `debug` entry carries:
 | `mfa_challenge`    | `mfa_passed_at`, `challengeable_methods`                                                                                                                                                                                      |
 | `mfa_enrollment`   | `enrolled_methods`, `mfa_passed_at`                                                                                                                                                                                           |
 | `oauth2_authorize` | `client_id`, `redirect_uri`, `requested_scopes`, `consented_scopes`, `consented_at`, `consented_by`, `granted_scopes`, `granted_at`, `granted_by`, `invitation_id`, `state`, `nonce`, `code_challenge`, `code_challenge_method` |
+| `password_reset`   | `code_sent_to_user_id` (absent where no code was sent), `requested_at`, `code_proven_at`, `password_chosen_at`. Neither the identifier typed nor anything of the new password is published                               |
 | `reauthentication` | `primary_credential_proven_at`                                                                                                                                                                                                |
 
 The scope, consent and grant codes of `oauth2_authorize` carry the values [Get Grant](#get-grant) publishes under the

@@ -102,7 +102,7 @@ them must be greater than zero: given zero or less, the server starts unready an
 | ID token                  | How long an ID token is valid, from when it is issued                              | The access token's         | [`auth.token.id-expiration`](/technical/configuration/authorization#auth-token)                                      |
 | Refresh token             | How long a refresh token can be used, from when it is issued                       | 30 days                    | [`auth.token.refresh-expiration`](/technical/configuration/authorization#auth-token)                                 |
 | Grant                     | Everything issued under a [grant](/functional/grant), from when it is opened       | None                       | [`auth.grant.expiration`](/technical/configuration/authorization#auth-grant)                                         |
-| Validation code           | How long an email validation code is accepted, from when it is sent                | 10 minutes                 | [`advanced.validation-code.expiration`](/technical/configuration/advanced#advanced-validation-code)                  |
+| Validation code           | How long an email validation or password reset code is accepted, from when it is sent | 10 minutes              | [`advanced.validation-code.expiration`](/technical/configuration/advanced#advanced-validation-code)                  |
 | Invitation                | How long an [invitation](/functional/invitation) can be accepted                   | 7 days, capped at 30 days  | [`advanced.invitation.default-expiration` and `max-expiration`](/technical/configuration/advanced#advanced-invitation) |
 | Known place of sign-in    | How long a place a person signs in from is remembered, from when they were last seen there; it goes earlier with its [grant](/functional/grant) | 180 days           | [`advanced.security-context.retention`](/technical/configuration/advanced#advanced-security-context)                 |
 
@@ -316,7 +316,8 @@ blocked by the browser.
 
 The allowed origins are computed at startup by extracting the `scheme://host:port` from every URI declared in each
 configured `flows.<id>` entry (sign-in, collect-claims, validate-claims, and error URIs). The result is an immutable
-set cached for the lifetime of the application.
+set cached for the lifetime of the application. The other pages a flow names — sign-up, MFA and password reset — add
+no origin of their own: serve them from an origin one of those four URIs already uses.
 
 This policy is **fail-secure**: if no flows are configured, the allowed-origins set is empty and no CORS headers are
 ever added.
@@ -476,6 +477,33 @@ Validation codes include several abuse-prevention measures:
 | `advanced.validation-code.length`       | Number of digits in each code.                      | `6`     |
 | `advanced.validation-code.expiration`   | How long the code remains valid after being issued. | `10m`   |
 | `advanced.validation-code.resend-delay` | Minimum delay before a new code can be requested.   | `1m`    |
+
+## Password reset
+
+A [password reset](/functional/authentication#resetting-a-forgotten-password) proves the account with a validation
+code, so the settings above apply to it too. It is guarded as follows:
+
+- **No account enumeration**: every identifier leads to the same code page, a code typed for an identifier no code
+  was sent to is refused with the same `flow.password.reset.invalid_code` as a wrong one, and a resend answers the
+  same whether or not an account exists. What differs goes only to an inbox: a code, or a notice to an address no
+  account uses, or to an account with no password.
+- **Verified addresses only**: the code goes only to the account's verified email address, never to one nobody
+  proved, and never to a disabled account.
+- **Held to the resend delay**: `advanced.validation-code.resend-delay` holds a new request on the first page as well
+  as a resend, so a script asking in a loop sends at most one mail per delay.
+- **Second factor still required**: the code proves the account as a password does, and an enrolled second factor
+  is challenged after it.
+- **The old password's grants are revoked**: when the flow completes, the new password replaces every other, the
+  [grants](/functional/grant#what-takes-a-grant-out-of-service) opened with a replaced password are revoked —
+  listed with `revoked_by` `password_reset` — and the account is told by mail. A sign-in still in progress under the
+  replaced password fails with `flow.authorization_flow.complete.password_replaced` rather than open a grant.
+
+::: warning
+Nothing limits how many codes a person may type during a flow: a code can be guessed at for as long as it is valid. Keep
+[`advanced.validation-code.length`](/technical/configuration/advanced#advanced-validation-code) and `expiration` at
+their defaults or stricter, and watch the refusals of `kind` `reset` on
+[`sympauthy.authentication.attempts`](/technical/monitoring/metrics#authentication).
+:::
 
 ## TOTP multi-factor authentication
 

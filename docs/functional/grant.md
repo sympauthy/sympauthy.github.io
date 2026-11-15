@@ -71,7 +71,10 @@ A grant is revoked, never one token of it. Each of these signs the end-user out 
 - the end-user's **[consent](/functional/consent#revoking-consent)** being revoked, which reaches every grant that
   end-user holds for the audience, [act-as grants](#act-as-grants) aside;
 - the **authorization code being presented a second time**, which
-  [revokes the grant it was issued under](/technical/security#authorization-code-security).
+  [revokes the grant it was issued under](/technical/security#authorization-code-security);
+- the end-user **[resetting their password](/functional/authentication#resetting-a-forgotten-password)**, which reaches
+  every grant opened by signing in with the password it replaces — and no other: neither the grant the reset itself
+  opens nor a grant opened through a third-party provider.
 
 An authorization code not yet exchanged is reached with its grant too: a consent revoked, or an end-user signed out,
 between the sign-in and the exchange leaves the code unspendable.
