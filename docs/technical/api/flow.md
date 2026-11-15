@@ -99,8 +99,8 @@ application is asking — on the claims step above all, where it asks for their 
   for every language. Absent when it gives none, or no longer declares the client: show `id` instead
 
 `client` is absent on a session no client started, such as an MFA enrollment an administrator asked for, and beside a
-`redirect_url`, like every other field. The error page (`GET /api/v1/flow/errors`) carries it too, so it can offer a
-way back to the client, unless its `state` resolves to no session.
+`redirect_url`, like every other field. The [error page](#_9-error-endpoint) carries it too, so it can offer a way back
+to the client, unless its `state` resolves to no session.
 
 #### Leaving the Flow
 
@@ -112,8 +112,8 @@ link:
 ```
 
 Following it [leaves the flow](#_7-cancel-endpoint): the browser is sent back to whoever started the session, and the
-session ends as cancelled if it was still running. The error page (`GET /api/v1/flow/errors`) carries it too, so a
-failed flow can still send the end-user back.
+session ends as cancelled if it was still running. The [error page](#_9-error-endpoint) carries it too, so a failed
+flow can still send the end-user back.
 
 `cancel_url` is absent where leaving has nowhere to go: the `state` resolves to no session, the request that started
 the session named nowhere the server may send the end-user (an authorization from an unknown client, or naming a
@@ -938,7 +938,8 @@ answered as expired.
 | `server_error`                                          | The authorization request was refused because the client's authorization flow is no longer in the configuration.                                   |
 | `invalid_request`                                       | The authorization request was refused for any other parameter.                                                                                     |
 
-A refused request reaches the flow's error page, whose `cancel_url` hands the refusal to the client this way.
+A refused request reaches the flow's [error page](#_9-error-endpoint), whose `cancel_url` hands the refusal to the
+client this way.
 
 **Where leaving has nowhere to go** — the step carried no `cancel_url` — the endpoint changes nothing: a session
 still running is shown the step it stands on, and any other is sent to the error page. A `state` that resolves to no session
@@ -1046,6 +1047,57 @@ To **deny** the action instead of approving it, do not call this endpoint; send 
 3. The UI calls `POST /api/v1/flow/confirm`
 4. The server records the approval and returns the `redirect_url` for the next step
 5. The UI redirects the end-user's browser to `redirect_url`
+
+---
+
+### 9. Error Endpoint
+
+**Path**: `/api/v1/flow/errors`
+
+**Method**: GET
+
+**Authentication**: Requires `?state=` query parameter. Without one, or with an empty one, it answers **401**
+`unauthorized`.
+
+**Purpose**: Returns what the error page shows: why the flow failed, and the way back to whoever started it. The server
+sends the browser to the flow's [`error`](/technical/configuration/authorization#flows-id) page, with the `state`,
+when the flow fails or expires and when an authorization request is refused; the
+[Cancel Endpoint](#_7-cancel-endpoint) sends a `state` it cannot use there too.
+
+**Response Format**:
+
+```json
+{
+  "error_code": "auth.interactive_flow_session.validate.expired",
+  "description": "For security reasons, this had to be completed within a limited time, and that time has passed. Please go back to your application and start again.",
+  "client": {
+    "id": "my-app",
+    "display_name": "My App"
+  },
+  "cancel_url": "https://auth.example.com/api/v1/flow/cancel?state=..."
+}
+```
+
+**Properties**:
+
+- `error_code`: Code of the failure — the same code a
+  [page the client declares](/technical/api/client#returning-to-the-client) receives as `sympauthy_flow_error` when
+  the end-user follows `cancel_url`
+- `description`: Message explaining the failure to the end-user, in the language the request asks for
+- `details`: Technical message, for troubleshooting. Absent unless the `print-details-in-error` feature is enabled
+- `client`: The client the session was started for — see [Naming the Client](#naming-the-client)
+- `cancel_url`: The link sending the end-user back to whoever started the session — see
+  [Leaving the Flow](#leaving-the-flow). Render it: for a failed flow, it is the only way back
+- `redirect_url`: Set instead of every other field when the session has not failed; follow it
+
+**What it answers**:
+
+- **A failed or expired session**: its failure.
+- **An authorization that has already completed**: `auth.interactive_flow_session.already_completed`, with no
+  `cancel_url` — see [Error Handling](#error-handling).
+- **A `state` that resolves to no session** — signed by another server, or for a session since collected: the code it
+  was refused with, and neither `client` nor `cancel_url`.
+- **Any other session**: only `redirect_url`, to the step it stands on.
 
 ---
 

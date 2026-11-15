@@ -382,8 +382,9 @@ This protection is always on and requires no configuration.
 After authentication, SympAuthy redirects the user back to the client application. Without restriction, an attacker
 could manipulate this redirect to send users to a malicious URL.
 
-Every client must declare at least one permitted redirect URI via the `clients.<id>.allowed-redirect-uris`
-configuration key. The server rejects any client configuration without it at startup. Any authorization request using
+Every client allowed the `authorization_code` grant must declare at least one permitted redirect URI via the
+`clients.<id>.allowed-redirect-uris` configuration key. The server rejects such a client configuration without it at
+startup. Any authorization request using
 a URI outside that list is rejected at runtime.
 
 As required by OAuth 2.1

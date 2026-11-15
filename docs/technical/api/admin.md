@@ -1464,10 +1464,11 @@ Returns 404 if no MFA registration matches the given identifier.
 **Authentication**: Access token with `admin:users:write` scope
 
 **Purpose**: Starts a standalone MFA enrollment [interactive flow](/functional/interactive_flow) on a user's behalf and
-returns a `redirect_url` to hand or send to that user. However the enrollment ends — completed, failed or left by the
-user — they are [returned to a page of the client](/technical/api/client#returning-to-the-client) named by
-`client_id`. Because the enrollment is initiated by an administrator rather than the user, the flow is gated by a
-confirmation the user must approve — shown as initiated by "an administrator."
+returns a `redirect_url` to hand or send to that user. When the enrollment completes, or the user leaves it, they are
+[returned to a page of the client](/technical/api/client#returning-to-the-client) named by `client_id`; when it fails,
+they are shown the flow's error page first. Because the enrollment is initiated by an administrator rather than the
+user, the flow is gated by a confirmation the user must approve — shown as initiated by "an
+administrator."
 
 This is the administrator counterpart to the client-driven
 [Start MFA Enrollment](/technical/api/client#start-mfa-enrollment) endpoint. Unlike that endpoint, it requires no
@@ -1669,9 +1670,9 @@ link exists for the user and provider pair.
 **Purpose**: Starts a standalone provider-link [interactive flow](/functional/interactive_flow) on a user's behalf and
 returns a `redirect_url` to hand or send to that user. In the flow the end-user is asked to **confirm** the action —
 shown as initiated by "an administrator" — and to **re-authenticate**, then to authorize the target provider; the
-resolved provider identity is attached to their existing account. However the link ends — completed, failed or left by
-the user — they are [returned to a page of the client](/technical/api/client#returning-to-the-client) named by
-`client_id`.
+resolved provider identity is attached to their existing account. When the link completes, or the user leaves it, they
+are [returned to a page of the client](/technical/api/client#returning-to-the-client) named by `client_id`; when it
+fails, they are shown the flow's error page first.
 
 This is the administrator counterpart to the client-driven
 [Start Provider Link](/technical/api/client#provider-linking) endpoint. Unlike that endpoint, it requires no end-user
@@ -1723,16 +1724,13 @@ This step is not optional and cannot be skipped.
 
 | Error code | Description |
 |------------|-------------|
-| `provider.missing` | The provider `{provider_id}` does not exist. |
-| `provider.disabled` | The provider `{provider_id}` is disabled by configuration. |
 | `not_found` | The resource you are looking for is not available on this authorization server. |
 
-- Returns **400 Bad Request** with `provider.missing` or `provider.disabled` when the named provider is unknown or
-  disabled. The check happens up front, before any link session is created.
 - Returns **400 Bad Request** with `client.return_uri.missing`, `client.return_uri.invalid`,
   `client.return_uri.not_allowed` or `client.return_state.too_long` when the client cannot be returned to as asked —
   see [Returning to the client](/technical/api/client#returning-to-the-client).
-- Returns **404 Not Found** (`not_found`) when no user **or** no client exists for the given identifiers.
+- Returns **404 Not Found** (`not_found`) when no user, no client **or** no enabled provider exists for the given
+  identifiers. The provider is checked up front, before any link session is created.
 
 **Properties**:
 

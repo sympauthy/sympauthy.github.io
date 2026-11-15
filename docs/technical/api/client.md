@@ -630,8 +630,9 @@ enrollment from, for example, an account-settings or security screen. Requires t
 body (see **Dual authentication** below)
 
 **Purpose**: Starts a standalone MFA enrollment [interactive flow](/functional/interactive_flow) for an
-already-signed-in end-user and returns a URL to send them to. However the enrollment ends — completed, failed or left
-by the end-user — they are [returned to a page of your application](#returning-to-the-client). Unlike enrollment
+already-signed-in end-user and returns a URL to send them to. When the enrollment completes, or the end-user leaves
+it, they are [returned to a page of your application](#returning-to-the-client); when it fails, they are shown the
+flow's error page first. Unlike enrollment
 offered during sign-in, a standalone enrollment started through this endpoint cannot be skipped.
 
 **Dual authentication**: This endpoint acts on behalf of an end-user, so it identifies **two** parties and requires
@@ -729,8 +730,9 @@ request body (see **Dual authentication** below)
 **Purpose**: Starts a standalone provider-link [interactive flow](/functional/interactive_flow) for an
 already-signed-in end-user and returns a URL to send them to. In the flow the end-user is asked to **confirm** the
 action and to **re-authenticate**, then to authorize the target provider; the resolved provider identity is attached to
-their existing account. However the link ends — completed, failed or left by the end-user — they are
-[returned to a page of your application](#returning-to-the-client).
+their existing account. When the link completes, or the end-user leaves it, they are
+[returned to a page of your application](#returning-to-the-client); when it fails, they are shown the flow's error
+page first.
 
 **Why re-authentication is required**: linking a provider mints a **durable login credential** — anyone who can
 subsequently sign in through that provider gains access to the account. Requiring the browser to prove it owns the
@@ -789,8 +791,7 @@ user, is rejected.
 | Error code | Description |
 |------------|-------------|
 | `client.providers.link.invalid_access_token` | The access token identifying the end-user is missing, expired, issued under a revoked [grant](/functional/grant), not associated with an end-user, or was not issued to your client. Obtain a fresh access token for the end-user and try again. |
-| `provider.missing` | The provider `{providerId}` does not exist. |
-| `provider.disabled` | The provider `{providerId}` is disabled by configuration. |
+| `not_found` | The resource you are looking for is not available on this authorization server. |
 
 A `return_uri` or `return_state` the server cannot return the end-user with is refused with **400** too: see
 [Returning to the client](#returning-to-the-client).
@@ -806,8 +807,8 @@ than issuing a `303` redirect because the caller is a client backend holding an 
 
 **Important Notes**:
 
-- The provider is validated up front: an unknown (`provider.missing`) or disabled (`provider.disabled`) provider fails
-  immediately with a `400` error before any link session is created.
+- The provider is validated up front: an unknown or disabled provider is refused with **404** `not_found` before any
+  link session is created.
 - The link is attached to the end-user's existing account — it never creates a new account. If the target provider
   identity (its subject, or an identifier claim it carries) is **already linked to a different account**, the flow
   hard-fails and the link cannot be completed. Otherwise, if that identity is already linked to *this* account, the
@@ -827,8 +828,16 @@ than issuing a `303` redirect because the caller is a client backend holding an 
 
 An [MFA enrollment](#start-mfa-enrollment) or a [provider link](#start-provider-link) your application starts — or one
 an administrator [starts for it](/technical/api/admin#start-mfa-enrollment) — returns the end-user's browser to a page
-of your application however the flow ends: completed, failed, or left by the end-user from any page of the flow. It
-never returns them to one of your redirect URIs, and never with an authorization code.
+of your application. It is never checked against your redirect URIs, and never carries an authorization code.
+
+**When the end-user returns.** How the flow ends decides it:
+
+- **It completes**: the end-user is redirected to the page straight away.
+- **The end-user leaves it**, through the [`cancel_url`](/technical/api/flow#leaving-the-flow) on any page of the flow:
+  redirected straight away.
+- **It fails or expires**: the end-user is shown the flow's error page, and reaches your page only if they follow the
+  `cancel_url` that page offers. They may close the tab instead, so a failed flow may never return: do not hold
+  anything open waiting for it.
 
 **Where the end-user returns.** To the `return_uri` the start request names, which must be your client's
 [`return-uri`](/technical/configuration/client) or one of its

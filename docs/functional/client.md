@@ -79,11 +79,13 @@ without sending them through a full sign-in.
 
 The client asks SympAuthy to start an enrollment on behalf of one of its users and gets back a URL to send that user
 to. The user goes through the same enrollment steps as during sign-in — choosing a method, then setting up TOTP — and
-once finished is redirected back to the application. An enrollment started this way cannot be skipped.
+once finished, or if they decline, is redirected back to the application. An enrollment started this way cannot be
+skipped.
 
 Because the action is performed for a specific user, the client identifies **both itself and the user** when making the
-request. The address the user is returned to is restricted to the client's registered redirect URIs, so users can only
-ever be sent back to the application they came from.
+request. The address the user is returned to must be one the client declared for that purpose in its
+[configuration](/technical/configuration/client) — never one of the redirect URIs it receives authorization codes
+at — so users can only ever be sent back to the application they came from.
 
 This is exposed through the [Start MFA Enrollment](/technical/api/client#multi-factor-authentication-mfa) endpoint of
 the Client API.
@@ -97,15 +99,16 @@ password — from an account-settings or security screen, without sending them t
 
 The client asks SympAuthy to start a link on behalf of one of its users and gets back a URL to send that user to. The
 user is asked to **confirm** the action and to **re-authenticate**, then authorizes the target provider; once the link
-is created they are redirected back to the application. The provider identity is attached to their existing account — it
-never creates a new one.
+is created, or if they decline, they are redirected back to the application. The provider identity is attached to their
+existing account — it never creates a new one.
 
 Re-authentication is required and cannot be skipped: linking a provider mints a **durable login credential**, so the
 user must prove they own the account before the link is created. This prevents a leaked access token from silently
 attaching a new way to sign in.
 
 Because the action is performed for a specific user, the client identifies **both itself and the user** when making the
-request. The address the user is returned to is restricted to the client's registered redirect URIs, so users can only
-ever be sent back to the application they came from.
+request. The address the user is returned to must be one the client declared for that purpose in its
+[configuration](/technical/configuration/client) — never one of the redirect URIs it receives authorization codes
+at — so users can only ever be sent back to the application they came from.
 
 This is exposed through the [Start Provider Link](/technical/api/client#provider-linking) endpoint of the Client API.

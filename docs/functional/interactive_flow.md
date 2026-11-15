@@ -156,11 +156,13 @@ From there the user either approves, and the flow continues into whatever steps 
 is a [cancellation](#cancelling-the-flow), not an error: nothing went wrong, the user simply chose not to go ahead.
 
 Such a flow does not end with an authorization code. It ends by returning the user to a page of the application —
-typically the screen they came from — whether they completed it, declined it, or it failed. The application declares
-that page in its [configuration](/technical/configuration/client) rather than the request supplying it, so every such
-flow has somewhere to return to; when an administrator started it, the user returns to the application the
-administrator named. The page is told which action the user is coming back from and, when it did not complete, why, so
-it can say so.
+typically the screen they came from — whether they completed it or declined it. If it fails, the user is shown the
+error page first, which offers them the way back to that page. The application declares the pages it may be returned
+to in its [configuration](/technical/configuration/client), and the request starting the flow may only pick one of
+those, so every such flow has somewhere to return to; when an administrator started it, the user returns to the
+application the administrator named. The page is
+[told which action the user is coming back from](/technical/api/client#returning-to-the-client) and, when it did not
+complete, why, so it can say so.
 
 Two actions can be started this way today: enrolling in
 [multi-factor authentication](/functional/authentication#multi-factor-authentication-mfa), and
@@ -210,9 +212,11 @@ separate accounts they had.
 
 ## Cancelling the flow
 
-A user does not have to see the flow through to the end. Every page of every flow offers a way out — a "Cancel" link
-on the sign-in page, for example, or on the error page — and the user can deliberately abandon the flow from any of
-them. This is different from an error: nothing went wrong, the user simply chose to stop.
+A user does not have to see the flow through to the end. SympAuthy gives every page of a flow a way out, for the
+interface to show as a link — "Cancel" on the sign-in page, for example, or "Back to the application" on the error
+page — and the user can deliberately abandon the flow from any page that shows it. A custom UI is handed that link on
+every step by the [Flow API](/technical/api/flow#leaving-the-flow), and must show it for its users to have a way out.
+This is different from an error: nothing went wrong, the user simply chose to stop.
 
 Where the user ends up depends on how the flow was started:
 
@@ -224,9 +228,14 @@ Where the user ends up depends on how the flow was started:
   screen. Here the user is returned to the page the application declares, which is told the user left. Declining the
   confirmation that opens such a flow is a cancellation of this kind.
 
-A user leaving a flow that has already ended — completed or failed — changes nothing about how it ended; they are
-only sent back. The one flow with no way out is a sign-in that has already completed: the application already received its
-authorization code, and there is nothing left to cancel.
+A user leaving a flow that has already ended — from the error page of a failed flow, or a tab left open after it
+completed — changes nothing about how it ended; they are only sent back. Two sign-ins offer no way out:
+
+- **A sign-in that has already completed**: the application already received its authorization code, and there is
+  nothing left to cancel.
+- **A sign-in whose request named nowhere the user may be sent back to** — from an application SympAuthy does not
+  know, or asking to return to an address the application did not declare. Sending the user there could hand them to
+  anyone, so they stay on the error page.
 
 ## Error handling
 
