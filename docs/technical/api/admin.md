@@ -364,6 +364,10 @@ The scopes, grant types, flow and webhook of a client are on [Get Client Details
   "allowed_redirect_uris": [
     "https://my-app.com/callback"
   ],
+  "return_uri": "https://my-app.com/account/security",
+  "allowed_return_uris": [
+    "https://my-app.com/onboarding"
+  ],
   "authorization_webhook": {
     "url": "https://my-app.com/sympauthy/authorize",
     "on_failure": "deny_all"
@@ -395,6 +399,11 @@ The scopes, grant types, flow and webhook of a client are on [Get Client Details
 - `default_scopes`: Scopes the client is given when its authorization request names none
 - `allowed_redirect_uris`: Redirect URIs the client is allowed to use during authorization. Empty when the client may
   not use the `authorization_code` grant
+- `return_uri`: The [`return-uri`](/technical/configuration/client) an MFA enrollment or a provider link started for
+  the client returns the end-user to when the request starting it names none. Absent when the configuration gives
+  none
+- `allowed_return_uris`: The other URLs a request starting such a flow may name as its `return_uri`. Empty when the
+  configuration lists none
 - `authorization_webhook`: The [authorization webhook](/technical/authorization_webhook) the client delegates scope
   decisions to, as its `url` and its `on_failure` behaviour — `deny_all` or `fallback_to_rules`. Absent when none is
   configured
@@ -1455,9 +1464,9 @@ Returns 404 if no MFA registration matches the given identifier.
 **Authentication**: Access token with `admin:users:write` scope
 
 **Purpose**: Starts a standalone MFA enrollment [interactive flow](/functional/interactive_flow) on a user's behalf and
-returns a `redirect_url` to hand or send to that user. When the user completes enrollment, they are redirected to the
-`return_uri`; if the administrator also supplies an optional `cancel_uri`, the user may instead abandon the enrollment
-and be sent there. Because the enrollment is initiated by an administrator rather than the user, the flow is gated by a
+returns a `redirect_url` to hand or send to that user. However the enrollment ends — completed, failed or left by the
+user — they are [returned to a page of the client](/technical/api/client#returning-to-the-client) named by
+`client_id`. Because the enrollment is initiated by an administrator rather than the user, the flow is gated by a
 confirmation the user must approve — shown as initiated by "an administrator."
 
 This is the administrator counterpart to the client-driven
@@ -1475,21 +1484,19 @@ into via `client_id` in the body.
 {
   "client_id": "my-app",
   "return_uri": "https://app.example.com/account/security",
-  "cancel_uri": "https://app.example.com/account/security"
+  "return_state": "c3VwcG9ydC0xMjk0"
 }
 ```
 
 **Properties**:
 
-- `client_id`: Identifier of the client the end-user is returned into once enrollment completes. The `return_uri` and
-  optional `cancel_uri` are validated against **this client's** [registered redirect URIs](/technical/configuration/client).
-- `return_uri`: URI the end-user is redirected to once enrollment completes. It must match one of the named client's
-  registered redirect URIs — validated with the same OAuth 2.1 redirect-URI rules as the authorization endpoint — to
-  prevent open redirects.
-- `cancel_uri` (optional): URI the end-user is redirected to if they cancel the enrollment via the flow's
-  [Cancel Endpoint](/technical/api/flow#_7-cancel-endpoint). Like `return_uri`, it must match one of the named client's
-  registered redirect URIs and is validated with the same rules. When omitted, the enrollment offers no way to cancel
-  and the end-user must complete it.
+- `client_id`: Identifier of the client the end-user is returned to once the enrollment ends. The `return_uri` is
+  checked against **this client's** [`return-uri` and `allowed-return-uris`](/technical/configuration/client), never its
+  redirect URIs.
+- `return_uri` (optional): URL the end-user is returned to once the enrollment ends. When absent, the client's
+  `return-uri`. See [Returning to the client](/technical/api/client#returning-to-the-client) for what the page
+  receives.
+- `return_state` (optional): Value sent back unchanged as `sympauthy_return_state`, at most 512 characters.
 
 **Response Format**:
 
@@ -1511,8 +1518,9 @@ into via `client_id` in the body.
 - Returns **400 Bad Request** with `admin.users.mfa.enrollment.mfa_disabled` when no MFA method is enabled in the server
   configuration ([`mfa.totp.enabled`](/technical/configuration/authorization#mfa)). The check happens up front, before
   any enrollment session is created.
-- Returns **400 Bad Request** when the `return_uri` or `cancel_uri` does not match the named client's registered
-  redirect URIs.
+- Returns **400 Bad Request** with `client.return_uri.missing`, `client.return_uri.invalid`,
+  `client.return_uri.not_allowed` or `client.return_state.too_long` when the client cannot be returned to as asked —
+  see [Returning to the client](/technical/api/client#returning-to-the-client).
 - Returns **404 Not Found** (`not_found`) when no user **or** no client exists for the given identifiers.
 
 **Properties**:
@@ -1661,9 +1669,9 @@ link exists for the user and provider pair.
 **Purpose**: Starts a standalone provider-link [interactive flow](/functional/interactive_flow) on a user's behalf and
 returns a `redirect_url` to hand or send to that user. In the flow the end-user is asked to **confirm** the action —
 shown as initiated by "an administrator" — and to **re-authenticate**, then to authorize the target provider; the
-resolved provider identity is attached to their existing account. When the link completes, they are redirected to the
-`return_uri`; if the administrator also supplies an optional `cancel_uri`, the user may instead abandon the link and be
-sent there.
+resolved provider identity is attached to their existing account. However the link ends — completed, failed or left by
+the user — they are [returned to a page of the client](/technical/api/client#returning-to-the-client) named by
+`client_id`.
 
 This is the administrator counterpart to the client-driven
 [Start Provider Link](/technical/api/client#provider-linking) endpoint. Unlike that endpoint, it requires no end-user
@@ -1687,21 +1695,19 @@ This step is not optional and cannot be skipped.
 {
   "client_id": "my-app",
   "return_uri": "https://app.example.com/account/security",
-  "cancel_uri": "https://app.example.com/account/security"
+  "return_state": "c3VwcG9ydC0xMjk0"
 }
 ```
 
 **Properties**:
 
-- `client_id`: Identifier of the client the end-user is returned into once the link completes. The `return_uri` and
-  optional `cancel_uri` are validated against **this client's** [registered redirect URIs](/technical/configuration/client).
-- `return_uri`: URI the end-user is redirected to once the link completes. It must match one of the named client's
-  registered redirect URIs — validated with the same OAuth 2.1 redirect-URI rules as the authorization endpoint — to
-  prevent open redirects.
-- `cancel_uri` (optional): URI the end-user is redirected to if they cancel the link via the flow's
-  [Cancel Endpoint](/technical/api/flow#_7-cancel-endpoint). Like `return_uri`, it must match one of the named client's
-  registered redirect URIs and is validated with the same rules. When omitted, the link offers no way to cancel and the
-  end-user must complete it.
+- `client_id`: Identifier of the client the end-user is returned to once the link ends. The `return_uri` is checked
+  against **this client's** [`return-uri` and `allowed-return-uris`](/technical/configuration/client), never its
+  redirect URIs.
+- `return_uri` (optional): URL the end-user is returned to once the link ends. When absent, the client's
+  `return-uri`. See [Returning to the client](/technical/api/client#returning-to-the-client) for what the page
+  receives.
+- `return_state` (optional): Value sent back unchanged as `sympauthy_return_state`, at most 512 characters.
 
 **Response Format**:
 
@@ -1723,8 +1729,9 @@ This step is not optional and cannot be skipped.
 
 - Returns **400 Bad Request** with `provider.missing` or `provider.disabled` when the named provider is unknown or
   disabled. The check happens up front, before any link session is created.
-- Returns **400 Bad Request** when the `return_uri` or `cancel_uri` does not match the named client's registered
-  redirect URIs.
+- Returns **400 Bad Request** with `client.return_uri.missing`, `client.return_uri.invalid`,
+  `client.return_uri.not_allowed` or `client.return_state.too_long` when the client cannot be returned to as asked —
+  see [Returning to the client](/technical/api/client#returning-to-the-client).
 - Returns **404 Not Found** (`not_found`) when no user **or** no client exists for the given identifiers.
 
 **Properties**:

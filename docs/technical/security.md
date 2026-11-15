@@ -396,14 +396,25 @@ recommends ignoring the port component. SympAuthy follows this recommendation fo
 `127.0.0.1` or `[::1]` over `http` or `https`. This exception does **not** apply to `localhost` or to custom-scheme
 URIs, which always require an exact match.
 
-The same allowlist protects flows that a client or an administrator starts on a signed-in user's behalf — such as
+### Return URLs
+
+Flows that a client or an administrator starts on a signed-in user's behalf — such as
 [MFA enrollment](/technical/api/client#start-mfa-enrollment) and
-[provider linking](/technical/api/client#provider-linking). These flows are not started from the authorization
-endpoint, but they still return the end-user to a client-supplied destination: a `return_uri` when the flow completes,
-and an optional `cancel_uri` when the user abandons it. Both are validated against the initiating client's
-`allowed-redirect-uris` using the exact-matching and loopback rules described above, so a standalone flow cannot be
-turned into an open redirect either. For administrator-initiated flows, the URIs are checked against the registered
-redirect URIs of the client named in the request.
+[provider linking](/technical/api/client#provider-linking) — are not started from the authorization endpoint, but they
+still return the end-user to the client, however the flow ends. That return URL is checked against the client's own
+return URLs, `clients.<id>.return-uri` and `clients.<id>.allowed-return-uris`, with the exact-matching and loopback
+rules above, so such a flow cannot be turned into an open redirect either. For an administrator-initiated flow, it is
+checked against those of the client named in the request.
+
+**A return URL is never checked against the client's redirect URIs**, nor a redirect URI against its return URLs. An
+authorization code goes only to a URL the client declared to receive one: a page declared as a return destination was
+not built to exchange a code, and would leave one in its address bar, history and `Referer`.
+
+**The return is a plain redirect anyone can reproduce.** Its `sympauthy_flow` and `sympauthy_flow_error` parameters
+say what to show the end-user, not what the account holds. A client that sends a `return_state` it can check — tied to
+the end-user's session in the application — receives it back as `sympauthy_return_state` and tells a return it asked
+for from a forged one, as OAuth 2's `state` lets it do for an authorization. See
+[Returning to the client](/technical/api/client#returning-to-the-client).
 
 ## Secure grant types
 

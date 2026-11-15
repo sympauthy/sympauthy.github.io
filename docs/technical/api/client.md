@@ -630,10 +630,9 @@ enrollment from, for example, an account-settings or security screen. Requires t
 body (see **Dual authentication** below)
 
 **Purpose**: Starts a standalone MFA enrollment [interactive flow](/functional/interactive_flow) for an
-already-signed-in end-user and returns a URL to send them to. When the user completes enrollment, they are redirected
-to the `return_uri` supplied by the client; if the client also supplies an optional `cancel_uri`, the user may instead
-abandon the enrollment and be sent there. Unlike enrollment offered during sign-in, a standalone enrollment started
-through this endpoint cannot be skipped.
+already-signed-in end-user and returns a URL to send them to. However the enrollment ends — completed, failed or left
+by the end-user — they are [returned to a page of your application](#returning-to-the-client). Unlike enrollment
+offered during sign-in, a standalone enrollment started through this endpoint cannot be skipped.
 
 **Dual authentication**: This endpoint acts on behalf of an end-user, so it identifies **two** parties and requires
 **two** credentials:
@@ -653,7 +652,7 @@ user, is rejected.
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "return_uri": "https://app.example.com/account/security",
-  "cancel_uri": "https://app.example.com/account/security"
+  "return_state": "c2V0dGluZ3MtODQyMQ"
 }
 ```
 
@@ -661,13 +660,10 @@ user, is rejected.
 
 - `access_token`: A valid, non-expired access token belonging to the end-user to enroll. It must have been issued to
   the calling client.
-- `return_uri`: URI the end-user is redirected to once enrollment completes. It must match one of the calling client's
-  [registered redirect URIs](/technical/configuration/client) — validated with the same OAuth 2.1 redirect-URI rules
-  as the authorization endpoint — to prevent open redirects.
-- `cancel_uri` (optional): URI the end-user is redirected to if they cancel the enrollment via the flow's
-  [Cancel Endpoint](/technical/api/flow#_7-cancel-endpoint). Like `return_uri`, it must match one of the calling
-  client's [registered redirect URIs](/technical/configuration/client) and is validated with the same OAuth 2.1
-  redirect-URI rules. When omitted, the enrollment offers no way to cancel and the end-user must complete it.
+- `return_uri` (optional): URL the end-user is returned to once the enrollment ends. See
+  [Returning to the client](#returning-to-the-client).
+- `return_state` (optional): Value sent back unchanged with the end-user. See
+  [Returning to the client](#returning-to-the-client).
 
 **Response Format**:
 
@@ -687,8 +683,8 @@ user, is rejected.
 | `client.mfa.enrollment.mfa_disabled` | This authorization server is not configured to support multi-factor authentication, so an enrollment cannot be started. Please contact the support of the application to report this issue. |
 | `client.mfa.enrollment.invalid_access_token` | The access token identifying the end-user is missing, expired, issued under a revoked [grant](/functional/grant), not associated with an end-user, or was not issued to your client. Obtain a fresh access token for the end-user and try again. |
 
-An invalid `return_uri` or `cancel_uri` — one that does not match the client's registered redirect URIs — is rejected
-the same way.
+A `return_uri` or `return_state` the server cannot return the end-user with is refused with **400** too: see
+[Returning to the client](#returning-to-the-client).
 
 **Properties**:
 
@@ -733,8 +729,8 @@ request body (see **Dual authentication** below)
 **Purpose**: Starts a standalone provider-link [interactive flow](/functional/interactive_flow) for an
 already-signed-in end-user and returns a URL to send them to. In the flow the end-user is asked to **confirm** the
 action and to **re-authenticate**, then to authorize the target provider; the resolved provider identity is attached to
-their existing account. When the link completes, they are redirected to the `return_uri` supplied by the client; if the
-client also supplies an optional `cancel_uri`, the user may instead abandon the link and be sent there.
+their existing account. However the link ends — completed, failed or left by the end-user — they are
+[returned to a page of your application](#returning-to-the-client).
 
 **Why re-authentication is required**: linking a provider mints a **durable login credential** — anyone who can
 subsequently sign in through that provider gains access to the account. Requiring the browser to prove it owns the
@@ -764,7 +760,7 @@ user, is rejected.
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "return_uri": "https://app.example.com/account/security",
-  "cancel_uri": "https://app.example.com/account/security"
+  "return_state": "c2V0dGluZ3MtODQyMQ"
 }
 ```
 
@@ -772,13 +768,10 @@ user, is rejected.
 
 - `access_token`: A valid, non-expired access token belonging to the end-user the provider will be linked to. It must
   have been issued to the calling client.
-- `return_uri`: URI the end-user is redirected to once the link completes. It must match one of the calling client's
-  [registered redirect URIs](/technical/configuration/client) — validated with the same OAuth 2.1 redirect-URI rules as
-  the authorization endpoint — to prevent open redirects.
-- `cancel_uri` (optional): URI the end-user is redirected to if they cancel the link via the flow's
-  [Cancel Endpoint](/technical/api/flow#_7-cancel-endpoint). Like `return_uri`, it must match one of the calling
-  client's [registered redirect URIs](/technical/configuration/client) and is validated with the same OAuth 2.1
-  redirect-URI rules. When omitted, the link offers no way to cancel and the end-user must complete it.
+- `return_uri` (optional): URL the end-user is returned to once the link ends. See
+  [Returning to the client](#returning-to-the-client).
+- `return_state` (optional): Value sent back unchanged with the end-user. See
+  [Returning to the client](#returning-to-the-client).
 
 **Response Format**:
 
@@ -799,8 +792,8 @@ user, is rejected.
 | `provider.missing` | The provider `{providerId}` does not exist. |
 | `provider.disabled` | The provider `{providerId}` is disabled by configuration. |
 
-An invalid `return_uri` or `cancel_uri` — one that does not match the client's registered redirect URIs — is rejected
-the same way (**400 Bad Request**).
+A `return_uri` or `return_state` the server cannot return the end-user with is refused with **400** too: see
+[Returning to the client](#returning-to-the-client).
 
 **Properties**:
 
@@ -827,6 +820,48 @@ than issuing a `303` redirect because the caller is a client backend holding an 
 - Offer a "connect another sign-in method" action from an application's account-settings or security screen.
 - Let users add a social or enterprise identity provider to an account they originally created with a password.
 - Drive provider linking from a custom, branded UI.
+
+---
+
+### Returning to the client
+
+An [MFA enrollment](#start-mfa-enrollment) or a [provider link](#start-provider-link) your application starts — or one
+an administrator [starts for it](/technical/api/admin#start-mfa-enrollment) — returns the end-user's browser to a page
+of your application however the flow ends: completed, failed, or left by the end-user from any page of the flow. It
+never returns them to one of your redirect URIs, and never with an authorization code.
+
+**Where the end-user returns.** To the `return_uri` the start request names, which must be your client's
+[`return-uri`](/technical/configuration/client) or one of its
+[`allowed-return-uris`](/technical/configuration/client), compared with the exact-string and loopback rules of a
+redirect URI. When the request names none, to the client's `return-uri`. Your
+[`allowed-redirect-uris`](/technical/configuration/client) are never read for it: list a page there and not among the
+return URLs, and the request is refused.
+
+**What the return page receives.** The URL carries these query parameters, beside any it already had:
+
+| Parameter                | Value                                                                                                                                                                                                                                            |
+|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `sympauthy_flow`         | The flow the end-user returns from: `mfa_enrollment` or `link_provider`.                                                                                                                                                                         |
+| `sympauthy_flow_error`   | Absent when the flow completed. `auth.interactive_flow_session.cancelled` when the end-user left it, and otherwise the code it failed with — the one the flow's error page shows, such as `auth.interactive_flow_session.validate.expired` when it ran out of time. |
+| `sympauthy_return_state` | The `return_state` the start request carried, unchanged. Absent when it carried none.                                                                                                                                                            |
+
+```
+https://app.example.com/account/security?sympauthy_flow=mfa_enrollment&sympauthy_flow_error=auth.interactive_flow_session.cancelled&sympauthy_return_state=c2V0dGluZ3MtODQyMQ
+```
+
+**The parameters say what to show the end-user, not what the account holds.** The return is a plain redirect, and
+anyone can send a browser to the same URL with the same parameters. Send a `return_state` you can check — a value tied
+to the end-user's session in your application — to tell a return you asked for from a forged one. Read what the
+account now holds through this API: a provider link shows in the `providers` of [Get User Info](#get-user-info).
+
+**What a start request is refused with.** Each of these answers **400** before any flow starts:
+
+| Error code                       | Cause                                                                                                                       |
+|----------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
+| `client.return_uri.missing`      | The request names no `return_uri`, or a blank one, and the configuration gives your client no `return-uri`.                 |
+| `client.return_uri.invalid`      | `return_uri` cannot be read as a URL.                                                                                       |
+| `client.return_uri.not_allowed`  | `return_uri` is neither your client's `return-uri` nor one of its `allowed-return-uris`.                                    |
+| `client.return_state.too_long`   | `return_state` is longer than 512 characters.                                                                               |
 
 ---
 
