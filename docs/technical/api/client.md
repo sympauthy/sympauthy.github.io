@@ -673,7 +673,7 @@ user, is rejected.
 ```json
 {
   "state": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "redirect_url": "https://auth.example.com/flow/mfa?state=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "redirect_url": "https://auth.example.com/flow/confirm?state=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
@@ -701,8 +701,12 @@ than issuing a `303` redirect because the caller is a client backend holding an 
 - The MFA-not-enabled check happens up front: if no MFA method is enabled in the server configuration
   ([`mfa.totp.enabled`](/technical/configuration/authorization#mfa)), the endpoint fails immediately with a `400`
   error before any enrollment session is created.
-- Enrollment reuses the same steps as the sign-in flow — method selection, then TOTP enrollment. See
+- The flow opens with a [confirmation](/technical/api/flow#_8-confirm-endpoint), where the end-user approves the
+  enrollment, then reuses the steps of the sign-in flow — method selection, then TOTP enrollment. See
   [How an Interactive Flow Works](/functional/interactive_flow).
+- Its pages are those of the flow the [`default` client template](/technical/configuration/client#templates-clients-id)
+  names as its `authorization-flow`, or the server's own pages when it names none. Your client's own
+  `authorization-flow` is not used.
 
 **Use Cases**:
 

@@ -2,14 +2,19 @@
 
 The `com.sympauthy.testcontainers.flow` package drives SympAuthy's
 [interactive login flow](/functional/interactive_flow) programmatically — from the OAuth authorize
-endpoint to an authorization code and tokens — without a browser.
+endpoint to an authorization code and tokens — without a browser. A flow that a client or an
+administrator starts for a user, and that does not begin at `/authorize`, is driven with
+`driveFrom(...)` and `drive()` instead: see [Server-initiated Flows](/testcontainers/server_initiated_flows).
 
-`InteractiveFlowRegistry` is a **mock of the flow frontend**: it stands up a small local HTTP server
-that plays the flow's pages (sign-in, collect-claims, …) plus the client's callback. One registry
-hosts one `flows.<id>` definition and one client, but any number of `InteractiveFlow`s — each a
-single scripted run (a sign-up, a sign-in, …) minted with `registry.newFlow()`. SympAuthy still owns
-the orchestration — it decides, through the redirects it issues, which page comes next — while your
-callbacks "render" each page by submitting to the Flow API.
+`InteractiveFlowRegistry` is a **mock of the flow frontend** — the pages a user sees while signing
+in, which SympAuthy's own UI or one you build would otherwise serve. It stands up a small local HTTP
+server that plays those pages (sign-in, [collect-claims](/functional/interactive_flow#collecting-additional-information-optional),
+…) plus the client's callback, the redirect URI where the authorization code arrives. One registry
+hosts one **flow definition** — the [`flows.<id>`](/technical/configuration/authorization#flows-id)
+entry naming those pages' URLs — and one client, but any number of **runs**: `InteractiveFlow`s,
+each a single scripted sign-up, sign-in, … minted with `registry.newFlow()`. SympAuthy still owns the
+orchestration — it decides, through the redirects it issues, which page comes next — while your
+callbacks "render" each page by submitting to the [Flow API](/technical/api/flow).
 
 ## Running a flow
 
@@ -44,12 +49,13 @@ try (registry;
 ```
 
 `withFlows(registry)` applies that definition as program-argument overrides, so it wins over any
-flow config you set elsewhere, and tells the frontend the container's URLs.
+flow config you set elsewhere (see [Precedence](/testcontainers/configuration#precedence)), and tells
+the frontend the container's URLs.
 
-**You own the client:** give it `registry.clientId()`, set its `authorizationFlow` to
-`registry.flowId()`, and include `registry.redirectUri()` in its redirect URIs (see
-[Clients](/testcontainers/clients)). Then `/authorize` redirects a redirect-following
-client through the mock frontend's pages to its `/callback`, which captures the code.
+**You own the client:** give it `registry.clientId()`, set its `authorization-flow` to
+`registry.flowId()`, and include `registry.redirectUri()` in its `allowed-redirect-uris` (see
+[Clients](/testcontainers/clients)). Then `/authorize` redirects the driver's browser through the
+mock frontend's pages to its `/callback`, which captures the code.
 
 ## Handlers
 
@@ -58,34 +64,55 @@ Register only the pages a flow reaches — each callback is an independent funct
 | Callback | Purpose |
 | ------------------------------------------- | ------------------------------------------------------------------ |
 | `withSignInHandler(SignInHandler)`          | supply credentials for an existing user |
-| `withSignUpHandler(SignUpHandler)`          | supply sign-up fields (password + identifier claims) for a new user |
+| `withSignUpHandler(SignUpHandler)`          | supply sign-up fields (password + [identifier claims](/functional/claims#identifier-claims)) for a new user |
 | `withClaimsHandler(ClaimsHandler)`          | supply values when the collect-claims page is reached |
-| `withStepListener(StepListener)`            | react to every page as the flow reaches it (read its `data()`, call the Flow API) — does not influence it |
+| `withStepListener(StepListener)`            | react to each step the run records, as it records it (read its `type()` and `data()`) — does not influence it |
 
-[Multi-factor authentication](/testcontainers/mfa) adds three more callbacks for the
-confirm and TOTP steps.
+[Multi-factor authentication](/testcontainers/mfa) adds the callbacks for the
+[confirm](/functional/interactive_flow#an-action-started-on-the-user-s-behalf) and TOTP steps.
+
+The sign-in handler receives a `SignInFlowResource`, the sign-up handler a `SignUpFlowResource`, and
+the claims handler the `List<Claim>` the page asks for. `SignInFlowResource`, `SignUpFlowResource`,
+`ConfirmFlowResource` and `TotpEnrollData` expose `cancelUrl()`: the step's
+[`cancel_url`](/technical/api/flow#leaving-the-flow), the URL that leaves the flow from that step, or
+`null` where the server offers no way out of it. It is there to assert on: a sign-in, sign-up or
+TOTP handler returns a value and cannot decline, so the only step the driver leaves is a confirm step
+declined with `ConfirmDecision.CANCEL`.
 
 `run()` returns an `AuthorizationResult`: the authorization `code()`, the `state()` echoed back on
 the client redirect, the PKCE `codeVerifier()` the run sent, and `exchange()` to trade the code for
-tokens (or [exchange it yourself](#exchanging-the-code-yourself)). To assert on the path a flow took, read `flow.stepTypes()` — the `List<FlowStep.Type>` it traversed
-(e.g. `[SIGN_UP, COMPLETED]`) — instead of accumulating them through a `StepListener`. For
-lower-level access, `FlowApiClient` wraps each Flow API endpoint directly.
+tokens (or [exchange it yourself](#exchanging-the-code-yourself)). A run the server sends to the
+flow's error page — an authorization request it refuses, or a flow that fails — throws a
+`FlowException` naming the page's query, which carries only the `state`; a run that reaches the
+callback with an OAuth 2 `error` instead of a code throws one naming the error and the `state`. To
+assert on the path a flow took, read `flow.stepTypes()` — the `List<FlowStep.Type>` it traversed
+(e.g. `[SIGN_UP, COMPLETED]`) — instead of accumulating them through a `StepListener`. The types are
+`SIGN_IN`, `SIGN_UP`, `CLAIMS`, `VALIDATION`, `CONFIRM` and `MFA` for the pages a handler or a
+default answered — an MFA method the driver picks itself, or a claims page with nothing to ask,
+records none — plus `CANCEL` when the run declined a confirm step and `COMPLETED` when it reached
+the callback. For
+lower-level access, `new FlowApiClient(sympauthy.getBaseUrl(), httpClient)` wraps the endpoints the
+mock frontend's pages call, and `getUrl(url)` fetches any other; it has no call for leaving a flow,
+which is a browser following the step's `cancelUrl()`.
 
 ## Authorization request parameters
 
 The driver assembles the `/authorize` request that starts a run.
 `withAuthorizationParam(name, value)` adds an extra query parameter to it — the escape hatch for a
-parameter the module does not model ([`max_age`](/functional/authentication), `claims`, `prompt`,
-`login_hint`, `acr_values`, …). Call it once per parameter; the value is url-encoded, so one that
-needs it — a JSON object, a space-separated list — reaches the server intact. The run stays an
-ordinary `run()`: the driver still generates the PKCE pair and the `AuthorizationResult` still
-`exchange()`s.
+parameter the module does not model, such as [`max_age`](/functional/authentication#asking-for-a-recent-authentication)
+or [`claims`](/functional/claims). Call it once per parameter; the value is url-encoded, so one that
+needs it — a JSON object, a space-separated list — reaches the server intact. A parameter the server
+does not support, such as `prompt`, `login_hint` or `acr_values`, reaches it too and is ignored (see
+[OAuth 2 compatibility](/technical/oauth2_compatibility)). One whose value the server refuses — a
+negative `max_age`, a `claims` it cannot read — sends the run to the error page, so `run()` throws. The
+run stays an ordinary `run()`: the driver still generates the PKCE pair and the `AuthorizationResult`
+still `exchange()`s.
 
 ```java
 TokenResponse tokens = registry.newFlow()
     .withSignInHandler(cfg -> Credentials.of(email, password))
     .withAuthorizationParam("max_age", "60")
-    .withAuthorizationParam("prompt", "login")
+    .withAuthorizationParam("claims", "{\"id_token\":{\"email\":null}}")
     .run()
     .exchange();
 ```
@@ -129,7 +156,8 @@ the run keeps everything it adds to the authorization request — the registry's
 ## Chaining scenarios
 
 Register a flow per run and run them in order to chain scenarios against one container — for example
-a sign-up that creates a user, then a sign-in as that same user (both share the one client and flow):
+a sign-up that creates a user, then a sign-in as that same user (both runs share the registry's one
+client and flow definition):
 
 ```java
 InteractiveFlow signUp = registry.newFlow().withSignUpHandler(cfg -> Map.of("email", email, "password", password));
@@ -141,6 +169,10 @@ TokenResponse tokens = signIn.run().exchange();   // signs in as that user
 
 ::: tip
 The frontend covers the password happy path (sign-in/sign-up → collect claims → code), the confirm
-step, and [TOTP multi-factor auth](/testcontainers/mfa). Enforced email/SMS claim
-validation raises `UnsupportedFlowStepException`.
+step, and [TOTP multi-factor auth](/testcontainers/mfa). It does not drive
+[claim validation](/functional/interactive_flow#verifying-the-user-s-contact-details-optional) — turned
+on by [`features.email-validation`](/technical/configuration/authorization#features), so leave it off
+for driven runs: a run reaching it raises `UnsupportedFlowStepException`, and
+`withValidationCodeHandler(...)` exists but the driver does not call it yet. Nor does it take a
+third-party provider's sign-in or a password reset: a sign-in handler always answers with a password.
 :::

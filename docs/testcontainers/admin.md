@@ -11,7 +11,10 @@ carrying admin scopes, and the *first* admin user can only be created by redeemi
 client: the Admin API/UI, an `admin` audience, the `is_sympauthy_admin` claim, a scope-granting rule,
 and a `first-admin` bootstrap invitation. `withAdminClient(registry, scopes…)` adds a public client
 bound to the `admin` audience and wired to the interactive-flow mock frontend (and requests those
-same scopes).
+same scopes). Request the [admin scopes](/technical/api/admin) the endpoints you call need: the example
+below lists users with `admin:users:read`, while
+[starting an MFA enrollment](/testcontainers/server_initiated_flows#the-admin-initiated-enrollment)
+needs `admin:users:write`.
 
 ## Creating the first admin user
 
