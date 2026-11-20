@@ -1475,6 +1475,10 @@ This is the administrator counterpart to the client-driven
 end-user access token: the administrator names the **user** via the path and the **client** the user will be returned
 into via `client_id` in the body.
 
+The flow opens with a [confirmation](/technical/api/flow#_8-confirm-endpoint), and its pages are those of the flow
+the [`default` client template](/technical/configuration/client#templates-clients-id) names as its
+`authorization-flow`, or the server's own pages when it names none, whatever the `client_id`.
+
 **Path Parameters**:
 
 - `user_id`: Unique identifier of the user to enroll
@@ -1505,7 +1509,7 @@ into via `client_id` in the body.
 
 ```json
 {
-  "redirect_url": "https://auth.example.com/flow/mfa?state=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "redirect_url": "https://auth.example.com/flow/confirm?state=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 

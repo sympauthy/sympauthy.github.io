@@ -12,7 +12,7 @@ A public client (PKCE only, no secret):
 Client client = Client.publicClient("test-app");
 Map<String, Object> clientConfig = Map.of(
     "public", true,
-    "authorizationFlow", registry.flowId(),
+    "authorization-flow", registry.flowId(),
     "allowed-grant-types", List.of("authorization_code"),
     "allowed-scopes", List.of("openid"),
     "allowed-redirect-uris", List.of(registry.redirectUri()));
@@ -27,7 +27,7 @@ Client client = Client.confidentialClient("test-app", "s3cr3t");  // + Client.Cl
 Map<String, Object> clientConfig = Map.of(
     "public", false,
     "secret", client.secret(),
-    "authorizationFlow", registry.flowId(),
+    "authorization-flow", registry.flowId(),
     "allowed-grant-types", List.of("authorization_code"),
     "allowed-scopes", List.of("openid"),
     "allowed-redirect-uris", List.of(registry.redirectUri()));
