@@ -17,11 +17,35 @@ page):
   [Admin API](/testcontainers/admin)).
 
 The module stays out of that initiation call: **you** invoke the entry point, then hand the returned
-link plus the success/cancel URLs you passed to `driveFrom(startUrl, successUrl, cancelUrl)` and call
-`drive()`. It walks the flow — driving the confirm and MFA steps with the
-[handlers described under Multi-factor Authentication](/testcontainers/mfa) — to a terminal
-and returns a `FlowResult`: `SUCCESS` if it reached the success URL, `CANCELED` if it reached the
-cancel URL.
+link and the URL the flow returns the user to — the `return_uri` you passed the entry point, or the
+client's `return-uri` when you passed none — to `driveFrom(startUrl, returnUrl)` and call `drive()`. It
+walks the flow — driving the confirm and MFA steps with the
+[handlers described under Multi-factor Authentication](/testcontainers/mfa) — to that URL and returns
+a `FlowResult`.
+
+## Reading the outcome
+
+The server returns the user to the same URL however the flow ended, and says how in the return's
+[parameters](/technical/api/client#returning-to-the-client), so `result.outcome()` comes from
+`sympauthy_flow_error`, not from the path:
+
+| `sympauthy_flow_error` on the return       | `result.outcome()`              |
+|--------------------------------------------|---------------------------------|
+| absent                                     | `SUCCESS` (`isSuccess()`)       |
+| `auth.interactive_flow_session.cancelled`  | `CANCELED` (`isCanceled()`)     |
+| any other code                             | `FAILED` (`isFailed()`)         |
+
+`result.returnState()` reads the `return_state` your start request sent, echoed as
+`sympauthy_return_state` (`null` when you sent none); asserting on it is your test's job.
+`result.terminalParam(name)` reads any other return parameter, such as `sympauthy_flow`, and
+`result.terminalUrl()` is the URL reached, query string included.
+
+`drive()` throws a `FlowException` instead of returning a result when:
+
+- the return carries no `sympauthy_flow`, so it did not come through SympAuthy's hand-back;
+- the flow failed or expired and the server showed its error page, which the driver does not follow
+  any further;
+- a confirm handler returned `ConfirmDecision.CANCEL` at a step that offers no `cancel_url`.
 
 ## Driving the flow
 
@@ -32,8 +56,7 @@ and drive the link:
 InteractiveFlowRegistry registry = InteractiveFlowRegistry
     .forClient(Client.confidentialClient("mfa-app", "s3cr3t")).withScopes("openid");
 
-String successUrl = registry.frontendUrl() + "/mfa-return";   // the return_uri you pass the API
-String cancelUrl  = registry.frontendUrl() + "/mfa-cancel";   // the cancel_uri you pass the API
+String returnUrl = registry.frontendUrl() + "/mfa-return";   // where the flow returns the user, however it ends
 
 try (registry;
      SympauthyContainer sympauthy = new SympauthyContainer()
@@ -50,7 +73,8 @@ try (registry;
                 "allowed-grant-types", List.of("authorization_code", "client_credentials"),
                 "allowed-scopes", List.of("openid", "users:mfa:write"),
                 "default-scopes", List.of("openid"),
-                "allowed-redirect-uris", List.of(registry.redirectUri(), successUrl, cancelUrl)))))
+                "allowed-redirect-uris", List.of(registry.redirectUri()),   // authorizations only
+                "return-uri", returnUrl))))                                 // where the enrollment returns
         .withFlows(registry)) {
 
     sympauthy.start();
@@ -62,14 +86,14 @@ try (registry;
     TokenClient tokenClient = new TokenClient(tokenEndpoint, HttpClient.newHttpClient(), registry.client());
     String clientToken = tokenClient.clientCredentials("users:mfa:write").accessToken();
 
-    // 2. Call the entry point yourself; read redirect_url from its JSON response.
+    // 2. Call the entry point yourself; read redirect_url from its JSON response. With no return_uri,
+    //    the flow returns to the client's return-uri, echoing the return_state.
     HttpResponse<String> init = HttpClient.newHttpClient().send(
         HttpRequest.newBuilder(URI.create(sympauthy.getBaseUrl() + "/api/v1/client/mfa/enrollment"))
             .header("Authorization", "Bearer " + clientToken)
             .header("Content-Type", "application/json")
             .POST(HttpRequest.BodyPublishers.ofString(
-                "{\"access_token\":\"" + userToken + "\",\"return_uri\":\"" + successUrl
-                    + "\",\"cancel_uri\":\"" + cancelUrl + "\"}"))
+                "{\"access_token\":\"" + userToken + "\",\"return_state\":\"xyz\"}"))
             .build(),
         HttpResponse.BodyHandlers.ofString());
     String startUrl = /* the "redirect_url" field of init.body() */;
@@ -82,17 +106,29 @@ try (registry;
             secret.set(data.secret());
             return Totp.code(data.secret());                        // (this is also the default)
         })
-        .driveFrom(startUrl, successUrl, cancelUrl)
+        .driveFrom(startUrl, returnUrl)
         .drive();
 
     assertEquals(FlowOutcome.SUCCESS, result.outcome());            // CANCELED if the handler returned CANCEL
+    assertEquals("xyz", result.returnState());                      // the return_state sent in step 2
 }
 ```
 
-`driveFrom(startUrl, successUrl, cancelUrl)` verifies all three URLs belong to the mock frontend; the
-`successUrl` / `cancelUrl` are the `return_uri` / `cancel_uri` you pass the initiating API — register
-them as the client's redirect URIs. The **admin-initiated** endpoint works the same way with an admin
-token instead of a client-credentials one.
+`driveFrom(startUrl, returnUrl)` verifies both URLs belong to the mock frontend. Declare the return
+URL on the client as its `return-uri`, as above, or list it in its `allowed-return-uris` and name it
+per request as `return_uri`: the server refuses a start request that returns anywhere else, and never
+reads `allowed-redirect-uris`, which serves authorizations only (see the
+[client configuration](/technical/configuration/client)).
+
+Declining at the confirm step — the handler returning `ConfirmDecision.CANCEL` — sends the browser to
+that step's `cancel_url`, which the server redirects to the return URL with
+`sympauthy_flow_error=auth.interactive_flow_session.cancelled`: the run reports `CANCELED` and its
+`stepTypes()` are `[CONFIRM, CANCEL]`.
+
+The **admin-initiated** endpoint works the same way with an admin token instead of a
+client-credentials one. It takes no user access token: it names the client the user returns to as
+`client_id` in the body, and the return URL is checked against that client's `return-uri` and
+`allowed-return-uris`.
 
 ::: warning Two server-side settings a server-initiated flow needs
 Both are shown in the example above:

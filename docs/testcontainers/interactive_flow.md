@@ -65,11 +65,18 @@ Register only the pages a flow reaches — each callback is an independent funct
 [Multi-factor authentication](/testcontainers/mfa) adds three more callbacks for the
 confirm and TOTP steps.
 
+The resource a handler receives — `SignInFlowResource`, `SignUpFlowResource`, `ConfirmFlowResource`,
+`TotpEnrollData` — exposes `cancelUrl()`: the step's [`cancel_url`](/technical/api/flow#leaving-the-flow),
+the URL that leaves the flow from that step, or `null` where the server offers no way out of it.
+
 `run()` returns an `AuthorizationResult`: the authorization `code()`, the `state()` echoed back on
 the client redirect, the PKCE `codeVerifier()` the run sent, and `exchange()` to trade the code for
-tokens (or [exchange it yourself](#exchanging-the-code-yourself)). To assert on the path a flow took, read `flow.stepTypes()` — the `List<FlowStep.Type>` it traversed
+tokens (or [exchange it yourself](#exchanging-the-code-yourself)). A run that reaches the callback with
+an OAuth 2 `error` instead of a code — `access_denied` after a declined confirm step, for example —
+throws a `FlowException` naming the error and the `state`. To assert on the path a flow took, read `flow.stepTypes()` — the `List<FlowStep.Type>` it traversed
 (e.g. `[SIGN_UP, COMPLETED]`) — instead of accumulating them through a `StepListener`. For
-lower-level access, `FlowApiClient` wraps each Flow API endpoint directly.
+lower-level access, `FlowApiClient` wraps each Flow API endpoint a page calls; it has no call
+for leaving a flow, which is a browser following the step's `cancelUrl()`.
 
 ## Authorization request parameters
 

@@ -12,7 +12,7 @@ Three more per-flow callbacks drive the confirm and MFA steps:
 
 | Callback | Purpose |
 | -------------------------------------------------- | ------------------------------------------------------------------ |
-| `withConfirmHandler(ConfirmHandler)`               | approve (`ConfirmDecision.CONFIRM`) or decline (`CANCEL`) an action a client/admin asked the user to confirm; the resource exposes `action()` and `initiatingClientId()` (`null` when an admin initiated it) |
+| `withConfirmHandler(ConfirmHandler)`               | approve (`ConfirmDecision.CONFIRM`) or decline (`CANCEL`) an action a client/admin asked the user to confirm; declining follows the step's `cancel_url`, and fails the run when the step offers none. The resource exposes `action()`, `client()` (the initiating client's `id()` and `displayName()`, `null` when an admin initiated it) and `cancelUrl()` |
 | `withTotpEnrollmentHandler(TotpEnrollmentHandler)` | observe the enrolment secret or override the submitted code (default: compute a valid one) |
 | `withTotpChallengeHandler(TotpChallengeHandler)`   | supply the code answering a TOTP challenge |
 
